@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Warehouse • Stock Adjustments
+        {{ __('warehouse.stock.adjustments_index.header') }}
     </x-slot>
 
     <div class="py-6">
@@ -19,16 +19,16 @@
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl overflow-hidden">
                 <div class="px-6 py-4 border-b border-slate-200 flex flex-wrap gap-3 items-center justify-between">
                     <div>
-                        <div class="text-xl font-bold text-slate-900">Adjustment History</div>
-                        <div class="text-sm text-slate-500">Audit trail untuk special stock adjustment oleh authority tertentu</div>
+                        <div class="text-xl font-bold text-slate-900">{{ __('warehouse.stock.adjustments_index.title') }}</div>
+                        <div class="text-sm text-slate-500">{{ __('warehouse.stock.adjustments_index.subtitle') }}</div>
                     </div>
                     <div class="flex items-center gap-2">
                         <a href="{{ route('warehouse.stock.index') }}" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50">
-                            Stock by Location
+                            {{ __('warehouse.stock.adjustments_index.stock_by_location') }}
                         </a>
                         @if($canCreateAdjustment ?? false)
                             <a href="{{ route('warehouse.stock-adjustments.create') }}" class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700">
-                                + New Adjustment
+                                {{ __('warehouse.stock.adjustments_index.new_adjustment') }}
                             </a>
                         @endif
                     </div>
@@ -37,23 +37,23 @@
                 <form method="GET" class="px-6 py-4 bg-slate-50 border-b border-slate-200">
                     <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Search part / location</label>
-                            <input name="search" value="{{ $search }}" class="w-full rounded-lg border-slate-300 text-sm" placeholder="PART NO / name / RACK-A1">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.stock.adjustments_index.search_label') }}</label>
+                            <input name="search" value="{{ $search }}" class="w-full rounded-lg border-slate-300 text-sm" placeholder="{{ __('warehouse.stock.adjustments_index.search_ph') }}">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Location</label>
-                            <input name="location" value="{{ $location }}" class="w-full rounded-lg border-slate-300 text-sm uppercase" placeholder="RACK-A1">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.stock.adjustments_index.location_label') }}</label>
+                            <input name="location" value="{{ $location }}" class="w-full rounded-lg border-slate-300 text-sm uppercase" placeholder="{{ __('warehouse.stock.adjustments_index.location_ph') }}">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">From</label>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.stock.adjustments_index.from') }}</label>
                             <input type="date" name="date_from" value="{{ $dateFrom }}" class="w-full rounded-lg border-slate-300 text-sm">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">To</label>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.stock.adjustments_index.to') }}</label>
                             <input type="date" name="date_to" value="{{ $dateTo }}" class="w-full rounded-lg border-slate-300 text-sm">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Rows</label>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.stock.adjustments_index.rows') }}</label>
                             <select name="per_page" class="w-full rounded-lg border-slate-300 text-sm">
                                 @foreach([25,50,100,200] as $n)
                                     <option value="{{ $n }}" @selected((int) $perPage === $n)>{{ $n }}</option>
@@ -62,8 +62,8 @@
                         </div>
                     </div>
                     <div class="mt-3 flex gap-2">
-                        <button class="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold">Apply</button>
-                        <a href="{{ route('warehouse.stock-adjustments.index') }}" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700">Clear</a>
+                        <button class="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold">{{ __('warehouse.stock.adjustments_index.apply') }}</button>
+                        <a href="{{ route('warehouse.stock-adjustments.index') }}" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700">{{ __('warehouse.stock.adjustments_index.clear') }}</a>
                     </div>
                 </form>
 
@@ -71,16 +71,16 @@
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">When</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Location (From → To)</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Batch (From → To)</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Part</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Event</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">Before</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">After</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">Change</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">By</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Reason</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.stock.adjustments_index.th_when') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.stock.adjustments_index.th_location') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.stock.adjustments_index.th_batch') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.stock.adjustments_index.th_part') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.stock.adjustments_index.th_event') }}</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.stock.adjustments_index.th_before') }}</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.stock.adjustments_index.th_after') }}</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.stock.adjustments_index.th_change') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.stock.adjustments_index.th_by') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.stock.adjustments_index.th_reason') }}</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-slate-200">
@@ -102,8 +102,8 @@
                                         @endif
                                     </td>
                                     <td class="px-4 py-3 font-mono text-sm text-slate-700">
-                                        @php($fromLabel = $fromBatch ? $fromBatch : '(All)')
-                                        @php($toLabel = $toBatch ? $toBatch : '(All)')
+                                        @php($fromLabel = $fromBatch ? $fromBatch : __('warehouse.stock.adjustments_index.all_label'))
+                                        @php($toLabel = $toBatch ? $toBatch : __('warehouse.stock.adjustments_index.all_label'))
                                         <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded">{{ $fromLabel }}</span>
                                         @if($toLabel !== $fromLabel)
                                             <span class="mx-1 text-slate-400">→</span>
@@ -127,7 +127,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                <td colspan="10" class="px-6 py-12 text-center text-slate-500">No adjustments.</td>
+                                <td colspan="10" class="px-6 py-12 text-center text-slate-500">{{ __('warehouse.stock.adjustments_index.empty') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>

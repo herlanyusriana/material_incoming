@@ -1,8 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
         <div>
-            <h2 class="font-semibold text-xl text-slate-800 leading-tight">Edit Vendor</h2>
-            <p class="text-sm text-slate-500">Update supplier details.</p>
+            <h2 class="font-semibold text-xl text-slate-800 leading-tight">{{ __('master.vendors.edit.title') }}</h2>
+            <p class="text-sm text-slate-500">{{ __('master.vendors.edit.subtitle') }}</p>
         </div>
     </x-slot>
 

@@ -10,7 +10,7 @@
 <div {{ $attributes->merge(['class' => 'bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden']) }}>
     {{-- Table toolbar --}}
     @if($searchable || isset($toolbar))
-        <div class="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+        <div class="border-b border-slate-100 bg-slate-50/70 px-5 py-4">
             <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 @if($searchable)
                     <div class="relative max-w-xs w-full">
@@ -43,7 +43,7 @@
     <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-200 text-sm">
             @if(isset($head))
-                <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
+                <thead class="bg-slate-100/80">
                     <tr class="text-slate-600 text-xs uppercase tracking-wider">
                         {{ $head }}
                     </tr>
@@ -62,7 +62,7 @@
 
     {{-- Pagination --}}
     @if(isset($pagination))
-        <div class="px-5 py-3 border-t border-slate-100 bg-slate-50/50">
+        <div class="border-t border-slate-100 bg-slate-50/70 px-5 py-3">
             {{ $pagination }}
         </div>
     @endif

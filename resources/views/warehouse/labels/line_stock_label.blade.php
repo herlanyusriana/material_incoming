@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Line Stock QR - {{ $part->part_no }}</title>
+    <title>{{ __('warehouse.labels.line_stock.title', ['part' => $part->part_no]) }}</title>
     <style>
         @page { size: 100mm 75mm; margin: 0; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -100,18 +100,18 @@
         <div class="label">
             <section class="info">
                 <div>
-                    <div class="eyebrow">LINE STOCK</div>
+                    <div class="eyebrow">{{ __('warehouse.labels.line_stock.eyebrow') }}</div>
                     <div class="part-no">{{ $part->part_no }}</div>
                     <div class="name">{{ $part->part_name }}</div>
                     <div class="location">{{ $location }}</div>
                 </div>
                 <div class="note">
-                    Untuk material policy Simpan di Line. Scan QR ini saat supply produksi, sistem ambil stok FIFO otomatis.
+                    {{ __('warehouse.labels.line_stock.note') }}
                 </div>
             </section>
             <section class="qr-area">
                 <div class="qr">{!! $qrSvg !!}</div>
-                <div class="scan-text">SCAN UNTUK<br>SUPPLY LINE</div>
+                <div class="scan-text">{!! nl2br(e(__('warehouse.labels.line_stock.scan_text')))) !!}</div>
             </section>
         </div>
     </div>

@@ -1,8 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
         <div>
-            <h2 class="font-semibold text-xl text-slate-800 leading-tight">Edit Machine</h2>
-            <p class="text-sm text-slate-500">Update machine details.</p>
+            <h2 class="font-semibold text-xl text-slate-800 leading-tight">{{ __('master.machines.edit.title') }}</h2>
+            <p class="text-sm text-slate-500">{{ __('master.machines.edit.subtitle') }}</p>
         </div>
     </x-slot>
 

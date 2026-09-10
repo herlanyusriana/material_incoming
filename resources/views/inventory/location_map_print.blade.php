@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Warehouse Map (Denah)</title>
+    <title>{{ __('warehouse.inventory.location_map_print.title') }}</title>
     <style>
         @page {
             size: A4 landscape;
@@ -70,10 +70,10 @@
 </head>
 
 <body>
-    <div class="title">Warehouse Map - {{ date('Y-m-d') }}</div>
+    <div class="title">{{ __('warehouse.inventory.location_map_print.heading', ['date' => date('Y-m-d')]) }}</div>
 
     <div class="container">
-        <img src="{{ asset('assets/denah_warehouse.jpeg') }}" alt="Denah Warehouse">
+        <img src="{{ asset('assets/denah_warehouse.jpeg') }}" alt="{{ __('warehouse.inventory.location_map_print.alt') }}">
     </div>
 
     <script>

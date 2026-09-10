@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Purchasing • Purchase Orders
+        {{ __('purchasing.orders.index.header') }}
     </x-slot>
 
     <div class="py-6">
@@ -29,23 +29,23 @@
                 <div
                     class="p-6 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-slate-50/50">
                     <div>
-                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Purchase Order List</h2>
-                        <p class="text-sm text-slate-500 mt-1">Official purchase orders sent to vendors.</p>
+                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">{{ __('purchasing.orders.index.title') }}</h2>
+                        <p class="text-sm text-slate-500 mt-1">{{ __('purchasing.orders.index.subtitle') }}</p>
                     </div>
                     <div class="flex items-center gap-2">
                         @if($changed)
                             <a href="{{ route('purchasing.purchase-orders.index') }}"
                                 class="px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all">
-                                Show All POs
+                                {{ __('purchasing.orders.index.show_all') }}
                             </a>
                             <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
                                 <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M4.93 19h14.14a1 1 0 00.87-1.5L12.87 3.5a1 1 0 00-1.74 0L4.07 17.5a1 1 0 00.87 1.5z"/></svg>
-                                Changed (last 7 days)
+                                {{ __('purchasing.orders.index.changed') }}
                             </span>
                         @else
                             <a href="{{ route('purchasing.purchase-orders.index', ['changed' => 1]) }}"
                                 class="px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all">
-                                Changed PO Queue
+                                {{ __('purchasing.orders.index.changed_queue') }}
                             </a>
                         @endif
                     </div>
@@ -57,22 +57,22 @@
                             <tr>
                                 <th
                                     class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">
-                                    PO Number</th>
+                                    {{ __('purchasing.orders.index.th_po') }}</th>
                                 <th
                                     class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">
-                                    Vendor</th>
+                                    {{ __('purchasing.orders.index.th_vendor') }}</th>
                                 <th
                                     class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">
-                                    Total Amount</th>
+                                    {{ __('purchasing.orders.index.th_total') }}</th>
                                 <th
                                     class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-widest">
-                                    Status</th>
+                                    {{ __('purchasing.orders.index.th_status') }}</th>
                                 <th
                                     class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">
-                                    Release Date</th>
+                                    {{ __('purchasing.orders.index.th_date') }}</th>
                                 <th
                                     class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">
-                                    Actions</th>
+                                    {{ __('purchasing.orders.index.th_actions') }}</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-slate-100">
@@ -81,8 +81,7 @@
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm font-bold text-indigo-600 group-hover:text-indigo-700">
                                             {{ $order->po_number }}</div>
-                                        <div class="text-[10px] text-slate-400 font-mono">{{ $order->items->count() }} items
-                                            included</div>
+                                        <div class="text-[10px] text-slate-400 font-mono">{{ __('purchasing.orders.index.items', ['count' => $order->items->count()]) }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm font-semibold text-slate-700">{{ $order->vendor?->vendor_name }}
@@ -118,7 +117,7 @@
                                         <div class="flex items-center justify-end gap-2">
                                             <a href="{{ route('purchasing.purchase-orders.show', $order) }}"
                                                 class="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
-                                                title="View Detail" aria-label="View detail">
+                                                title="{{ __('purchasing.orders.index.view_title') }}" aria-label="{{ __('purchasing.orders.index.view_aria') }}">
                                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                         d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -129,7 +128,7 @@
                                             <a href="{{ route('purchasing.purchase-orders.print', $order) }}"
                                                 target="_blank"
                                                 class="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all"
-                                                title="Print PO" aria-label="Print PO">
+                                                title="{{ __('purchasing.orders.index.print_label') }}" aria-label="{{ __('purchasing.orders.index.print_label') }}">
                                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                         d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -147,8 +146,8 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1"
                                                     d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                                             </svg>
-                                            <span class="font-semibold">No purchase orders found.</span>
-                                            <p class="text-xs">Convert an approved Purchase Request to get started.</p>
+                                            <span class="font-semibold">{{ __('purchasing.orders.index.empty') }}</span>
+                                            <p class="text-xs">{{ __('purchasing.orders.index.empty_hint') }}</p>
                                         </div>
                                     </td>
                                 </tr>

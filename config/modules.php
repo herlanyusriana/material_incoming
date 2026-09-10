@@ -67,17 +67,24 @@ return [
             ],
         ],
 
-        'warehouse' => [
-            'label' => 'modules.warehouse',
+        'inventory' => [
+            'label' => 'modules.inventory',
             'icon' => 'warehouse',
             'color' => 'amber',
+            // Tab kategori: item menu hanya tampil pada kategori yang terdaftar
+            // di item.categories. Item tanpa key "categories" = tool lintas kategori.
+            'categories' => [
+                'fg' => ['label' => 'modules.cat_fg', 'classification' => 'FG'],
+                'rm' => ['label' => 'modules.cat_rm', 'classification' => 'RM'],
+                'wip' => ['label' => 'modules.cat_wip', 'classification' => 'WIP'],
+            ],
             'items' => [
-                ['key' => 'incoming', 'label' => 'modules.incoming_material', 'icon' => 'arrow-down-tray', 'route' => 'incoming-material.dashboard', 'permission' => 'view_incoming'],
-                ['key' => 'outgoing', 'label' => 'modules.outgoing_material', 'icon' => 'arrow-up-tray', 'route' => 'outgoing.delivery-orders.index', 'permission' => 'manage_outgoing'],
-                ['key' => 'stock', 'label' => 'modules.stock', 'icon' => 'squares', 'route' => 'stock-card.index', 'permission' => 'manage_inventory'],
+                ['key' => 'in-material', 'label' => 'modules.incoming_material', 'icon' => 'arrow-down-tray', 'route' => 'incoming-material.dashboard', 'permission' => 'view_incoming', 'categories' => ['fg', 'rm', 'wip']],
+                ['key' => 'out-material', 'label' => 'modules.outgoing_material', 'icon' => 'arrow-up-tray', 'route' => 'outgoing.delivery-orders.index', 'permission' => 'manage_outgoing', 'categories' => ['fg']],
+                ['key' => 'stock', 'label' => 'modules.stock', 'icon' => 'squares', 'route' => 'stock-card.index', 'permission' => 'manage_inventory', 'categories' => ['fg', 'rm', 'wip'], 'category_param' => 'classification'],
+                ['key' => 'opname', 'label' => 'modules.stock_opname', 'icon' => 'clipboard-check', 'route' => 'warehouse.stock-opname.index', 'permission' => 'manage_inventory', 'categories' => ['fg', 'rm', 'wip']],
                 ['key' => 'stock-location', 'label' => 'modules.stock_by_location', 'icon' => 'map-pin', 'route' => 'warehouse.stock.index', 'permission' => 'manage_inventory'],
                 ['key' => 'transfer', 'label' => 'modules.transfer_stock', 'icon' => 'arrows', 'route' => 'warehouse.bin-transfers.index', 'permission' => 'manage_inventory'],
-                ['key' => 'opname', 'label' => 'modules.stock_opname', 'icon' => 'clipboard-check', 'route' => 'warehouse.stock-opname.index', 'permission' => 'manage_inventory'],
             ],
         ],
 
@@ -86,6 +93,7 @@ return [
             'icon' => 'cog',
             'color' => 'orange',
             'items' => [
+                ['key' => 'wo-tracking', 'label' => 'modules.wo_tracking', 'icon' => 'clipboard-doc', 'route' => 'production.wo-tracking.index', 'permission' => 'view_production'],
                 ['key' => 'daily-prod-plan', 'label' => 'modules.daily_prod_plan', 'icon' => 'calendar-day', 'route' => 'production.planning.index', 'permission' => 'view_production'],
                 ['key' => 'prod-result', 'label' => 'modules.prod_result_input', 'icon' => 'play-pause', 'route' => 'production.mass-production.index', 'permission' => 'view_production'],
                 ['key' => 'cycle-time', 'label' => 'modules.cycle_time', 'icon' => 'clock', 'route' => 'production.cycle-time.index', 'permission' => 'view_production'],

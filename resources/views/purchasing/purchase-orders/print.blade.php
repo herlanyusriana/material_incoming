@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Purchase Order - {{ $purchaseOrder->po_number }}</title>
+    <title>{{ __('purchasing.orders.print.doc_title') }} - {{ $purchaseOrder->po_number }}</title>
     <style>
         @page { size: A4; margin: 20mm; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 11pt; color: #333; line-height: 1.4; margin: 0; padding: 0; }
@@ -46,7 +46,7 @@
 </head>
 <body>
     <div class="no-print" style="background: #fdf2f2; padding: 10px; text-align: center; border-bottom: 1px solid #feb2b2; margin-bottom: 20px;">
-        <button onclick="window.print()" style="padding: 8px 20px; background: #c53030; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">Print Document</button>
+        <button onclick="window.print()" style="padding: 8px 20px; background: #c53030; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold;">{{ __('purchasing.orders.print.print_btn') }}</button>
     </div>
 
     <div class="header">
@@ -57,23 +57,23 @@
             <p>Tel: +62 21 555 1234 | Email: purchasing@gci-power.com</p>
         </div>
         <div class="po-title">
-            <h2>PURCHASE ORDER</h2>
+            <h2>{{ __('purchasing.orders.print.doc_heading') }}</h2>
             <p>{{ $purchaseOrder->po_number }}</p>
-            <p style="font-size: 9pt; font-weight: normal; margin-top: 5px;">Date: {{ $purchaseOrder->created_at->format('M d, Y') }}</p>
+            <p style="font-size: 9pt; font-weight: normal; margin-top: 5px;">{{ __('purchasing.orders.print.doc_date_label') }} {{ $purchaseOrder->created_at->format('M d, Y') }}</p>
         </div>
     </div>
 
     <div class="info-grid">
         <div class="info-box">
-            <h3>Vendor Information</h3>
+            <h3>{{ __('purchasing.orders.print.vendor_title') }}</h3>
             <p>{{ $purchaseOrder->vendor?->vendor_name }}</p>
-            <p style="font-size: 9pt; font-weight: normal; color: #718096;">Code: {{ $purchaseOrder->vendor?->vendor_code }}</p>
+            <p style="font-size: 9pt; font-weight: normal; color: #718096;">{{ __('purchasing.orders.print.vendor_code') }} {{ $purchaseOrder->vendor?->vendor_code }}</p>
             <!-- Add more vendor details if available in Vendor model -->
         </div>
         <div class="info-box">
-            <h3>Shipping / Terms</h3>
-            <p>Standard Shipping</p>
-            <p style="font-size: 9pt; font-weight: normal; color: #718096;">Payment: Net 30 Days</p>
+            <h3>{{ __('purchasing.orders.print.ship_title') }}</h3>
+            <p>{{ __('purchasing.orders.print.ship_method') }}</p>
+            <p style="font-size: 9pt; font-weight: normal; color: #718096;">{{ __('purchasing.orders.print.ship_payment') }}</p>
         </div>
     </div>
 
@@ -81,10 +81,10 @@
         <thead>
             <tr>
                 <th width="50">No</th>
-                <th>Part Description</th>
-                <th width="100" class="text-right">Quantity</th>
-                <th width="120" class="text-right">Unit Price</th>
-                <th width="120" class="text-right">Total</th>
+                <th>{{ __('purchasing.orders.print.th_part') }}</th>
+                <th width="100" class="text-right">{{ __('purchasing.orders.print.th_qty') }}</th>
+                <th width="120" class="text-right">{{ __('purchasing.orders.print.th_price') }}</th>
+                <th width="120" class="text-right">{{ __('purchasing.orders.print.th_total') }}</th>
             </tr>
         </thead>
         <tbody>
@@ -95,7 +95,7 @@
                         <div style="font-weight: 900;">{{ $item->part?->part_no }}</div>
                         <div style="font-size: 8pt; color: #718096;">{{ $item->part?->part_name }}</div>
                         @if ($item->vendorPart)
-                            <div style="font-size: 7pt; color: #4c51bf; font-family: monospace;">Vendor Part: {{ $item->vendorPart->part_no }}</div>
+                            <div style="font-size: 7pt; color: #4c51bf; font-family: monospace;">{{ __('purchasing.orders.print.vendor_part') }}: {{ $item->vendorPart->part_no }}</div>
                         @endif
                     </td>
                     <td class="text-right font-mono">{{ number_format($item->qty, 4) }}</td>
@@ -108,43 +108,43 @@
 
     <div class="totals">
         <div class="total-row">
-            <span style="color: #a0aec0; font-weight: bold; text-transform: uppercase; font-size: 9pt;">Subtotal</span>
+            <span style="color: #a0aec0; font-weight: bold; text-transform: uppercase; font-size: 9pt;">{{ __('purchasing.orders.print.subtotal') }}</span>
             <span class="font-mono">{{ number_format($purchaseOrder->total_amount, 2) }}</span>
         </div>
         <div class="total-row">
-            <span style="color: #a0aec0; font-weight: bold; text-transform: uppercase; font-size: 9pt;">Tax (0%)</span>
+            <span style="color: #a0aec0; font-weight: bold; text-transform: uppercase; font-size: 9pt;">{{ __('purchasing.orders.print.tax', ['rate' => '0%']) }}</span>
             <span class="font-mono">0.00</span>
         </div>
         <div class="total-row grand">
-            <span>TOTAL</span>
+            <span>{{ __('purchasing.orders.print.total') }}</span>
             <span>{{ number_format($purchaseOrder->total_amount, 2) }}</span>
         </div>
     </div>
 
     @if ($purchaseOrder->notes)
         <div class="notes-section">
-            <h4>Important Notes</h4>
+            <h4>{{ __('purchasing.orders.print.notes_title') }}</h4>
             <p>{{ $purchaseOrder->notes }}</p>
         </div>
     @endif
 
     <div class="signatures">
         <div class="sig-box">
-            <div class="sig-label">Authorized By</div>
+            <div class="sig-label">{{ __('purchasing.orders.print.auth_by') }}</div>
             <div class="sig-line"></div>
             <div class="sig-name">{{ $purchaseOrder->approvedBy?->name ?? '________________' }}</div>
-            <div class="sig-label">Purchasing Manager</div>
+            <div class="sig-label">{{ __('purchasing.orders.print.auth_role') }}</div>
         </div>
         <div class="sig-box">
-            <div class="sig-label">Vendor Acknowledgement</div>
+            <div class="sig-label">{{ __('purchasing.orders.print.vendor_ack') }}</div>
             <div class="sig-line"></div>
             <div class="sig-name">________________</div>
-            <div class="sig-label">Name & Stamp</div>
+            <div class="sig-label">{{ __('purchasing.orders.print.vendor_stamp') }}</div>
         </div>
     </div>
 
     <div style="position: fixed; bottom: 0; width: 100%; border-top: 1px solid #edf2f7; padding-top: 10px; font-size: 8pt; color: #a0aec0; text-align: center;">
-        Page 1 of 1 | Printed on {{ date('Y-m-d H:i:s') }} | System Generated PO
+        {{ __('purchasing.orders.print.foot_page') }} | {{ __('purchasing.orders.print.foot_printed') }} {{ date('Y-m-d H:i:s') }} | {{ __('purchasing.orders.print.foot_system') }}
     </div>
 </body>
 </html>

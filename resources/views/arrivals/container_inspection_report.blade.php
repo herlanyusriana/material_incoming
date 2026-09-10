@@ -147,7 +147,7 @@
             <tr>
                 <td>
                     <div class="slot h-top">
-                        <div class="label">Depan</div>
+                        <div class="label">{{ __('incoming.arrivals.inspection.front') }}</div>
                         @if ($p = $photo('front'))
                             <div class="photo-frame"><img class="photo-img" src="{{ $p['src'] }}" alt="Depan"></div>
                         @else
@@ -157,7 +157,7 @@
                 </td>
                 <td>
                     <div class="slot h-top">
-                        <div class="label">Belakang</div>
+                        <div class="label">{{ __('incoming.arrivals.inspection.back') }}</div>
                         @if ($p = $photo('back'))
                             <div class="photo-frame"><img class="photo-img" src="{{ $p['src'] }}" alt="Belakang"></div>
                         @else
@@ -167,31 +167,31 @@
                 </td>
                 <td>
                     <div class="slot h-top">
-                        <div class="label">Detail Kerusakan</div>
+                        <div class="label">{{ __('incoming.arrivals.inspection.detail_damage') }}</div>
                         @if ($p = $photo('damage1'))
                             <div class="photo-frame"><img class="photo-img" src="{{ $p['src'] }}" alt="Detail Kerusakan 1"></div>
                         @else
-                            <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Detail Kerusakan (If case)</div></td></tr></table>
+                            <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">{{ __('incoming.arrivals.inspection.detail_damage_empty') }}</div></td></tr></table>
                         @endif
                     </div>
                 </td>
                 <td>
                     <div class="slot h-top">
-                        <div class="label">Detail Kerusakan</div>
+                        <div class="label">{{ __('incoming.arrivals.inspection.detail_damage') }}</div>
                         @if ($p = $photo('damage2'))
                             <div class="photo-frame"><img class="photo-img" src="{{ $p['src'] }}" alt="Detail Kerusakan 2"></div>
                         @else
-                            <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Detail Kerusakan (If case)</div></td></tr></table>
+                            <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">{{ __('incoming.arrivals.inspection.detail_damage_empty') }}</div></td></tr></table>
                         @endif
                     </div>
                 </td>
                 <td>
                     <div class="slot h-top">
-                        <div class="label">Detail Kerusakan</div>
+                        <div class="label">{{ __('incoming.arrivals.inspection.detail_damage') }}</div>
                         @if ($p = $photo('damage3'))
                             <div class="photo-frame"><img class="photo-img" src="{{ $p['src'] }}" alt="Detail Kerusakan 3"></div>
                         @else
-                            <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Detail Kerusakan (If case)</div></td></tr></table>
+                            <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">{{ __('incoming.arrivals.inspection.detail_damage_empty') }}</div></td></tr></table>
                         @endif
                     </div>
                 </td>
@@ -200,24 +200,24 @@
             <tr>
                 <td>
                     <div class="slot h-mid">
-                        <div class="label">Dalam</div>
+                        <div class="label">{{ __('incoming.arrivals.inspection.inside') }}</div>
                         @if ($p = $photo('inside'))
                             <div class="photo-frame"><img class="photo-img" src="{{ $p['src'] }}" alt="Dalam"></div>
                         @else
-                            <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">Foto Interior</div></td></tr></table>
+                            <table class="slot-inner"><tr><td class="slot-cell"><div class="empty">{{ __('incoming.arrivals.inspection.interior_empty') }}</div></td></tr></table>
                         @endif
                     </div>
                 </td>
                 <td>
                     <div class="slot h-mid">
-                        <div class="label">No.Seal</div>
+                        <div class="label">{{ __('incoming.arrivals.inspection.seal_no') }}</div>
                         @if ($p = $photo('seal'))
                             <div class="photo-frame"><img class="photo-img" src="{{ $p['src'] }}" alt="Seal"></div>
                         @else
                             <table class="slot-inner">
                                 <tr><td class="slot-cell">
                                     <div class="seal-code">{{ $sealCode ?: '-' }}</div>
-                                    <div class="empty" style="margin-top:2mm;">Foto No Seal</div>
+                                    <div class="empty" style="margin-top:2mm;">{{ __('incoming.arrivals.inspection.seal_photo_empty') }}</div>
                                 </td></tr>
                             </table>
                         @endif
@@ -226,14 +226,14 @@
                 <td colspan="3" rowspan="2">
                     <div class="slot h-ket">
                         <div class="pad">
-                            <div class="info-title">Keterangan</div>
+                            <div class="info-title">{{ __('incoming.arrivals.inspection.description') }}</div>
                             <table class="kvs">
-                                <tr><td class="k">No Invoice</td><td class="v">: {{ $arrivalNo }}</td></tr>
-                                <tr><td class="k">No Container</td><td class="v">: {{ $containerNo }}</td></tr>
-                                <tr><td class="k">No Seal</td><td class="v">: {{ $sealCode ?: '-' }}</td></tr>
-                                <tr><td class="k">Tanggal Tiba</td><td class="v">: {{ $dateText }}</td></tr>
+                                <tr><td class="k">{{ __('incoming.arrivals.inspection.invoice_no') }}</td><td class="v">: {{ $arrivalNo }}</td></tr>
+                                <tr><td class="k">{{ __('incoming.arrivals.inspection.container_no') }}</td><td class="v">: {{ $containerNo }}</td></tr>
+                                <tr><td class="k">{{ __('incoming.arrivals.inspection.seal') }}</td><td class="v">: {{ $sealCode ?: '-' }}</td></tr>
+                                <tr><td class="k">{{ __('incoming.arrivals.inspection.arrival_date') }}</td><td class="v">: {{ $dateText }}</td></tr>
                                 <tr>
-                                    <td class="k">Catatan</td>
+                                    <td class="k">{{ __('incoming.arrivals.inspection.note') }}</td>
                                     <td class="v">:
                                         {{ $autoNotes }}
                                         @if ($inspection?->notes)
@@ -250,7 +250,7 @@
             <tr>
                 <td colspan="2">
                     <div class="slot h-kiri">
-                        <div class="label">Kiri</div>
+                        <div class="label">{{ __('incoming.arrivals.inspection.left') }}</div>
                         @if ($p = $photo('left'))
                             <div class="photo-frame"><img class="photo-img" src="{{ $p['src'] }}" alt="Kiri"></div>
                         @else
@@ -263,7 +263,7 @@
             <tr>
                 <td colspan="2">
                     <div class="slot h-kanan">
-                        <div class="label">Kanan</div>
+                        <div class="label">{{ __('incoming.arrivals.inspection.right') }}</div>
                         @if ($p = $photo('right'))
                             <div class="photo-frame"><img class="photo-img" src="{{ $p['src'] }}" alt="Kanan"></div>
                         @else
@@ -274,26 +274,26 @@
                 <td colspan="3">
                     <div class="slot h-ttd">
                         <div class="pad">
-                            <div class="info-title">TTD</div>
+                            <div class="info-title">{{ __('incoming.arrivals.inspection.signatures') }}</div>
                             <table class="sig-grid">
                                 <tr>
                                     <td>
                                         <div class="sig-box">
-                                            <div class="sig-title">Diperiksa Oleh</div>
+                                            <div class="sig-title">{{ __('incoming.arrivals.inspection.checked_by') }}</div>
                                             <div class="sig-line"></div>
                                             <div class="sig-name">Nurwahid/Ida</div>
                                         </div>
                                     </td>
                                     <td>
                                         <div class="sig-box">
-                                            <div class="sig-title">Mengetahui</div>
+                                            <div class="sig-title">{{ __('incoming.arrivals.inspection.acknowledged') }}</div>
                                             <div class="sig-line"></div>
                                             <div class="sig-name">Fadri/Dita</div>
                                         </div>
                                     </td>
                                     <td>
                                         <div class="sig-box">
-                                            <div class="sig-title">Driver</div>
+                                            <div class="sig-title">{{ __('incoming.arrivals.inspection.driver') }}</div>
                                             <div class="sig-line"></div>
                                             <div class="sig-name">{{ $inspection?->driver_name ?: '-' }}</div>
                                         </div>

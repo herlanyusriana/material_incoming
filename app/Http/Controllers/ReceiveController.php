@@ -428,11 +428,6 @@ class ReceiveController extends Controller
         }
 
         $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
-        $partId = $this->resolveVendorPartId($arrivalItem);
-        $gciPartId = $this->resolveGciPartId($arrivalItem);
-        if ($gciPartId === null && collect($validated['tags'])->contains(fn($tag) => !empty($tag['location_code'] ?? null))) {
-            $gciPartId = $this->ensurePutawayGciPartId($arrivalItem, 'tags');
-        }
         $receiveAt = Carbon::parse($validated['receive_date'])->setTimeFromTimeString(now()->format('H:i:s'));
         $truckNo = isset($validated['truck_no']) && trim((string) $validated['truck_no']) !== ''
             ? strtoupper(trim((string) $validated['truck_no']))
@@ -463,8 +458,7 @@ class ReceiveController extends Controller
         // }
         // -------------------------------
 
-        DB::transaction(function () use ($validated, $arrivalItem, $goodsUnit, $partId, $gciPartId, $receiveAt, $truckNo) {
-            $locationAdds = []; // key: "locationCode|tag"
+        DB::transaction(function () use ($validated, $arrivalItem, $goodsUnit, $receiveAt, $truckNo) {
             foreach ($validated['tags'] as $tagData) {
                 if (strtoupper($tagData['qty_unit']) !== $goodsUnit) {
                     throw new HttpResponseException(back()->withInput()->withErrors([
@@ -475,14 +469,6 @@ class ReceiveController extends Controller
                 $netWeight = $tagData['net_weight'] ?? $tagData['weight'] ?? null;
                 if ($netWeight === null && $goodsUnit === 'KGM') {
                     $netWeight = $tagData['qty'];
-                }
-
-                $locationCode = null;
-                if (array_key_exists('location_code', $tagData)) {
-                    $locationCode = strtoupper(trim((string) $tagData['location_code']));
-                    if ($locationCode === '') {
-                        $locationCode = null;
-                    }
                 }
 
                 $tag = $this->normalizeTag($tagData['tag'] ?? null);
@@ -501,7 +487,9 @@ class ReceiveController extends Controller
                     'qc_status' => $tagData['qc_status'] ?? 'pass',
                     'jo_po_number' => null,
                     'truck_no' => $truckNo,
-                    'location_code' => $locationCode,
+                    // Receive always lands in the virtual inventory location first.
+                    // Physical rack assignment belongs to the later Putaway step.
+                    'location_code' => null,
                 ]);
                 $tag = $this->resolveReceiveTag($tagData['tag'] ?? null, (int) $receive->id, $receiveAt);
                 if ($tag !== null && $receive->tag !== $tag) {
@@ -509,36 +497,10 @@ class ReceiveController extends Controller
                 }
 
                 if (($tagData['qc_status'] ?? 'pass') === 'pass') {
-                    $addQty = $goodsUnit === 'COIL' ? (float) ($netWeight ?? 0) : (float) $tagData['qty'];
-                    if ($locationCode) {
-                        $key = $locationCode . '|' . ($tag ?? '');
-                        $locationAdds[$key] = ($locationAdds[$key] ?? ['location' => $locationCode, 'tag' => $tag, 'qty' => 0]);
-                        $locationAdds[$key]['qty'] += $addQty;
-                    }
-                }
-            }
-
-
-            // Putaway: update stock per location+tag (pass only).
-            if (!empty($locationAdds) && $partId) {
-                foreach ($locationAdds as $entry) {
-                    if ($entry['qty'] > 0) {
-                        InventoryLocationStock::updateStock(
-                            $gciPartId,
-                            $entry['location'],
-                            (float) $entry['qty'],
-                            $entry['tag'],
-                            $entry['tag'],
-                            'RECEIVE',
-                            null,
-                            null,
-                            $arrivalItem->arrival_id,
-                            $arrivalItem->arrival?->invoice_no,
-                            null,
-                            null,
-                            null
-                        );
-                    }
+                    // Rack is intentionally ignored here. Inventory is posted first;
+                    // Putaway moves it from RECEIVING to the physical rack later.
+                    $this->ensurePutawayGciPartId($arrivalItem, 'tags');
+                    WarehouseQcController::postReceivingStock($receive);
                 }
             }
         });
@@ -688,13 +650,12 @@ class ReceiveController extends Controller
             }
         }
 
-        $locationAdds = [];
         $receiveAt = Carbon::parse($validated['receive_date'])->setTimeFromTimeString(now()->format('H:i:s'));
         $truckNo = isset($validated['truck_no']) && trim((string) $validated['truck_no']) !== ''
             ? strtoupper(trim((string) $validated['truck_no']))
             : null;
 
-        DB::transaction(function () use ($itemsInput, $arrival, $receiveAt, $truckNo, &$locationAdds, $request, $validated) {
+        DB::transaction(function () use ($itemsInput, $arrival, $receiveAt, $truckNo, $request, $validated) {
             foreach ($itemsInput as $itemId => $itemData) {
                 $arrivalItem = $arrival->items->firstWhere('id', $itemId);
                 $goodsUnit = strtoupper($arrivalItem->unit_goods ?? 'KGM');
@@ -729,13 +690,6 @@ class ReceiveController extends Controller
                     if ($netWeight === null && $goodsUnit === 'KGM') {
                         $netWeight = $tagData['qty'];
                     }
-                    $locationCode = null;
-                    if (array_key_exists('location_code', $tagData)) {
-                        $locationCode = strtoupper(trim((string) $tagData['location_code']));
-                        if ($locationCode === '') {
-                            $locationCode = null;
-                        }
-                    }
                     $receive = $arrivalItem->receives()->create([
                         'tag' => $this->normalizeTag($tagData['tag'] ?? null),
                         'qty' => $tagData['qty'],
@@ -752,7 +706,9 @@ class ReceiveController extends Controller
                         'invoice_no' => $validated['invoice_no'] ?? null,
                         'delivery_note_no' => $validated['delivery_note_no'] ?? null,
                         'truck_no' => $truckNo,
-                        'location_code' => $locationCode,
+                        // Receive always lands in the virtual inventory location first.
+                        // Physical rack assignment belongs to the later Putaway step.
+                        'location_code' => null,
                     ]);
                     $tag = $this->resolveReceiveTag($tagData['tag'] ?? null, (int) $receive->id, $receiveAt);
                     if ($tag !== null && $receive->tag !== $tag) {
@@ -760,41 +716,10 @@ class ReceiveController extends Controller
                     }
 
                     if (($tagData['qc_status'] ?? 'pass') === 'pass') {
-                        $addQty = $goodsUnit === 'COIL' ? (float) ($netWeight ?? 0) : (float) $tagData['qty'];
-                        if ($locationCode) {
-                            $key = $locationCode . '|' . ($tag ?? '');
-                            $partId = $this->resolveVendorPartId($arrivalItem);
-                            $locationAdds[$partId][$key] = ($locationAdds[$partId][$key] ?? ['location' => $locationCode, 'tag' => $tag, 'qty' => 0]);
-                            $locationAdds[$partId][$key]['qty'] += $addQty;
-                        }
-                    }
-                }
-            }
-
-
-            // Putaway: update stock per location+tag (pass only).
-            foreach ($locationAdds as $partId => $byLocation) {
-                if (!$partId || empty($byLocation) || !is_array($byLocation)) {
-                    continue;
-                }
-                $gciPartId = $this->ensurePutawayGciPartId($arrivalItem, "items.$itemId.tags");
-                foreach ($byLocation as $entry) {
-                    if ($entry['qty'] > 0) {
-                        InventoryLocationStock::updateStock(
-                            $gciPartId,
-                            $entry['location'],
-                            (float) $entry['qty'],
-                            $entry['tag'],
-                            $entry['tag'],
-                            'RECEIVE',
-                            null,
-                            null,
-                            $arrival->id,
-                            $arrival->invoice_no,
-                            null,
-                            null,
-                            null
-                        );
+                        // Rack is intentionally ignored here. Inventory is posted first;
+                        // Putaway moves it from RECEIVING to the physical rack later.
+                        $this->ensurePutawayGciPartId($arrivalItem, "items.$itemId.tags");
+                        WarehouseQcController::postReceivingStock($receive);
                     }
                 }
             }

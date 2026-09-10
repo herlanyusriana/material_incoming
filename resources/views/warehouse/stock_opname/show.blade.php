@@ -5,7 +5,7 @@
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
         <!-- Breadcrumb -->
         <nav class="flex mb-6 text-sm font-medium text-slate-500 items-center gap-2">
-            <a href="{{ route('warehouse.stock-opname.index') }}" class="hover:text-indigo-600 transition-colors">Stock Opname</a>
+            <a href="{{ route('warehouse.stock-opname.index') }}" class="hover:text-indigo-600 transition-colors">{{ __('warehouse.stock_opname.show.crumb') }}</a>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
@@ -45,14 +45,14 @@
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
-                                    Started: {{ $stock_opname->start_date?->format('d M Y H:i') ?: '-' }}
+                                    {{ __('warehouse.stock_opname.show.started') }} {{ $stock_opname->start_date?->format('d M Y H:i') ?: '-' }}
                                 </span>
                                 @if($stock_opname->end_date)
                                 <span class="flex items-center gap-1.5">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                     </svg>
-                                    Ended: {{ $stock_opname->end_date->format('d M Y H:i') }}
+                                    {{ __('warehouse.stock_opname.show.ended') }} {{ $stock_opname->end_date->format('d M Y H:i') }}
                                 </span>
                                 @endif
                             </div>
@@ -66,20 +66,20 @@
                             <button type="submit" 
                                 class="inline-flex items-center px-4 py-2.5 bg-amber-500 hover:bg-amber-600 border border-transparent rounded-lg font-bold text-sm text-white transition-all shadow-sm shadow-amber-100">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"                                     d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                                 </svg>
-                                Close Counting
+                                {{ __('warehouse.stock_opname.show.close_counting') }}
                             </button>
                         </form>
                         @elseif($stock_opname->status === 'CLOSED')
-                        <form action="{{ route('warehouse.stock-opname.adjust', $stock_opname) }}" method="POST" onsubmit="return confirm('WARNING: This will adjust your actual stock to match counted values. Continue?')">
+                        <form action="{{ route('warehouse.stock-opname.adjust', $stock_opname) }}" method="POST" onsubmit='return confirm(@js(__('warehouse.stock_opname.show.adjust_confirm')))'>
                             @csrf
                             <button type="submit" 
                                 class="inline-flex items-center px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 border border-transparent rounded-lg font-bold text-sm text-white transition-all shadow-sm shadow-indigo-100">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                                 </svg>
-                                Adjust Actual Stock
+                                {{ __('warehouse.stock_opname.show.adjust_stock') }}
                             </button>
                         </form>
                         @endif
@@ -91,18 +91,18 @@
         <!-- Discrepancy Summary Stats -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
-                <p class="text-sm font-medium text-slate-500 uppercase tracking-wider">Total Scanned</p>
-                <p class="text-3xl font-black text-slate-900 mt-1">{{ number_format($stock_opname->items->count()) }} <span class="text-sm font-medium text-slate-400 font-normal">items</span></p>
+                <p class="text-sm font-medium text-slate-500 uppercase tracking-wider">{{ __('warehouse.stock_opname.show.total_scanned') }}</p>
+                <p class="text-3xl font-black text-slate-900 mt-1">{{ number_format($stock_opname->items->count()) }} <span class="text-sm font-medium text-slate-400 font-normal">{{ __('warehouse.stock_opname.show.items') }}</span></p>
             </div>
             <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
-                <p class="text-sm font-medium text-slate-500 uppercase tracking-wider">Total Selisih (+/-)</p>
+                <p class="text-sm font-medium text-slate-500 uppercase tracking-wider">{{ __('warehouse.stock_opname.show.total_diff') }}</p>
                 @php $totalDiff = $stock_opname->items->sum('difference'); @endphp
                 <p class="text-3xl font-black {{ $totalDiff == 0 ? 'text-slate-900' : ($totalDiff > 0 ? 'text-green-600' : 'text-red-600') }} mt-1">
                     {{ $totalDiff > 0 ? '+' : '' }}{{ number_format($totalDiff) }}
                 </p>
             </div>
             <div class="bg-white p-6 rounded-lg shadow-sm border border-slate-200">
-                <p class="text-sm font-medium text-slate-500 uppercase tracking-wider">Status Akurasi</p>
+                <p class="text-sm font-medium text-slate-500 uppercase tracking-wider">{{ __('warehouse.stock_opname.show.accuracy') }}</p>
                 @php 
                     $mismatchCount = $stock_opname->items->where('difference', '!=', 0)->count();
                     $accuracy = $stock_opname->items->count() > 0 ? (1 - ($mismatchCount / $stock_opname->items->count())) * 100 : 100;
@@ -118,19 +118,19 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                     </svg>
-                    Counting List
+                    {{ __('warehouse.stock_opname.show.counting_list') }}
                 </h3>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-200">
                     <thead class="bg-slate-50">
                         <tr>
-                            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Location</th>
-                            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Part Info</th>
-                            <th class="px-6 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">System</th>
-                            <th class="px-6 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Counted</th>
-                            <th class="px-6 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Difference</th>
-                            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Timestamp</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ __('warehouse.stock_opname.show.th_location') }}</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ __('warehouse.stock_opname.show.th_part') }}</th>
+                            <th class="px-6 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ __('warehouse.stock_opname.show.th_system') }}</th>
+                            <th class="px-6 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ __('warehouse.stock_opname.show.th_counted') }}</th>
+                            <th class="px-6 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ __('warehouse.stock_opname.show.th_diff') }}</th>
+                            <th class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ __('warehouse.stock_opname.show.th_time') }}</th>
                         </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-slate-200 text-sm">
@@ -147,7 +147,7 @@
                                     <span class="text-xs text-slate-500 line-clamp-1">{{ $item->part?->part_name }}</span>
                                     @if($item->batch)
                                         <span class="text-[10px] text-slate-500 mt-1">
-                                            Batch: <span class="font-mono font-bold text-slate-700">{{ $item->batch }}</span>
+                                            {{ __('warehouse.stock_opname.show.batch') }} <span class="font-mono font-bold text-slate-700">{{ $item->batch }}</span>
                                         </span>
                                     @endif
                                 </div>
@@ -177,7 +177,7 @@
                         @empty
                         <tr>
                             <td colspan="6" class="px-6 py-12 text-center text-slate-400 italic">
-                                No counting data recorded yet.
+                                {{ __('warehouse.stock_opname.show.empty') }}
                             </td>
                         </tr>
                         @endforelse

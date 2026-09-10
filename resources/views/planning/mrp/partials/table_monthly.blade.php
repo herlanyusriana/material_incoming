@@ -18,16 +18,16 @@
     <div class="text-sm font-semibold text-slate-900">{{ $modeLabel }}</div>
     @if($showPoAction)
         <div class="text-[11px] text-slate-500">
-            Check a row then <span class="font-semibold text-emerald-700">Generate PO</span>
-            (approved only) or <span class="font-semibold text-indigo-700">Approve</span> /
-            <span class="font-semibold text-red-600">Reject</span> in batch.
+            {{ __('planning.mrp.table_monthly.hint_before') }} <span class="font-semibold text-emerald-700">{{ __('planning.mrp.table.generate_po') }}</span>
+            {{ __('planning.mrp.table_monthly.hint_mid') }} <span class="font-semibold text-indigo-700">{{ __('planning.mrp.table.approve') }}</span> /
+            <span class="font-semibold text-red-600">{{ __('planning.mrp.table.reject') }}</span> {{ __('planning.mrp.table_monthly.hint_after') }}
         </div>
     @endif
 </div>
 
 @if(empty($mrpRows))
     <div class="rounded-xl border border-dashed border-slate-200 p-10 text-center text-slate-500">
-        No data for this section.
+        {{ __('planning.mrp.table.empty') }}
     </div>
 @else
     @if($showPoAction)
@@ -37,15 +37,15 @@
                 @can('approve_mrp')
                     <button formaction="{{ route('planning.mrp.approve') }}"
                         class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-sm transition-colors">
-                        Approve Selected
+                        {{ __('planning.mrp.table.approve') }}
                     </button>
                     <button formaction="{{ route('planning.mrp.reject') }}"
                         class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-sm transition-colors">
-                        Reject Selected
+                        {{ __('planning.mrp.table.reject') }}
                     </button>
                 @endcan
                 <button class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm transition-colors">
-                    Generate PO from Selection
+                    {{ __('planning.mrp.table.generate_po') }}
                 </button>
             </div>
     @endif
@@ -58,20 +58,20 @@
                         <tr>
                             <th scope="col" class="px-3 py-2 text-left text-xs font-bold uppercase w-10">No.</th>
                             <th scope="col" class="px-3 py-2 text-left text-xs font-bold uppercase w-44">Part No</th>
-                            <th scope="col" class="px-3 py-2 text-left text-xs font-bold uppercase">Name / Spec</th>
-                            <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-20">Safety</th>
+                            <th scope="col" class="px-3 py-2 text-left text-xs font-bold uppercase">{{ __('planning.mrp.table_monthly.th_name') }}</th>
+                            <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-20">{{ __('planning.mrp.table_monthly.th_safety') }}</th>
                             <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-20">MOQ</th>
-                            <th scope="col" class="px-3 py-2 text-center text-xs font-bold uppercase w-24">ETA Week</th>
-                            <th scope="col" class="px-3 py-2 text-center text-xs font-bold uppercase w-24">Order Week</th>
-                            <th scope="col" class="px-3 py-2 text-center text-xs font-bold uppercase w-24">Status</th>
-                            <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-28">Stock</th>
-                            <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-28">Demand</th>
+                            <th scope="col" class="px-3 py-2 text-center text-xs font-bold uppercase w-24">{{ __('planning.mrp.table_monthly.th_eta') }}</th>
+                            <th scope="col" class="px-3 py-2 text-center text-xs font-bold uppercase w-24">{{ __('planning.mrp.table_monthly.th_order') }}</th>
+                            <th scope="col" class="px-3 py-2 text-center text-xs font-bold uppercase w-24">{{ __('planning.mrp.table_monthly.th_status') }}</th>
+                            <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-28">{{ __('planning.mrp.table_monthly.th_stock') }}</th>
+                            <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-28">{{ __('planning.mrp.table_monthly.th_demand') }}</th>
                             @if($showIncoming)
-                                <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-28">Incoming</th>
+                                <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-28">{{ __('planning.mrp.table_monthly.th_incoming') }}</th>
                             @endif
-                            <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-32">Planned</th>
-                            <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-32">End Stock</th>
-                            <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-32">Net Req</th>
+                            <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-32">{{ __('planning.mrp.table_monthly.th_planned') }}</th>
+                            <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-32">{{ __('planning.mrp.table_monthly.th_end') }}</th>
+                            <th scope="col" class="px-3 py-2 text-right text-xs font-bold uppercase w-32">{{ __('planning.mrp.table_monthly.th_net') }}</th>
                             @if($showPoAction)
                                 <th scope="col" class="px-3 py-2 text-center text-xs font-bold uppercase w-20">PO</th>
                             @endif
@@ -144,7 +144,7 @@
                                         @if(!empty($row['plan_id']))
                                             <input type="checkbox" name="plan_ids[]" value="{{ $row['plan_id'] }}"
                                                 class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                                                title="Select for PO / approval">
+                                                title="{{ __('planning.mrp.table.select_title') }}">
                                         @else
                                             <span class="text-slate-300 text-xs">-</span>
                                         @endif

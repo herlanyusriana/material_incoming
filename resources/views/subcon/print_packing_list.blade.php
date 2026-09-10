@@ -229,11 +229,11 @@
 
 <body>
     <div class="toolbar">
-        <button onclick="window.print()">Print Packing List</button>
+        <button onclick="window.print()">{{ __('subcon.prints.print_pl') }}</button>
     </div>
 
     <div class="page">
-        <div class="title">PACKING LIST</div>
+        <div class="title">{{ __('subcon.prints.packing_list') }}</div>
 
         <table class="top-table">
             <tr class="shipper-row">

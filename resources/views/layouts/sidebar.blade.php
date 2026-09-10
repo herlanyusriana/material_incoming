@@ -21,7 +21,7 @@
         
         <div class="flex items-center justify-between px-4 pt-5 pb-4">
             <div class="flex items-center gap-3">
-                <div class="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-sm">
+                <div class="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600 text-white shadow-sm shadow-indigo-600/20">
                     <span class="text-sm font-bold tracking-wide">GCI</span>
                 </div>
                 <div>
@@ -65,8 +65,8 @@
 {{-- Desktop sidebar --}}
 <aside class="hidden md:flex sticky top-0 z-30 h-screen shrink-0 flex-col border-r border-slate-200 bg-white transition-all duration-200 overflow-hidden" :class="sidebarCollapsed ? 'w-20' : 'w-72'">
     <div class="px-4 pt-6">
-        <div class="flex items-center rounded-2xl border border-slate-200 bg-white shadow-sm px-4 py-4" :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
-            <div class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-sm">
+        <div class="flex items-center rounded-xl border border-slate-200 bg-white px-4 py-4 shadow-sm" :class="sidebarCollapsed ? 'justify-center' : 'gap-3'">
+            <div class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-indigo-600 text-white shadow-sm shadow-indigo-600/20">
                 <span class="text-sm font-bold tracking-wide">GCI</span>
             </div>
             <div x-show="!sidebarCollapsed" x-cloak class="min-w-0">

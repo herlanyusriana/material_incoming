@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bin Transfer Label - {{ $binTransfer->id }}</title>
+    <title>{{ __('warehouse.bin_transfers.label.title', ['id' => $binTransfer->id]) }}</title>
     <style>
         @page {
             size: 80mm 60mm;
@@ -149,41 +149,41 @@
 </head>
 <body>
     <div class="header">
-        <h1>BIN TRANSFER</h1>
-        <div class="transfer-id">Transfer #{{ $binTransfer->id }}</div>
+        <h1>{{ __('warehouse.bin_transfers.label.heading') }}</h1>
+        <div class="transfer-id">{{ __('warehouse.bin_transfers.label.transfer_no', ['id' => $binTransfer->id]) }}</div>
     </div>
     
     <div class="content">
         <div class="info">
             <div class="info-row">
-                <div class="info-label">Part Number</div>
+                <div class="info-label">{{ __('warehouse.bin_transfers.label.part_number') }}</div>
                 <div class="info-value">{{ $binTransfer->part->part_no }}</div>
             </div>
             
             <div class="info-row">
-                <div class="info-label">Part Name</div>
+                <div class="info-label">{{ __('warehouse.bin_transfers.label.part_name') }}</div>
                 <div class="info-value" style="font-size: 8pt;">{{ Str::limit($binTransfer->part->part_name_gci, 30) }}</div>
             </div>
             
             <div class="movement">
                 <div class="location-box from-box">
-                    <div class="location-label">FROM</div>
+                    <div class="location-label">{{ __('warehouse.bin_transfers.label.from') }}</div>
                     <div class="location-code">{{ $binTransfer->from_location_code }}</div>
                 </div>
                 <div class="arrow">→</div>
                 <div class="location-box to-box">
-                    <div class="location-label">TO</div>
+                    <div class="location-label">{{ __('warehouse.bin_transfers.label.to') }}</div>
                     <div class="location-code">{{ $binTransfer->to_location_code }}</div>
                 </div>
             </div>
             
             <div class="info-row">
-                <div class="info-label">Quantity</div>
+                <div class="info-label">{{ __('warehouse.bin_transfers.label.quantity') }}</div>
                 <div class="info-value" style="font-size: 14pt; color: #2563eb;">{{ formatNumber($binTransfer->qty) }}</div>
             </div>
             
             <div class="info-row">
-                <div class="info-label">Transfer Date</div>
+                <div class="info-label">{{ __('warehouse.bin_transfers.label.transfer_date') }}</div>
                 <div class="info-value">{{ $binTransfer->transfer_date->format('Y-m-d') }}</div>
             </div>
         </div>
@@ -194,7 +194,7 @@
     </div>
     
     <div class="footer">
-        Transferred by: {{ $binTransfer->creator->name ?? '-' }} | Printed: {{ now()->format('Y-m-d H:i') }}
+        {{ __('warehouse.bin_transfers.label.transferred_by') }}: {{ $binTransfer->creator->name ?? '-' }} | {{ __('warehouse.bin_transfers.label.printed') }}: {{ now()->format('Y-m-d H:i') }}
     </div>
     
     <script>

@@ -28,6 +28,7 @@ class GciPart extends BaseModel
         'subcount_enabled',
         'subcount_uom',
         'subcount_process_type',
+        'uom',
         'safety_stock',
         'order_multiple',
         'created_by',

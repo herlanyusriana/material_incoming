@@ -1,14 +1,14 @@
 <x-app-layout>
     <x-slot name="header">
-        Purchasing • New Manual PR
+        {{ __('purchasing.requests.create.header') }}
     </x-slot>
 
     <div class="py-6" x-data="manualPr()">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             <div class="bg-white shadow-xl border border-slate-200 rounded-3xl overflow-hidden">
                 <div class="p-8 border-b border-slate-100 bg-slate-50/50">
-                    <h2 class="text-2xl font-black text-slate-900 tracking-tight">Generate Manual Purchase Request</h2>
-                    <p class="text-sm text-slate-500 mt-1">Manually add parts and quantities for a new purchase request.
+                    <h2 class="text-2xl font-black text-slate-900 tracking-tight">{{ __('purchasing.requests.create.title') }}</h2>
+                    <p class="text-sm text-slate-500 mt-1">{{ __('purchasing.requests.create.subtitle') }}
                     </p>
                 </div>
 
@@ -18,12 +18,11 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                             <div class="space-y-4">
                                 <label for="vendor_id"
-                                    class="block text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Select
-                                    Vendor</label>
+                                    class="block text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{{ __('purchasing.requests.create.vendor_label') }}</label>
                                 <select name="vendor_id" id="vendor_id" x-model="selectedVendorId" @change="onVendorChange()"
                                     class="w-full rounded-2xl border-slate-200 focus:ring-indigo-500 focus:border-indigo-500 text-sm font-semibold"
                                     required>
-                                    <option value="">— Choose Vendor —</option>
+                                    <option value="">{{ __('purchasing.requests.create.choose_vendor') }}</option>
                                     @foreach ($vendors as $vendor)
                                         <option value="{{ $vendor->id }}">{{ $vendor->vendor_code }} -
                                             {{ $vendor->vendor_name }}
@@ -33,10 +32,9 @@
                             </div>
                             <div class="space-y-4">
                                 <label for="notes"
-                                    class="block text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1">General
-                                    Notes</label>
+                                    class="block text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-1">{{ __('purchasing.requests.create.notes_label') }}</label>
                                 <input type="text" name="notes" id="notes" class="w-full rounded-2xl border-slate-200 text-sm"
-                                    placeholder="Any specific instructions for this request...">
+                                    placeholder="{{ __('purchasing.requests.create.notes_ph') }}">
                             </div>
                         </div>
 
@@ -44,7 +42,7 @@
                             <h3
                                 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                                 <span class="h-px w-8 bg-slate-200"></span>
-                                Order Line Items
+                                {{ __('purchasing.requests.create.lines_title') }}
                             </h3>
                             <!-- Removed overflow-hidden to allow TomSelect dropdown to overlay properly -->
                             <div class="border border-slate-200 rounded-2xl" style="overflow: visible;">
@@ -52,10 +50,10 @@
                                     <thead
                                         class="bg-slate-50 text-xs text-slate-500 font-bold uppercase tracking-wider rounded-t-2xl">
                                         <tr>
-                                            <th class="px-6 py-4 text-left rounded-tl-2xl">Part Description</th>
-                                            <th class="px-6 py-4 text-right">Order Qty</th>
-                                            <th class="px-6 py-4 text-left">Required Date</th>
-                                            <th class="px-6 py-4 text-center rounded-tr-2xl">Actions</th>
+                                            <th class="px-6 py-4 text-left rounded-tl-2xl">{{ __('purchasing.requests.create.th_part') }}</th>
+                                            <th class="px-6 py-4 text-right">{{ __('purchasing.requests.create.th_qty') }}</th>
+                                            <th class="px-6 py-4 text-left">{{ __('purchasing.requests.create.th_date') }}</th>
+                                            <th class="px-6 py-4 text-center rounded-tr-2xl">{{ __('purchasing.requests.create.th_actions') }}</th>
                                         </tr>
                                     </thead>
                                     <tbody class="bg-white divide-y divide-slate-100">
@@ -71,7 +69,7 @@
                                                                 window.initTomSelect($el);
                                                             }, 100);
                                                         })" required>
-                                                        <option value="">Select Part...</option>
+                                                        <option value="">{{ __('purchasing.requests.create.select_part') }}</option>
                                                         <template x-for="vp in getAvailableParts()" :key="vp.id">
                                                             <option :value="vp.id" x-text="vp.text"></option>
                                                         </template>
@@ -90,7 +88,7 @@
                                                         x-bind:disabled="!selectedVendorId">
                                                 </td>
                                                 <td class="px-6 py-4 text-center">
-                                                    <button type="button" @click="removeItem(index)" aria-label="Remove item"
+                                                    <button type="button" @click="removeItem(index)" aria-label="{{ __('purchasing.requests.create.remove_item') }}"
                                                         class="text-rose-500 hover:bg-rose-50 p-2 rounded-xl transition-all">
                                                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24"
                                                             stroke="currentColor">
@@ -111,17 +109,16 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M12 4v16m8-8H4" />
                                 </svg>
-                                Add Manual Item
+                                {{ __('purchasing.requests.create.add_item') }}
                             </button>
                         </div>
                     </div>
 
                     <div class="p-8 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-3">
                         <a href="{{ route('purchasing.purchase-requests.index') }}"
-                            class="px-6 py-3 rounded-2xl bg-white border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all uppercase text-xs tracking-wider">Discard</a>
+                            class="px-6 py-3 rounded-2xl bg-white border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition-all uppercase text-xs tracking-wider">{{ __('purchasing.requests.create.discard') }}</a>
                         <button type="submit"
-                            class="px-10 py-3 rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all shadow-xl uppercase text-xs tracking-wider">Generate
-                            Official PR</button>
+                            class="px-10 py-3 rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all shadow-xl uppercase text-xs tracking-wider">{{ __('purchasing.requests.create.submit') }}</button>
                     </div>
                 </form>
             </div>

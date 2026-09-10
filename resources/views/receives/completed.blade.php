@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Completed Receives
+        {{ __('incoming.receives.completed.header') }}
     </x-slot>
 
     <div class="py-6">
@@ -13,25 +13,22 @@
 
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div class="text-sm text-slate-600">
-                    Flow: Create Departure → Process Receives → Completed Receives.
+                    {{ __('incoming.receives.completed.flow') }}
                 </div>
                 <div class="flex items-center gap-2 text-xs">
-                    <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-700 font-semibold">Total:
-                        {{ number_format($summary['total_receives'] ?? 0) }}</span>
-                    <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-700 font-semibold">Today:
-                        {{ number_format($summary['today'] ?? 0) }}</span>
+                    <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-700 font-semibold">{{ __('incoming.receives.completed.total', ['count' => number_format($summary['total_receives'] ?? 0)]) }}</span>
+                    <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-700 font-semibold">{{ __('incoming.receives.completed.today', ['count' => number_format($summary['today'] ?? 0)]) }}</span>
                 </div>
             </div>
 
             <div class="bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden">
                 <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-3">
                     <div>
-                        <h3 class="text-lg font-bold text-slate-900">Invoice List</h3>
-                        <p class="text-sm text-slate-600">Invoice yang sudah complete receive.</p>
+                        <h3 class="text-lg font-bold text-slate-900">{{ __('incoming.receives.completed.title') }}</h3>
+                        <p class="text-sm text-slate-600">{{ __('incoming.receives.completed.subtitle') }}</p>
                     </div>
                     <a href="{{ route('departures.index') }}"
-                        class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-lg transition-colors">Departure
-                        List</a>
+                        class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-lg transition-colors">{{ __('incoming.receives.completed.departure_list') }}</a>
                 </div>
 
                 <form method="GET" action="{{ route('receives.completed') }}"
@@ -40,14 +37,14 @@
                         <div>
                             <label for="q" class="sr-only">Search</label>
                             <input type="text" id="q" name="q" value="{{ $q ?? '' }}"
-                                placeholder="Search transaction no, invoice, vendor..."
+                                placeholder="{{ __('incoming.receives.completed.search_placeholder') }}"
                                 class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
                         </div>
                         <div>
                             <label for="flow" class="sr-only">Flow</label>
                             <select id="flow" name="flow"
                                 class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="">All Flows</option>
+                                <option value="">{{ __('incoming.receives.completed.flow_all') }}</option>
                                 <option value="import" {{ ($flow ?? '') === 'import' ? 'selected' : '' }}>Import</option>
                                 <option value="local" {{ ($flow ?? '') === 'local' ? 'selected' : '' }}>Local</option>
                             </select>
@@ -55,12 +52,12 @@
                         <div class="flex items-center gap-2">
                             <button type="submit"
                                 class="inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-700">
-                                Filter
+                                {{ __('incoming.receives.completed.filter') }}
                             </button>
                             @if (($q ?? '') !== '' || ($flow ?? '') !== '')
                                 <a href="{{ route('receives.completed') }}"
                                     class="inline-flex items-center justify-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100">
-                                    Reset
+                                    {{ __('incoming.receives.completed.reset') }}
                                 </a>
                             @endif
                         </div>
@@ -71,14 +68,14 @@
                     <table class="min-w-full divide-y divide-slate-200 text-sm">
                         <thead class="bg-slate-50">
                             <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                <th class="px-4 py-3 text-left font-semibold">Transaction No</th>
-                                <th class="px-4 py-3 text-left font-semibold">Vendor</th>
-                                <th class="px-4 py-3 text-left font-semibold">Invoice No</th>
-                                <th class="px-4 py-3 text-right font-semibold">Tags</th>
-                                <th class="px-4 py-3 text-right font-semibold">Qty</th>
-                                <th class="px-4 py-3 text-center font-semibold">QC</th>
-                                <th class="px-4 py-3 text-left font-semibold">Invoice Date</th>
-                                <th class="px-4 py-3 text-left font-semibold">Action</th>
+                                <th class="px-4 py-3 text-left font-semibold">{{ __('incoming.receives.completed.trx_no') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold">{{ __('incoming.receives.completed.vendor') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold">{{ __('incoming.receives.completed.invoice_no') }}</th>
+                                <th class="px-4 py-3 text-right font-semibold">{{ __('incoming.receives.completed.tags') }}</th>
+                                <th class="px-4 py-3 text-right font-semibold">{{ __('incoming.receives.completed.qty') }}</th>
+                                <th class="px-4 py-3 text-center font-semibold">{{ __('incoming.receives.completed.qc') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold">{{ __('incoming.receives.completed.invoice_date') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold">{{ __('incoming.receives.completed.action') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
@@ -144,7 +141,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="px-4 py-12 text-center text-slate-500">No completed receives yet.
+                                    <td colspan="8" class="px-4 py-12 text-center text-slate-500">{{ __('incoming.receives.completed.empty') }}
                                     </td>
                                 </tr>
                             @endforelse

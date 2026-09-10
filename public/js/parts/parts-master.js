@@ -10,6 +10,7 @@ function partsMaster() {
         model: '',
         classification: classification || 'RM',
         status: 'active',
+        uom: 'PCE',
         consumption_policy: 'backflush_return',
         customer_ids: [],
         vendor_ids: [],
@@ -99,6 +100,7 @@ function partsMaster() {
                 size: p.size || '',
                 model: p.model || '',
                 status: p.status,
+                uom: p.uom || 'PCE',
                 consumption_policy: p.consumption_policy
                     || ((p.is_backflush !== false && p.is_backflush !== 0) ? 'backflush_return' : 'direct_issue'),
                 subcount_enabled: !!p.subcount_enabled,

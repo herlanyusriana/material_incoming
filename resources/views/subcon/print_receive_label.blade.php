@@ -128,13 +128,13 @@
 </head>
 <body>
     <div class="toolbar no-print">
-        <button onclick="window.print()">Print Label (100x150mm)</button>
+        <button onclick="window.print()">{{ __('subcon.prints.print_label') }}</button>
     </div>
     
     <div class="label-container">
         <div class="header">
             <div class="title">PT GEUM CHEON INDO</div>
-            <div class="subtitle">Subcon Receive Label</div>
+            <div class="subtitle">{{ __('subcon.prints.subcon_receive_label') }}</div>
         </div>
 
         <div class="part-info">
@@ -144,21 +144,21 @@
 
         <div class="details">
             <div class="detail-row">
-                <div class="detail-label">Order No:</div>
+                <div class="detail-label">{{ __('subcon.prints.order_no') }}</div>
                 <div class="detail-val">{{ $subconOrderReceive->subconOrder->order_no }}</div>
             </div>
             <div class="detail-row">
-                <div class="detail-label">Qty Good:</div>
+                <div class="detail-label">{{ __('subcon.prints.qty_good') }}</div>
                 <div class="detail-val">{{ number_format($subconOrderReceive->qty_good) }} {{ $subconUom }}</div>
             </div>
             @if($subconOrderReceive->qty_rejected > 0)
             <div class="detail-row">
-                <div class="detail-label">Qty Reject:</div>
+                <div class="detail-label">{{ __('subcon.prints.qty_reject') }}</div>
                 <div class="detail-val">{{ number_format($subconOrderReceive->qty_rejected) }} {{ $subconUom }}</div>
             </div>
             @endif
             <div class="detail-row">
-                <div class="detail-label">Recv Date:</div>
+                <div class="detail-label">{{ __('subcon.prints.recv_date') }}</div>
                 <div class="detail-val">{{ optional($subconOrderReceive->received_date)->format('d/m/Y') }}</div>
             </div>
         </div>

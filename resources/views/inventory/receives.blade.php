@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Inventory (Receives)
+        {{ __('warehouse.inventory.receives.header') }}
     </x-slot>
 
     <div class="py-6">
@@ -21,13 +21,13 @@
                     <form method="GET" class="flex flex-wrap items-end gap-3" id="filterForm">
                         <!-- Live Search with Autocomplete -->
                         <div class="relative" style="min-width: 300px;">
-                            <label class="text-xs font-semibold text-slate-600">Search</label>
+                            <label class="text-xs font-semibold text-slate-600">{{ __('warehouse.inventory.receives.search_label') }}</label>
                             <input 
                                 type="text" 
                                 id="searchInput"
                                 name="search"
                                 value="{{ request('search', '') }}"
-                                placeholder="Part No, Name, Tag, or Invoice..."
+                                placeholder="{{ __('warehouse.inventory.receives.search_ph') }}"
                                 class="mt-1 rounded-xl border-slate-200 w-full"
                                 autocomplete="off"
                             >
@@ -37,21 +37,21 @@
                             </div>
                         </div>
                         <div>
-                            <label class="text-xs font-semibold text-slate-600">Status</label>
+                            <label class="text-xs font-semibold text-slate-600">{{ __('warehouse.inventory.receives.status_label') }}</label>
                             <select name="qc_status" class="mt-1 rounded-xl border-slate-200">
-                                <option value="">All</option>
-                                <option value="pass" @selected($qcStatus === 'pass')>Good</option>
-                                <option value="reject" @selected($qcStatus === 'reject')>No Good</option>
+                                <option value="">{{ __('warehouse.inventory.receives.all') }}</option>
+                                <option value="pass" @selected($qcStatus === 'pass')>{{ __('warehouse.inventory.receives.good') }}</option>
+                                <option value="reject" @selected($qcStatus === 'reject')>{{ __('warehouse.inventory.receives.no_good') }}</option>
                             </select>
                         </div>
-                        <button type="submit" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">{{ __('warehouse.inventory.receives.filter') }}</button>
                         @if(request('search') || request('qc_status'))
-                            <a href="{{ route('inventory.receives') }}" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold">Clear</a>
+                            <a href="{{ route('inventory.receives') }}" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold">{{ __('warehouse.inventory.receives.clear') }}</a>
                         @endif
                     </form>
 
                     <a href="{{ route('stock-card.index') }}" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-semibold">
-                        Inventory Summary
+                        {{ __('warehouse.inventory.receives.summary') }}
                     </a>
                 </div>
 
@@ -59,17 +59,17 @@
                     <table class="min-w-full text-sm divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                <th class="px-4 py-3 text-left font-semibold">No</th>
-                                <th class="px-4 py-3 text-left font-semibold">Classification</th>
-                                <th class="px-4 py-3 text-left font-semibold">Part Number</th>
-                                <th class="px-4 py-3 text-left font-semibold">Description</th>
-                                <th class="px-4 py-3 text-left font-semibold">Model</th>
-                                <th class="px-4 py-3 text-left font-semibold">UOM</th>
-                                <th class="px-4 py-3 text-left font-semibold">Storage Location</th>
-                                <th class="px-4 py-3 text-left font-semibold">Tag #</th>
-                                <th class="px-4 py-3 text-right font-semibold">Bundle Qty</th>
-                                <th class="px-4 py-3 text-right font-semibold">Quantity</th>
-                                <th class="px-4 py-3 text-left font-semibold">Status</th>
+                                <th class="px-4 py-3 text-left font-semibold">{{ __('warehouse.inventory.receives.th_no') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold">{{ __('warehouse.inventory.receives.th_classification') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold">{{ __('warehouse.inventory.receives.th_part_number') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold">{{ __('warehouse.inventory.receives.th_description') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold">{{ __('warehouse.inventory.receives.th_model') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold">{{ __('warehouse.inventory.receives.th_uom') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold">{{ __('warehouse.inventory.receives.th_storage') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold">{{ __('warehouse.inventory.receives.th_tag') }}</th>
+                                <th class="px-4 py-3 text-right font-semibold">{{ __('warehouse.inventory.receives.th_bundle') }}</th>
+                                <th class="px-4 py-3 text-right font-semibold">{{ __('warehouse.inventory.receives.th_qty') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold">{{ __('warehouse.inventory.receives.th_status') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -78,7 +78,7 @@
                                         $arrivalItem = $r->arrivalItem;
                                         $arrival = $arrivalItem?->arrival;
                                         $classification = strtoupper(trim((string) ($arrivalItem?->material_group ?? 'INCOMING')));
-                                        $statusLabel = $r->qc_status === 'pass' ? 'Good' : 'No Good';
+                                        $statusLabel = $r->qc_status === 'pass' ? __('warehouse.inventory.receives.good') : __('warehouse.inventory.receives.no_good');
                                         $goodsUnit = strtoupper(trim((string) ($arrivalItem?->unit_goods ?? $r->qty_unit ?? '')));
                                         $displayQty = (float) ($r->qty ?? 0);
                                         $displayUom = strtoupper((string) ($r->qty_unit ?? '-'));
@@ -123,7 +123,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="11" class="px-4 py-6 text-center text-slate-500">Belum ada receive.</td>
+                                    <td colspan="11" class="px-4 py-6 text-center text-slate-500">{{ __('warehouse.inventory.receives.empty') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -141,6 +141,9 @@
         (function() {
             const searchInput = document.getElementById('searchInput');
             const suggestionsBox = document.getElementById('suggestions');
+            const T = {
+                noResults: @js(__('warehouse.inventory.receives.no_results')),
+            };
             let debounceTimer;
             let currentFocus = -1;
 
@@ -159,7 +162,7 @@
                         .then(res => res.json())
                         .then(data => {
                             if (data.length === 0) {
-                                suggestionsBox.innerHTML = '<div class="px-4 py-3 text-sm text-slate-500">No results found</div>';
+                                suggestionsBox.innerHTML = '<div class="px-4 py-3 text-sm text-slate-500">' + T.noResults + '</div>';
                                 suggestionsBox.classList.remove('hidden');
                                 return;
                             }

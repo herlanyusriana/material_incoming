@@ -29,9 +29,22 @@ Route::middleware('can:view_production')->prefix('production')->name('production
     Route::get('/machine-load', [\App\Http\Controllers\Production\MachineLoadController::class, 'index'])->name('machine-load.index');
     Route::get('/machine-load/{machine}', [\App\Http\Controllers\Production\MachineLoadController::class, 'show'])->name('machine-load.show');
 
+    // WO Tracking — manual WO + scan-pick + material terkunci
+    Route::get('/wo-tracking', [\App\Http\Controllers\Production\WoTrackingController::class, 'index'])->name('wo-tracking.index');
+    Route::get('/wo-tracking/create', [\App\Http\Controllers\Production\WoTrackingController::class, 'create'])->name('wo-tracking.create');
+    Route::post('/wo-tracking/preview-explosion', [\App\Http\Controllers\Production\WoTrackingController::class, 'previewExplosion'])->name('wo-tracking.preview-explosion');
+    Route::post('/wo-tracking', [\App\Http\Controllers\Production\WoTrackingController::class, 'store'])->name('wo-tracking.store');
+    Route::get('/wo-tracking/{woTracking}', [\App\Http\Controllers\Production\WoTrackingController::class, 'show'])->name('wo-tracking.show');
+    Route::post('/wo-tracking/{woTracking}/locate-tag', [\App\Http\Controllers\Production\WoTrackingController::class, 'locateTag'])->name('wo-tracking.locate-tag');
+    Route::post('/wo-tracking/{woTracking}/requirements/{requirement}/allocate', [\App\Http\Controllers\Production\WoTrackingController::class, 'allocate'])->name('wo-tracking.allocate');
+    Route::post('/wo-tracking/{woTracking}/allocations/{allocation}/deallocate', [\App\Http\Controllers\Production\WoTrackingController::class, 'deallocate'])->name('wo-tracking.deallocate');
+    Route::post('/wo-tracking/{woTracking}/release', [\App\Http\Controllers\Production\WoTrackingController::class, 'release'])->name('wo-tracking.release');
+    Route::post('/wo-tracking/{woTracking}/result', [\App\Http\Controllers\Production\WoTrackingController::class, 'postResult'])->name('wo-tracking.result');
+    Route::post('/wo-tracking/{woTracking}/close', [\App\Http\Controllers\Production\WoTrackingController::class, 'close'])->name('wo-tracking.close');
+    Route::post('/wo-tracking/{woTracking}/cancel', [\App\Http\Controllers\Production\WoTrackingController::class, 'cancel'])->name('wo-tracking.cancel');
+
     // Production Orders
-    Route::get('/orders-history', [\App\Http\Controllers\ProductionOrderController::class, 'history'])->name('orders.history');
-    Route::get('/orders-export', [\App\Http\Controllers\ProductionOrderController::class, 'export'])->name('orders.export');
+    Route::get('/orders-history', [\App\Http\Controllers\ProductionOrderController::class, 'history'])->name('orders.history');    Route::get('/orders-export', [\App\Http\Controllers\ProductionOrderController::class, 'export'])->name('orders.export');
     Route::resource('orders', \App\Http\Controllers\ProductionOrderController::class);
     Route::post('/orders/{order}/release-kanban', [\App\Http\Controllers\ProductionOrderController::class, 'releaseKanban'])->name('orders.release-kanban');
     Route::post('/orders/{order}/check-material', [\App\Http\Controllers\ProductionOrderController::class, 'checkMaterial'])->name('orders.check-material');

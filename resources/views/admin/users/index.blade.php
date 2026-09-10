@@ -8,11 +8,11 @@
     @endphp
 
     <x-page-header
-        title="User Management"
-        subtitle="Tambah akun, ubah role, reset password, dan hapus user dari satu layar."
+        :title="__('admin.users.index.title')"
+        :subtitle="__('admin.users.index.subtitle')"
         :breadcrumbs="[
-            ['label' => 'Admin', 'url' => '#'],
-            ['label' => 'User Management']
+            ['label' => __('admin.users.index.crumb_parent'), 'url' => '#'],
+            ['label' => __('admin.users.index.crumb_current')]
         ]"
     >
         <x-slot name="actions">
@@ -20,13 +20,13 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M18 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 9.374 21c-2.331 0-4.512-.645-6.374-1.766Z" />
                 </svg>
-                <span>Tambah User</span>
+                <span>{{ __('admin.users.index.add') }}</span>
             </button>
             <a href="{{ route('admin.roles.index') }}" class="gci-btn-secondary">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z" />
                 </svg>
-                <span>Kelola Role</span>
+                <span>{{ __('admin.users.index.roles') }}</span>
             </a>
         </x-slot>
     </x-page-header>
@@ -44,7 +44,7 @@
     @endif
     @if (isset($errors) && $errors->any())
         <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 animate-fade-in-up">
-            <div class="font-bold">Cek lagi inputnya:</div>
+            <div class="font-bold">{{ __('admin.users.index.error_title') }}</div>
             <ul class="mt-1 list-disc space-y-0.5 pl-5">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -58,9 +58,9 @@
         <a href="{{ route('admin.users.index', request()->except('role')) }}" class="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 {{ $role === '' ? 'ring-2 ring-indigo-500 border-indigo-300' : '' }}">
             <div class="flex items-start justify-between">
                 <div class="flex-1 min-w-0">
-                    <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold truncate">Semua User</div>
+                    <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold truncate">{{ __('admin.users.index.all_users') }}</div>
                     <div class="mt-2 text-3xl font-black text-slate-900">{{ number_format($totalUsers) }}</div>
-                    <div class="text-xs text-slate-400 mt-1">Total akun terdaftar</div>
+                    <div class="text-xs text-slate-400 mt-1">{{ __('admin.users.index.total_accounts') }}</div>
                 </div>
                 <div class="w-11 h-11 bg-gradient-to-br from-slate-500 to-slate-700 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -75,7 +75,7 @@
                     <div class="flex-1 min-w-0">
                         <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold truncate">{{ strtoupper($availableRole) }}</div>
                         <div class="mt-2 text-3xl font-black text-slate-900">{{ number_format((int) ($roleCounts[$availableRole] ?? 0)) }}</div>
-                        <div class="text-xs text-slate-400 mt-1 truncate">User dengan role ini</div>
+                        <div class="text-xs text-slate-400 mt-1 truncate">{{ __('admin.users.index.role_users') }}</div>
                     </div>
                     <div class="w-11 h-11 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -97,18 +97,18 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
                         </svg>
                     </div>
-                    <input type="text" name="q" value="{{ $q }}" placeholder="Cari nama, username, email..." class="block w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-xl bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors">
+                    <input type="text" name="q" value="{{ $q }}" placeholder="{{ __('admin.users.index.search_placeholder') }}" class="block w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-xl bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-colors">
                 </div>
                 <div class="flex items-center gap-2">
                     <select name="role" class="rounded-xl border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500/20">
-                        <option value="">Semua Role</option>
+                        <option value="">{{ __('admin.users.index.all_roles') }}</option>
                         @foreach ($roles as $availableRole)
                             <option value="{{ $availableRole }}" @selected($role === $availableRole)>{{ strtoupper($availableRole) }}</option>
                         @endforeach
                     </select>
-                    <button type="submit" class="gci-btn-primary gci-btn-sm">Filter</button>
+                    <button type="submit" class="gci-btn-primary gci-btn-sm">{{ __('admin.users.index.filter') }}</button>
                     @if($q !== '' || $role !== '')
-                        <a href="{{ route('admin.users.index') }}" class="gci-btn-secondary gci-btn-sm">Reset</a>
+                        <a href="{{ route('admin.users.index') }}" class="gci-btn-secondary gci-btn-sm">{{ __('admin.users.index.reset') }}</a>
                     @endif
                 </div>
             </form>
@@ -118,10 +118,10 @@
             <table class="min-w-full divide-y divide-slate-200 text-sm">
                 <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
                     <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                        <th class="px-4 py-3 text-left font-semibold">User</th>
-                        <th class="px-4 py-3 text-left font-semibold">Role</th>
-                        <th class="px-4 py-3 text-center font-semibold">Status</th>
-                        <th class="px-4 py-3 text-right font-semibold w-40">Actions</th>
+                        <th class="px-4 py-3 text-left font-semibold">{{ __('admin.users.index.user') }}</th>
+                        <th class="px-4 py-3 text-left font-semibold">{{ __('admin.users.index.role') }}</th>
+                        <th class="px-4 py-3 text-center font-semibold">{{ __('admin.users.index.status') }}</th>
+                        <th class="px-4 py-3 text-right font-semibold w-40">{{ __('admin.users.index.actions') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 bg-white">
@@ -154,14 +154,14 @@
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
                                         </svg>
-                                        Kamu
+                                        {{ __('admin.users.index.you') }}
                                     </span>
                                 @else
                                     <span class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                         </svg>
-                                        Active
+                                        {{ __('admin.users.index.active') }}
                                     </span>
                                 @endif
                             </td>
@@ -171,17 +171,17 @@
                                         type="button"
                                         @click="$dispatch('open-modal', 'edit-user-{{ $user->id }}')"
                                         class="gci-btn-icon bg-indigo-50 text-indigo-600 hover:bg-indigo-100"
-                                        title="Edit User"
+                                        title="{{ __('admin.users.index.edit') }}"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" />
                                         </svg>
                                     </button>
                                     @if($user->id !== auth()->id())
-                                        <form action="{{ route('admin.users.destroy', $user) }}" method="POST" onsubmit="return confirm('Hapus user {{ addslashes($user->name) }}?');">
+                                        <form action="{{ route('admin.users.destroy', $user) }}" method="POST" onsubmit='return confirm(@js(__('admin.users.index.confirm_delete', ['name' => $user->name])));'>
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="gci-btn-icon bg-red-50 text-red-600 hover:bg-red-100" title="Delete User">
+                                            <button type="submit" class="gci-btn-icon bg-red-50 text-red-600 hover:bg-red-100" title="{{ __('admin.users.index.delete') }}">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 7h12m-9 4v5m6-5v5M9 7l.867-2.6A1 1 0 0 1 10.81 3.5h2.38a1 1 0 0 1 .943.9L15 7m-9 0h12v12a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V7Z" />
                                                 </svg>
@@ -200,8 +200,8 @@
                                             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
                                         </svg>
                                     </div>
-                                    <div class="text-sm font-semibold text-slate-700">Tidak ada user yang cocok</div>
-                                    <div class="text-xs text-slate-500 mt-1">Coba ubah kata kunci atau filter role.</div>
+                                    <div class="text-sm font-semibold text-slate-700">{{ __('admin.users.index.empty_title') }}</div>
+                                    <div class="text-xs text-slate-500 mt-1">{{ __('admin.users.index.empty_text') }}</div>
                                 </div>
                             </td>
                         </tr>
@@ -224,8 +224,8 @@
             <div class="p-6">
                 <div class="flex items-start justify-between">
                     <div>
-                        <h2 class="text-lg font-black text-slate-900">Tambah User Baru</h2>
-                        <p class="mt-1 text-sm text-slate-500">Email boleh kosong. Password wajib diisi saat membuat user.</p>
+                        <h2 class="text-lg font-black text-slate-900">{{ __('admin.users.index.create_title') }}</h2>
+                        <p class="mt-1 text-sm text-slate-500">{{ __('admin.users.index.create_desc') }}</p>
                     </div>
                     <button type="button" @click="$dispatch('close-modal', 'create-user')" class="text-slate-400 hover:text-slate-600">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -237,19 +237,19 @@
 
             <div class="px-6 pb-6 space-y-4">
                 <div>
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Nama</label>
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('admin.users.index.name') }}</label>
                     <input type="text" name="name" value="{{ old('name') }}" required class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
                 </div>
                 <div>
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Username</label>
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('admin.users.index.username') }}</label>
                     <input type="text" name="username" value="{{ old('username') }}" required class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
                 </div>
                 <div>
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Email</label>
-                    <input type="email" name="email" value="{{ old('email') }}" placeholder="Opsional" class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('admin.users.index.email') }}</label>
+                    <input type="email" name="email" value="{{ old('email') }}" placeholder="{{ __('admin.users.index.email_optional') }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
                 </div>
                 <div>
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Role</label>
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('admin.users.index.role') }}</label>
                     <select name="role" required class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
                         @foreach ($roles as $availableRole)
                             <option value="{{ $availableRole }}" @selected(old('role') === $availableRole)>{{ strtoupper($availableRole) }}</option>
@@ -258,19 +258,19 @@
                 </div>
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Password</label>
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('admin.users.index.password') }}</label>
                         <input type="password" name="password" required class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
                     </div>
                     <div>
-                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Confirm</label>
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('admin.users.index.confirm') }}</label>
                         <input type="password" name="password_confirmation" required class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
                     </div>
                 </div>
             </div>
 
             <div class="flex justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-lg">
-                <button type="button" @click="$dispatch('close-modal', 'create-user')" class="gci-btn-secondary gci-btn-sm">Batal</button>
-                <button type="submit" class="gci-btn-primary gci-btn-sm">Tambah User</button>
+                <button type="button" @click="$dispatch('close-modal', 'create-user')" class="gci-btn-secondary gci-btn-sm">{{ __('admin.users.index.cancel') }}</button>
+                <button type="submit" class="gci-btn-primary gci-btn-sm">{{ __('admin.users.index.submit_create') }}</button>
             </div>
         </form>
     </x-modal>
@@ -284,7 +284,7 @@
                 <div class="p-6">
                     <div class="flex items-start justify-between">
                         <div>
-                            <h2 class="text-lg font-black text-slate-900">Edit User</h2>
+                            <h2 class="text-lg font-black text-slate-900">{{ __('admin.users.index.edit_title') }}</h2>
                             <p class="mt-1 text-sm text-slate-500">{{ $user->name }}</p>
                         </div>
                         <button type="button" @click="$dispatch('close-modal', 'edit-user-{{ $user->id }}')" class="text-slate-400 hover:text-slate-600">
@@ -297,21 +297,21 @@
 
                 <div class="px-6 pb-6 space-y-4">
                     <div>
-                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Nama</label>
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('admin.users.index.name') }}</label>
                         <input type="text" name="name" value="{{ $user->name }}" required class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
                     </div>
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div>
-                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Username</label>
+                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('admin.users.index.username') }}</label>
                             <input type="text" name="username" value="{{ $user->username }}" required class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
                         </div>
                         <div>
-                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Email</label>
-                            <input type="email" name="email" value="{{ $user->email }}" placeholder="Opsional" class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
+                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('admin.users.index.email') }}</label>
+                            <input type="email" name="email" value="{{ $user->email }}" placeholder="{{ __('admin.users.index.email_optional') }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
                         </div>
                     </div>
                     <div>
-                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Role</label>
+                        <label class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('admin.users.index.role') }}</label>
                         <select name="role" class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
                             @foreach ($roles as $availableRole)
                                 <option value="{{ $availableRole }}" @selected($user->role === $availableRole)>{{ strtoupper($availableRole) }}</option>
@@ -319,24 +319,24 @@
                         </select>
                     </div>
                     <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
-                        <div class="font-bold mb-1">Reset Password</div>
-                        Kosongkan kedua field jika tidak ingin mengubah password.
+                        <div class="font-bold mb-1">{{ __('admin.users.index.reset_title') }}</div>
+                        {{ __('admin.users.index.reset_desc') }}
                     </div>
                     <div class="grid gap-4 sm:grid-cols-2">
                         <div>
-                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Password Baru</label>
-                            <input type="password" name="password" placeholder="Kosongkan jika tidak diubah" class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
+                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('admin.users.index.new_password') }}</label>
+                            <input type="password" name="password" placeholder="{{ __('admin.users.index.empty_password') }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
                         </div>
                         <div>
-                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Confirm Password</label>
-                            <input type="password" name="password_confirmation" placeholder="Kosongkan jika tidak diubah" class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
+                            <label class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('admin.users.index.confirm_password') }}</label>
+                            <input type="password" name="password_confirmation" placeholder="{{ __('admin.users.index.empty_password') }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
                         </div>
                     </div>
                 </div>
 
                 <div class="flex justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-lg">
-                    <button type="button" @click="$dispatch('close-modal', 'edit-user-{{ $user->id }}')" class="gci-btn-secondary gci-btn-sm">Batal</button>
-                    <button type="submit" class="gci-btn-primary gci-btn-sm">Simpan Perubahan</button>
+                    <button type="button" @click="$dispatch('close-modal', 'edit-user-{{ $user->id }}')" class="gci-btn-secondary gci-btn-sm">{{ __('admin.users.index.cancel') }}</button>
+                    <button type="submit" class="gci-btn-primary gci-btn-sm">{{ __('admin.users.index.save') }}</button>
                 </div>
             </form>
         </x-modal>

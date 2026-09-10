@@ -7,8 +7,8 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg mb-6 border border-slate-200">
                 <div class="p-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div>
-                        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Stock Opname Sessions</h1>
-                        <p class="text-slate-500 mt-1">Manage warehouse counting sessions and stock reconciliation.</p>
+                        <h1 class="text-2xl font-bold text-slate-900 tracking-tight">{{ __('warehouse.stock_opname.index.title') }}</h1>
+                        <p class="text-slate-500 mt-1">{{ __('warehouse.stock_opname.index.subtitle') }}</p>
                     </div>
                     <div>
                         <button onclick="document.getElementById('createSessionModal').showModal()"
@@ -16,7 +16,7 @@
                             <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                             </svg>
-                            Start New Session
+                            {{ __('warehouse.stock_opname.index.start_session') }}
                         </button>
                     </div>
                 </div>
@@ -30,19 +30,19 @@
                             <tr>
                                 <th
                                     class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                                    Session Info</th>
+                                    {{ __('warehouse.stock_opname.index.th_session') }}</th>
                                 <th
                                     class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                                    Status</th>
+                                    {{ __('warehouse.stock_opname.index.th_status') }}</th>
                                 <th
                                     class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                                    Started At</th>
+                                    {{ __('warehouse.stock_opname.index.th_started') }}</th>
                                 <th
                                     class="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                                    Created By</th>
+                                    {{ __('warehouse.stock_opname.index.th_created_by') }}</th>
                                 <th
                                     class="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                                    Actions</th>
+                                    {{ __('warehouse.stock_opname.index.th_actions') }}</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-slate-200">
@@ -71,13 +71,13 @@
                                         {{ $session->start_date?->format('d M Y H:i') ?: '-' }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                                        {{ $session->creator?->name ?: 'System' }}
+                                        {{ $session->creator?->name ?: __('warehouse.stock_opname.index.system') }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
                                             <a href="{{ route('warehouse.stock-opname.show', $session) }}"
                                                 class="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-                                                title="View Details">
+                                                title="{{ __('warehouse.stock_opname.index.view_details') }}">
                                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                         d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -88,12 +88,12 @@
 
                                             @if($session->status !== 'ADJUSTED')
                                                 <form action="{{ route('warehouse.stock-opname.destroy', $session) }}" method="POST"
-                                                    onsubmit="return confirm('Are you sure you want to delete this session?')">
+                                                    onsubmit='return confirm(@js(__('warehouse.stock_opname.index.delete_confirm')))'>
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit"
                                                         class="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                                                        title="Delete">
+                                                        title="{{ __('warehouse.stock_opname.index.delete_title') }}">
                                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -113,9 +113,8 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5l5 5v11a2 2 0 01-2 2z" />
                                             </svg>
-                                            <p class="text-lg font-medium text-slate-600 text-center">No Stock Opname sessions
-                                                found.</p>
-                                            <p class="text-sm text-slate-400 mt-1">Click "Start New Session" to begin counting.
+                                            <p class="text-lg font-medium text-slate-600 text-center">{{ __('warehouse.stock_opname.index.empty_title') }}</p>
+                                            <p class="text-sm text-slate-400 mt-1">{{ __('warehouse.stock_opname.index.empty_hint', ['action' => __('warehouse.stock_opname.index.start_session')]) }}
                                             </p>
                                         </div>
                                     </td>
@@ -137,7 +136,7 @@
     <dialog id="createSessionModal" class="modal p-0 rounded-xl shadow-2xl border-0">
         <div class="bg-white w-[400px]">
             <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-                <h3 class="text-lg font-bold text-slate-900">New Stock Opname</h3>
+                <h3 class="text-lg font-bold text-slate-900">{{ __('warehouse.stock_opname.index.modal_title') }}</h3>
                 <button onclick="document.getElementById('createSessionModal').close()"
                     class="text-slate-400 hover:text-slate-600">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -148,19 +147,19 @@
             <form action="{{ route('warehouse.stock-opname.store') }}" method="POST" class="p-6">
                 @csrf
                 <div class="mb-6">
-                    <label class="block text-sm font-semibold text-slate-700 mb-2">Session Name</label>
-                    <input type="text" name="name" required placeholder="e.g. Monthly Raw Material Oct"
+                    <label class="block text-sm font-semibold text-slate-700 mb-2">{{ __('warehouse.stock_opname.index.session_name') }}</label>
+                    <input type="text" name="name" required placeholder="{{ __('warehouse.stock_opname.index.session_ph') }}"
                         class="w-full px-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all outline-none">
-                    <p class="text-xs text-slate-400 mt-2 italic">A Session Number will be automatically generated.</p>
+                    <p class="text-xs text-slate-400 mt-2 italic">{{ __('warehouse.stock_opname.index.session_note') }}</p>
                 </div>
                 <div class="flex gap-3 mt-8">
                     <button type="button" onclick="document.getElementById('createSessionModal').close()"
                         class="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold transition-all">
-                        Cancel
+                        {{ __('warehouse.stock_opname.index.cancel') }}
                     </button>
                     <button type="submit"
                         class="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold shadow-sm transition-all">
-                        Create Session
+                        {{ __('warehouse.stock_opname.index.create_session') }}
                     </button>
                 </div>
             </form>

@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Detail Contract Number
+        {{ __('master.contract_numbers.show.header') }}
     </x-slot>
 
     <div class="space-y-6">
@@ -15,7 +15,7 @@
                 <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div>
                         <a href="{{ route('contract-numbers.index') }}" class="text-xs font-bold uppercase tracking-widest text-slate-300 hover:text-white">
-                            Back to Contract Numbers
+                            {{ __('master.contract_numbers.show.back') }}
                         </a>
                         <div class="mt-3 flex flex-wrap items-center gap-3">
                             <h1 class="text-3xl font-black">{{ $contract->contract_no }}</h1>
@@ -23,17 +23,17 @@
                                 {{ strtoupper($contract->status) }}
                             </span>
                         </div>
-                        <p class="mt-2 max-w-3xl text-sm text-slate-300">{{ $contract->description ?: 'Tidak ada deskripsi kontrak.' }}</p>
+                        <p class="mt-2 max-w-3xl text-sm text-slate-300">{{ $contract->description ?: __('master.contract_numbers.show.no_description') }}</p>
                     </div>
                     <div class="flex flex-wrap gap-2">
                         <a href="{{ route('contract-numbers.edit', $contract) }}" class="rounded-xl bg-white px-4 py-2 text-sm font-black text-slate-900 hover:bg-slate-100">
-                            Edit Contract
+                            {{ __('master.contract_numbers.show.edit') }}
                         </a>
-                        <form action="{{ route('contract-numbers.destroy', $contract) }}" method="POST" onsubmit="return confirm('Hapus nomor kontrak beserta itemnya secara permanen?')">
+                        <form action="{{ route('contract-numbers.destroy', $contract) }}" method="POST" onsubmit="return confirm(@js(__('master.contract_numbers.show.delete_confirm')))">
                             @csrf
                             @method('DELETE')
                             <button class="rounded-xl border border-rose-300/40 bg-rose-500/10 px-4 py-2 text-sm font-bold text-rose-100 hover:bg-rose-500/20 disabled:opacity-60 disabled:cursor-not-allowed">
-                                Delete
+                                {{ __('master.contract_numbers.show.delete') }}
                             </button>
                         </form>
                     </div>
@@ -41,23 +41,23 @@
 
                 <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                     <div class="rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-white/10">
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-300">Vendor</div>
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-300">{{ __('master.contract_numbers.show.vendor') }}</div>
                         <div class="mt-1 truncate text-sm font-black">{{ $contract->vendor?->vendor_name ?? '-' }}</div>
                     </div>
                     <div class="rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-white/10">
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-300">Effective</div>
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-300">{{ __('master.contract_numbers.show.effective') }}</div>
                         <div class="mt-1 text-sm font-black">{{ $contract->effective_from?->format('d M Y') ?: '-' }}</div>
                     </div>
                     <div class="rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-white/10">
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-300">Expired</div>
-                        <div class="mt-1 text-sm font-black">{{ $contract->effective_to?->format('d M Y') ?: 'OPEN' }}</div>
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-300">{{ __('master.contract_numbers.show.expired') }}</div>
+                        <div class="mt-1 text-sm font-black">{{ $contract->effective_to?->format('d M Y') ?: __('master.contract_numbers.show.open') }}</div>
                     </div>
                     <div class="rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-white/10">
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-300">Items</div>
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-300">{{ __('master.contract_numbers.show.items') }}</div>
                         <div class="mt-1 font-mono text-lg font-black tabular-nums">{{ number_format($contract->items->count()) }}</div>
                     </div>
                     <div class="rounded-2xl bg-white/10 px-4 py-3 ring-1 ring-white/10">
-                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-300">Updated By</div>
+                        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-300">{{ __('master.contract_numbers.show.updated_by') }}</div>
                         <div class="mt-1 truncate text-sm font-black">{{ $contract->updater?->name ?? $contract->creator?->name ?? '-' }}</div>
                     </div>
                 </div>
@@ -65,23 +65,23 @@
 
             <div class="p-6">
                 <div class="mb-4">
-                    <h2 class="text-lg font-black text-slate-900">Detail Item Kontrak</h2>
-                    <p class="text-sm text-slate-500">Monitoring target, pemakaian, NG, sisa efektif kontrak, dan alarm per part.</p>
+                    <h2 class="text-lg font-black text-slate-900">{{ __('master.contract_numbers.show.detail_title') }}</h2>
+                    <p class="text-sm text-slate-500">{{ __('master.contract_numbers.show.detail_subtitle') }}</p>
                 </div>
 
                 <div class="overflow-x-auto rounded-2xl border border-slate-200">
                     <table class="min-w-full divide-y divide-slate-200 text-sm">
                         <thead class="bg-slate-50 text-left text-xs font-black uppercase tracking-wide text-slate-500">
                             <tr>
-                                <th class="px-4 py-3">WIP Part</th>
-                                <th class="px-4 py-3">RM Part</th>
-                                <th class="px-4 py-3">Process</th>
-                                <th class="px-4 py-3 text-center">UOM</th>
-                                <th class="px-4 py-3 text-right">Target</th>
-                                <th class="px-4 py-3 text-right">Sent</th>
-                                <th class="px-4 py-3 text-right">NG</th>
-                                <th class="px-4 py-3 text-right">Remain Efektif</th>
-                                <th class="px-4 py-3 text-right">Alarm</th>
+                                <th class="px-4 py-3">{{ __('master.contract_numbers.show.th_wip') }}</th>
+                                <th class="px-4 py-3">{{ __('master.contract_numbers.show.th_rm') }}</th>
+                                <th class="px-4 py-3">{{ __('master.contract_numbers.show.th_process') }}</th>
+                                <th class="px-4 py-3 text-center">{{ __('master.contract_numbers.show.th_uom') }}</th>
+                                <th class="px-4 py-3 text-right">{{ __('master.contract_numbers.show.th_target') }}</th>
+                                <th class="px-4 py-3 text-right">{{ __('master.contract_numbers.show.th_sent') }}</th>
+                                <th class="px-4 py-3 text-right">{{ __('master.contract_numbers.show.th_ng') }}</th>
+                                <th class="px-4 py-3 text-right">{{ __('master.contract_numbers.show.th_remain') }}</th>
+                                <th class="px-4 py-3 text-right">{{ __('master.contract_numbers.show.th_alarm') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
@@ -117,7 +117,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="9" class="px-4 py-10 text-center text-sm text-slate-400">Belum ada item pada kontrak ini.</td>
+                                    <td colspan="9" class="px-4 py-10 text-center text-sm text-slate-400">{{ __('master.contract_numbers.show.empty') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -126,7 +126,7 @@
 
                 @if($contract->notes)
                     <div class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                        <div class="text-xs font-black uppercase tracking-wide text-slate-500">Notes</div>
+                        <div class="text-xs font-black uppercase tracking-wide text-slate-500">{{ __('master.contract_numbers.show.notes') }}</div>
                         <div class="mt-1 text-sm text-slate-700">{{ $contract->notes }}</div>
                     </div>
                 @endif

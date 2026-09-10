@@ -83,7 +83,7 @@
             <tr>
                 <td style="width: 33%;">
                     <div class="card h82 photo-portrait">
-                        <div class="label">Depan</div>
+                        <div class="label">{{ __('incoming.arrivals.inspection.front') }}</div>
                         @if ($p = $photo('front'))
                             <img class="photo" src="{{ $p['src'] }}" alt="Depan">
                         @else
@@ -93,7 +93,7 @@
                 </td>
                 <td style="width: 33%;">
                     <div class="card h82 photo-portrait">
-                        <div class="label">Belakang</div>
+                        <div class="label">{{ __('incoming.arrivals.inspection.back') }}</div>
                         @if ($p = $photo('back'))
                             <img class="photo" src="{{ $p['src'] }}" alt="Belakang">
                         @else
@@ -103,7 +103,7 @@
                 </td>
                 <td style="width: 34%;">
                     <div class="card h36 photo-landscape">
-                        <div class="label">Kiri</div>
+                        <div class="label">{{ __('incoming.arrivals.inspection.left') }}</div>
                         @if ($p = $photo('left'))
                             <img class="photo" src="{{ $p['src'] }}" alt="Kiri">
                         @else
@@ -112,7 +112,7 @@
                     </div>
                     <div style="height:2mm;"></div>
                     <div class="card h36 photo-landscape">
-                        <div class="label">Kanan</div>
+                        <div class="label">{{ __('incoming.arrivals.inspection.right') }}</div>
                         @if ($p = $photo('right'))
                             <img class="photo" src="{{ $p['src'] }}" alt="Kanan">
                         @else
@@ -124,7 +124,7 @@
             <tr>
                 <td>
                     <div class="card h80 photo-portrait">
-                        <div class="label">Dalam</div>
+                        <div class="label">{{ __('incoming.arrivals.inspection.inside') }}</div>
                         @if ($p = $photo('inside'))
                             <img class="photo" src="{{ $p['src'] }}" alt="Dalam">
                         @else
@@ -134,7 +134,7 @@
                 </td>
                 <td>
 	                    <div class="card h80">
-	                        <div class="label">No. Seal</div>
+	                        <div class="label">{{ __('incoming.arrivals.inspection.seal_no') }}</div>
 	                        <div style="padding-top: 22mm; font-size: 18px; font-weight: bold; letter-spacing: 0.5px; text-align: center;">
 	                            {{ $firstSeal }}
 	                        </div>
@@ -142,17 +142,17 @@
 	                </td>
                 <td>
                     <div class="card h80">
-                        <div class="label">Keterangan</div>
+                        <div class="label">{{ __('incoming.arrivals.inspection.description') }}</div>
                         <div class="ket">
                             <table class="kvs">
-                                <tr><td class="k">No Invoice</td><td class="v">: {{ $arrival->invoice_no }}</td></tr>
-                                <tr><td class="k">No Container</td><td class="v">: {{ $firstContainer }}</td></tr>
+                                <tr><td class="k">{{ __('incoming.arrivals.inspection.invoice_no') }}</td><td class="v">: {{ $arrival->invoice_no }}</td></tr>
+                                <tr><td class="k">{{ __('incoming.arrivals.inspection.container_no') }}</td><td class="v">: {{ $firstContainer }}</td></tr>
                                 <tr><td class="k">Invoice</td><td class="v">: {{ $arrival->invoice_no ?? '-' }}</td></tr>
                                 <tr><td class="k">Vendor</td><td class="v">: {{ $arrival->vendor->vendor_name ?? '-' }}</td></tr>
-                                <tr><td class="k">Tanggal</td><td class="v">: {{ $inspection->updated_at?->format('Y-m-d') ?? '-' }}</td></tr>
-                                <tr><td class="k">Status</td><td class="v">: {{ strtoupper($inspection->status) }}</td></tr>
+                                <tr><td class="k">{{ __('incoming.arrivals.inspection.arrival_date') }}</td><td class="v">: {{ $inspection->updated_at?->format('Y-m-d') ?? '-' }}</td></tr>
+                                <tr><td class="k">{{ __('incoming.arrivals.inspection.status') }}</td><td class="v">: {{ strtoupper($inspection->status) }}</td></tr>
                             </table>
-                            <div class="notes-text"><b>Catatan</b>: {{ $inspection->notes ?: '-' }}</div>
+                            <div class="notes-text"><b>{{ __('incoming.arrivals.inspection.note') }}</b>: {{ $inspection->notes ?: '-' }}</div>
                             <div class="badges">
                                 @foreach (['issues_left' => 'Left', 'issues_right' => 'Right', 'issues_front' => 'Front', 'issues_back' => 'Back'] as $field => $side)
                                     @php $issues = $inspection->{$field} ?? []; @endphp
@@ -171,21 +171,21 @@
                                     <tr>
                                         <td>
                                             <div class="sig-box">
-                                                <div class="sig-title">Diperiksa Oleh</div>
+                                                <div class="sig-title">{{ __('incoming.arrivals.inspection.checked_by') }}</div>
                                                 <div class="sig-line"></div>
                                                 <div class="sig-name">Nurwahid/Ida</div>
                                             </div>
                                         </td>
                                         <td>
                                             <div class="sig-box">
-                                                <div class="sig-title">Mengetahui</div>
+                                                <div class="sig-title">{{ __('incoming.arrivals.inspection.acknowledged') }}</div>
                                                 <div class="sig-line"></div>
                                                 <div class="sig-name">Fadri/Dita</div>
                                             </div>
                                         </td>
                                         <td>
                                             <div class="sig-box">
-                                                <div class="sig-title">Driver / Sopir</div>
+                                                <div class="sig-title">{{ __('incoming.arrivals.inspection.driver') }}</div>
                                                 <div class="sig-line"></div>
                                                 <div class="sig-name">{{ $driverName ?: '-' }}</div>
                                             </div>

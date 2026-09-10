@@ -7,13 +7,17 @@ use App\Models\User;
 use App\Support\Menu;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\View\View;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ModuleDashboardController extends Controller
 {
-    public function show(Request $request, string $module): View
+    public function show(Request $request, string $module)
     {
+        // Bookmark lama /module/warehouse tetap jalan setelah rename ke inventory.
+        if ($module === 'warehouse') {
+            return redirect()->route('module.dashboard', ['module' => 'inventory']);
+        }
+
         $user = $request->user();
 
         $definition = Menu::get($module);
@@ -24,6 +28,30 @@ class ModuleDashboardController extends Controller
 
         abort_unless(Menu::visibleItems($user, $module) !== [], 403);
 
+        // Modul bertab (inventory): filter tile menu per kategori aktif (FG/RM/WIP).
+        // Item tanpa key "categories" = tool lintas kategori, tampil di baris terpisah.
+        $categories = $definition['categories'] ?? [];
+        $tools = [];
+        if ($categories !== []) {
+            $activeCategory = $request->query('cat');
+            if (! isset($categories[$activeCategory])) {
+                $activeCategory = array_key_first($categories);
+            }
+
+            $allItems = Menu::visibleItems($user, $module);
+            $items = array_values(array_filter(
+                $allItems,
+                fn (array $item) => in_array($activeCategory, $item['categories'] ?? [], true),
+            ));
+            $tools = array_values(array_filter(
+                $allItems,
+                fn (array $item) => ! array_key_exists('categories', $item),
+            ));
+        } else {
+            $activeCategory = null;
+            $items = Menu::visibleItems($user, $module);
+        }
+
         $stats = $this->stats($module);
         $charts = $stats['charts'] ?? [];
         if ($charts === [] && ! empty($stats['chart'])) {
@@ -32,7 +60,10 @@ class ModuleDashboardController extends Controller
 
         return view('module.dashboard', [
             'module' => $definition + ['key' => $module],
-            'items' => Menu::visibleItems($user, $module),
+            'items' => $items,
+            'tools' => $tools,
+            'categories' => $categories,
+            'activeCategory' => $activeCategory,
             'stats' => $stats['stats'] ?? [],
             'chart' => $stats['chart'] ?? null,
             'charts' => $charts,
@@ -50,7 +81,7 @@ class ModuleDashboardController extends Controller
             'marketing' => $this->marketingStats(),
             'planning' => $this->planningStats(),
             'purchasing' => $this->purchasingStats(),
-            'warehouse' => $this->warehouseStats(),
+            'inventory' => $this->warehouseStats(),
             'production' => $this->productionStats(),
             'outside-process' => $this->outsideProcessStats(),
             'admin' => $this->adminStats(),

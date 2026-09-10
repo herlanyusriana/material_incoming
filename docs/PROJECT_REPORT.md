@@ -40,8 +40,8 @@ Project ERP Material Incoming telah melalui tahap refactoring besar dari arsitek
 ### 1. Incoming Material (Receiving)
 
 1. **Create Arrival** – User membuat kedatangan (arrival) dengan data vendor, kontrak, item (part, qty, uom).
-2. **Receive** – Setelah barang fisik tiba, user melakukan receive per item. Sistem menghasilkan QR label (tag RCV-xxx) sebagai identitas batch.
-3. **Putaway** – Stock masuk ke lokasi gudang (`inventory_location_stock`) dengan `batch_no = tag`, dan mencatat riwayat gerak di `inventory_stock_movements`.
+2. **Receive** – Setelah barang fisik tiba, user melakukan receive per item. Sistem menghasilkan QR label (tag RCV-xxx) sebagai identitas batch dan mem-posting QC-pass ke lokasi virtual `RECEIVING`.
+3. **Putaway** – Jika barang siap ditempatkan, stok dipindahkan dari `RECEIVING` ke lokasi gudang fisik (`inventory_location_stock`) dengan `batch_no = tag`, dan riwayatnya dicatat di `inventory_stock_movements`.
 4. **Quality Inspection** (Opsional) – Inspeksi kualitas dicatat di `arrival_inspections` dan `container_inspections`.
 
 ### 2. Inventory Management

@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Warehouse • QC Queue
+        {{ __('warehouse.qc.index.header') }}
     </x-slot>
 
     <div class="py-6">
@@ -24,33 +24,33 @@
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl overflow-hidden">
                 <div class="px-6 py-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                     <div>
-                        <h2 class="text-xl font-bold text-slate-900">QC Queue</h2>
-                        <div class="text-xs text-slate-500">Items yang belum PASS (hold/reject)</div>
+                        <h2 class="text-xl font-bold text-slate-900">{{ __('warehouse.qc.index.title') }}</h2>
+                        <div class="text-xs text-slate-500">{{ __('warehouse.qc.index.subtitle') }}</div>
                     </div>
 
                     <div class="flex flex-wrap gap-2">
-                        <a href="{{ route('warehouse.putaway.index') }}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold hover:bg-slate-50">Putaway Queue</a>
+                        <a href="{{ route('warehouse.putaway.index') }}" class="px-3 py-2 rounded-xl border border-slate-200 text-sm font-semibold hover:bg-slate-50">{{ __('warehouse.qc.index.putaway_queue') }}</a>
                     </div>
                 </div>
 
                 <form method="GET" class="px-6 py-4 bg-slate-50 border-b border-slate-200">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Search</label>
-                            <input type="text" name="search" value="{{ $search }}" placeholder="tag / arrival / part"
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.qc.index.search_label') }}</label>
+                            <input type="text" name="search" value="{{ $search }}" placeholder="{{ __('warehouse.qc.index.search_ph') }}"
                                 class="w-full rounded-lg border-slate-300 text-sm">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">QC Status</label>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.qc.index.status_label') }}</label>
                             <select name="status" class="w-full rounded-lg border-slate-300 text-sm">
-                                <option value="" {{ $status === '' ? 'selected' : '' }}>All (hold/reject/fail)</option>
+                                <option value="" {{ $status === '' ? 'selected' : '' }}>{{ __('warehouse.qc.index.all_statuses') }}</option>
                                 <option value="hold" {{ $status === 'hold' ? 'selected' : '' }}>HOLD</option>
                                 <option value="reject" {{ $status === 'reject' ? 'selected' : '' }}>REJECT</option>
                                 <option value="fail" {{ $status === 'fail' ? 'selected' : '' }}>FAIL</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Per Page</label>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.qc.index.per_page') }}</label>
                             <select name="per_page" class="w-full rounded-lg border-slate-300 text-sm">
                                 @foreach([25,50,100,200] as $opt)
                                     <option value="{{ $opt }}" {{ (int) $perPage === $opt ? 'selected' : '' }}>{{ $opt }}</option>
@@ -59,10 +59,10 @@
                         </div>
                         <div class="flex items-end gap-2">
                             <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold">
-                                Apply
+                                {{ __('warehouse.qc.index.apply') }}
                             </button>
                             <a href="{{ route('warehouse.qc.index') }}" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700">
-                                Clear
+                                {{ __('warehouse.qc.index.clear') }}
                             </a>
                         </div>
                     </div>
@@ -72,13 +72,13 @@
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Date</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Arrival</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Part</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Tag</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Status</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">QC Note</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Action</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.qc.index.th_date') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.qc.index.th_arrival') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.qc.index.th_part') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.qc.index.th_tag') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.qc.index.th_status') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.qc.index.th_note') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.qc.index.th_action') }}</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-slate-200">
@@ -132,10 +132,10 @@
                                                     <option value="reject" {{ in_array(strtolower((string) $r->qc_status), ['reject', 'fail'], true) ? 'selected' : '' }}>REJECT</option>
                                                 </select>
                                                 <button type="submit" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg">
-                                                    Update
+                                                    {{ __('warehouse.qc.index.update') }}
                                                 </button>
                                             </div>
-                                            <input name="qc_note" value="{{ $r->qc_note ?? '' }}" placeholder="QC note (optional)"
+                                            <input name="qc_note" value="{{ $r->qc_note ?? '' }}" placeholder="{{ __('warehouse.qc.index.qc_note_ph') }}"
                                                 class="w-72 rounded-lg border-slate-300 text-sm">
                                         </form>
                                     </td>
@@ -143,7 +143,7 @@
                             @empty
                                 <tr>
                                     <td colspan="7" class="px-6 py-8 text-center text-slate-600">
-                                        No QC tasks.
+                                        {{ __('warehouse.qc.index.empty') }}
                                     </td>
                                 </tr>
                             @endforelse

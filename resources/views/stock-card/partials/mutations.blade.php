@@ -2,17 +2,17 @@
     // Map movement_type → badge kelas & label Indonesia agar gudang langsung paham
     // arahnya masuk/keluar tanpa harus hafal kode sistem.
     $movementMap = [
-        'RECEIVE' => ['label' => 'Terima', 'dir' => 'in', 'class' => 'bg-emerald-100 text-emerald-700'],
-        'DELIVERY' => ['label' => 'Kirim', 'dir' => 'out', 'class' => 'bg-rose-100 text-rose-700'],
-        'ADJUSTMENT' => ['label' => 'Penyesuaian', 'dir' => 'adj', 'class' => 'bg-amber-100 text-amber-700'],
-        'ISSUE' => ['label' => 'Issue', 'dir' => 'out', 'class' => 'bg-rose-100 text-rose-700'],
-        'RETURN' => ['label' => 'Retur', 'dir' => 'in', 'class' => 'bg-emerald-100 text-emerald-700'],
-        'TRANSFER' => ['label' => 'Transfer', 'dir' => 'adj', 'class' => 'bg-sky-100 text-sky-700'],
-        'MOVE' => ['label' => 'Pindah', 'dir' => 'adj', 'class' => 'bg-sky-100 text-sky-700'],
-        'supply_to_department' => ['label' => 'Supply ke Dept', 'dir' => 'out', 'class' => 'bg-rose-100 text-rose-700'],
-        'consume_direct_issue' => ['label' => 'Issue Langsung', 'dir' => 'out', 'class' => 'bg-rose-100 text-rose-700'],
-        'consume_production' => ['label' => 'Konsumsi Produksi', 'dir' => 'out', 'class' => 'bg-rose-100 text-rose-700'],
-        'return_to_wh' => ['label' => 'Retur ke Gudang', 'dir' => 'in', 'class' => 'bg-emerald-100 text-emerald-700'],
+        'RECEIVE' => ['label' => __('warehouse.stock_card.mutations.move_receive'), 'dir' => 'in', 'class' => 'bg-emerald-100 text-emerald-700'],
+        'DELIVERY' => ['label' => __('warehouse.stock_card.mutations.move_delivery'), 'dir' => 'out', 'class' => 'bg-rose-100 text-rose-700'],
+        'ADJUSTMENT' => ['label' => __('warehouse.stock_card.mutations.move_adjustment'), 'dir' => 'adj', 'class' => 'bg-amber-100 text-amber-700'],
+        'ISSUE' => ['label' => __('warehouse.stock_card.mutations.move_issue'), 'dir' => 'out', 'class' => 'bg-rose-100 text-rose-700'],
+        'RETURN' => ['label' => __('warehouse.stock_card.mutations.move_return'), 'dir' => 'in', 'class' => 'bg-emerald-100 text-emerald-700'],
+        'TRANSFER' => ['label' => __('warehouse.stock_card.mutations.move_transfer'), 'dir' => 'adj', 'class' => 'bg-sky-100 text-sky-700'],
+        'MOVE' => ['label' => __('warehouse.stock_card.mutations.move_move'), 'dir' => 'adj', 'class' => 'bg-sky-100 text-sky-700'],
+        'supply_to_department' => ['label' => __('warehouse.stock_card.mutations.move_supply'), 'dir' => 'out', 'class' => 'bg-rose-100 text-rose-700'],
+        'consume_direct_issue' => ['label' => __('warehouse.stock_card.mutations.move_consume_direct'), 'dir' => 'out', 'class' => 'bg-rose-100 text-rose-700'],
+        'consume_production' => ['label' => __('warehouse.stock_card.mutations.move_consume_production'), 'dir' => 'out', 'class' => 'bg-rose-100 text-rose-700'],
+        'return_to_wh' => ['label' => __('warehouse.stock_card.mutations.move_return_wh'), 'dir' => 'in', 'class' => 'bg-emerald-100 text-emerald-700'],
     ];
 @endphp
 
@@ -21,19 +21,19 @@
         <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 mx-auto mb-2 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7m16 0v5a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-5m16 0h-2.586a1 1 0 0 0-.707.293l-2.414 2.414a1 1 0 0 1-.707.293h-3.172a1 1 0 0 1-.707-.293l-2.414-2.414A1 1 0 0 0 6.586 13H4" />
         </svg>
-        <div class="text-sm font-semibold text-slate-500">Belum ada mutasi tercatat</div>
-        <div class="text-xs text-slate-400 mt-0.5">Untuk part ini, saldo belum terganggu oleh transaksi masuk/keluar.</div>
+        <div class="text-sm font-semibold text-slate-500">{{ __('warehouse.stock_card.mutations.empty_title') }}</div>
+        <div class="text-xs text-slate-400 mt-0.5">{{ __('warehouse.stock_card.mutations.empty_hint') }}</div>
     </div>
 @else
     <div class="overflow-x-auto rounded-xl border border-slate-200">
         <table class="w-full text-sm divide-y divide-slate-200">
             <thead class="bg-slate-50">
                 <tr>
-                    <th class="px-3 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wider text-[11px]">Waktu</th>
-                    <th class="px-3 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wider text-[11px]">Jenis</th>
-                    <th class="px-3 py-2.5 text-center font-bold text-slate-500 uppercase tracking-wider text-[11px]">Qty</th>
-                    <th class="px-3 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wider text-[11px]">Lokasi</th>
-                    <th class="px-3 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wider text-[11px]">Keterangan</th>
+                    <th class="px-3 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wider text-[11px]">{{ __('warehouse.stock_card.mutations.th_time') }}</th>
+                    <th class="px-3 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wider text-[11px]">{{ __('warehouse.stock_card.mutations.th_type') }}</th>
+                    <th class="px-3 py-2.5 text-center font-bold text-slate-500 uppercase tracking-wider text-[11px]">{{ __('warehouse.stock_card.mutations.th_qty') }}</th>
+                    <th class="px-3 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wider text-[11px]">{{ __('warehouse.stock_card.mutations.th_location') }}</th>
+                    <th class="px-3 py-2.5 text-left font-bold text-slate-500 uppercase tracking-wider text-[11px]">{{ __('warehouse.stock_card.mutations.th_note') }}</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -67,7 +67,7 @@
                         <td class="px-3 py-2.5 text-xs text-slate-500 max-w-[220px] truncate">
                             {{ $mv->notes ?: '-' }}
                             @if ($mv->tag_number)
-                                <span class="text-slate-400">(Tag: {{ $mv->tag_number }})</span>
+                                <span class="text-slate-400">({{ __('warehouse.stock_card.mutations.tag') }}: {{ $mv->tag_number }})</span>
                             @endif
                         </td>
                     </tr>

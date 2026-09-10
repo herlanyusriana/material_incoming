@@ -101,7 +101,7 @@ class IncomingFlowToInventoryE2ETest extends TestCase
         $this->assertSame('pass', $receive->qc_status);
         $this->assertSame(10, (int) $receive->qty);
 
-        // No stock yet (receive did not putaway)
+        // Stock exists in virtual RECEIVING, but not yet in the physical rack.
         $this->assertNull(
             InventoryLocationStock::where('gci_part_id', $gciPart->id)
                 ->where('location_code', 'QA-E2E-01')->first(),

@@ -18,10 +18,10 @@
 @endphp
 
 <{{ $tag }} @if ($tag === 'a') href="{{ $href }}" @endif
-    {{ $attributes->merge(['class' => 'group flex min-h-[4.5rem] items-center gap-3 rounded-xl border p-3.5 text-left shadow-sm transition '
+    {{ $attributes->merge(['class' => 'group flex min-h-[4.5rem] items-center gap-3 rounded-xl border p-3.5 text-left shadow-sm transition duration-200 '
         . ($disabled
             ? 'cursor-not-allowed border-dashed border-slate-200 bg-slate-50 opacity-70'
-            : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500')]) }}>
+            : 'border-slate-200/90 bg-white hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500')]) }}>
     <span class="shrink-0 {{ $disabled ? 'text-slate-300' : $accent }}">
         <x-icon :name="$icon" class="h-5 w-5" />
     </span>

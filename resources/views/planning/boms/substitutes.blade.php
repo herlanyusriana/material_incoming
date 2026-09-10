@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('header')
-    Substitute Mapping (Alternative Parts)
+    {{ __('planning.boms.substitutes.header') }}
 @endsection
 
 @section('content')
@@ -9,7 +9,7 @@
         {{-- Header Actions --}}
         <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-                <p class="text-sm text-slate-500">Manage alternative component parts for BOMs</p>
+                <p class="text-sm text-slate-500">{{ __('planning.boms.substitutes.subtitle') }}</p>
             </div>
             <div class="flex flex-wrap gap-2">
                 <button onclick="document.getElementById('importModal').showModal()"
@@ -18,7 +18,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                     </svg>
-                    Import
+                    {{ __('planning.boms.substitutes.import') }}
                 </button>
                 <a href="{{ route('planning.boms.substitutes.export') }}"
                     class="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-slate-50 transition-all">
@@ -26,10 +26,10 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                             d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                     </svg>
-                    Export All
+                    {{ __('planning.boms.substitutes.export') }}
                 </a>
                 <form action="{{ route('planning.boms.substitutes.truncate') }}" method="POST"
-                    onsubmit="return confirm('WARNING: This will delete ALL substitute records. BOM GCI (Main BOM) will NOT be affected. Continue?')">
+                    onsubmit='return confirm(@js(__("planning.boms.substitutes.confirm_truncate")));'>
                     @csrf
                     @method('DELETE')
                     <button type="submit"
@@ -38,13 +38,13 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
-                        Clear All (Reset)
+                        {{ __('planning.boms.substitutes.clear') }}
                     </button>
                 </form>
                 <div class="relative inline-block text-left" x-data="{ open: false }">
                     <button @click="open = !open" type="button"
                         class="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 transition-all">
-                        Download Template
+                        {{ __('planning.boms.substitutes.template') }}
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                         </svg>
@@ -54,11 +54,9 @@
                         x-cloak>
                         <div class="py-1">
                             <a href="{{ route('planning.boms.substitutes.template') }}"
-                                class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Standard Template (with
-                                FG)</a>
+                                class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">{{ __('planning.boms.substitutes.template_std') }}</a>
                             <a href="{{ route('planning.boms.substitutes.template-mapping') }}"
-                                class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Component-to-Sub Mapping
-                                Template</a>
+                                class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">{{ __('planning.boms.substitutes.template_mapping') }}</a>
                         </div>
                     </div>
                 </div>
@@ -70,8 +68,7 @@
             <form action="{{ route('planning.boms.substitutes.index') }}" method="GET"
                 class="flex flex-col gap-4 md:flex-row md:items-end">
                 <div class="flex-1">
-                    <label for="q" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Search
-                        Part No</label>
+                    <label for="q" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">{{ __('planning.boms.substitutes.search_label') }}</label>
                     <div class="relative">
                         <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                             <svg class="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -81,18 +78,18 @@
                         </div>
                         <input type="text" name="q" id="q" value="{{ $q }}"
                             class="block w-full rounded-xl border-slate-200 pl-10 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            placeholder="Search FG No, Component No, or Substitute No...">
+                            placeholder="{{ __('planning.boms.substitutes.search_ph') }}">
                     </div>
                 </div>
                 <div class="flex gap-2">
                     <button type="submit"
                         class="inline-flex items-center justify-center rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 transition-all">
-                        Filter
+                        {{ __('planning.boms.substitutes.filter') }}
                     </button>
                     @if($q)
                         <a href="{{ route('planning.boms.substitutes.index') }}"
                             class="inline-flex items-center justify-center rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 transition-all">
-                            Clear
+                            {{ __('planning.boms.substitutes.clear_filter') }}
                         </a>
                     @endif
                 </div>
@@ -105,14 +102,14 @@
                 <table class="min-w-full divide-y divide-slate-200">
                     <thead class="bg-slate-50">
                         <tr class="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                            <th class="px-6 py-4 text-left">FG Part (BOM)</th>
-                            <th class="px-6 py-4 text-left">Primary Component</th>
-                            <th class="px-6 py-4 text-left">Substitute Part</th>
-                            <th class="px-6 py-4 text-left">Size</th>
-                            <th class="px-6 py-4 text-center">Ratio</th>
-                            <th class="px-6 py-4 text-center">Priority</th>
-                            <th class="px-6 py-4 text-center">Status</th>
-                            <th class="px-6 py-4 text-right">Action</th>
+                            <th class="px-6 py-4 text-left">{{ __('planning.boms.substitutes.th_fg') }}</th>
+                            <th class="px-6 py-4 text-left">{{ __('planning.boms.substitutes.th_primary') }}</th>
+                            <th class="px-6 py-4 text-left">{{ __('planning.boms.substitutes.th_sub') }}</th>
+                            <th class="px-6 py-4 text-left">{{ __('planning.boms.substitutes.th_size') }}</th>
+                            <th class="px-6 py-4 text-center">{{ __('planning.boms.substitutes.th_ratio') }}</th>
+                            <th class="px-6 py-4 text-center">{{ __('planning.boms.substitutes.th_priority') }}</th>
+                            <th class="px-6 py-4 text-center">{{ __('planning.boms.substitutes.th_status') }}</th>
+                            <th class="px-6 py-4 text-right">{{ __('planning.boms.substitutes.th_action') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200 bg-white">
@@ -156,24 +153,24 @@
                                     @if($sub->status === 'active')
                                         <span
                                             class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
-                                            Active
+                                            {{ __('planning.boms.substitutes.active') }}
                                         </span>
                                     @else
                                         <span
                                             class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-800">
-                                            Inactive
+                                            {{ __('planning.boms.substitutes.inactive') }}
                                         </span>
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="flex justify-end gap-2 text-right">
                                         <form action="{{ route('planning.bom-item-substitutes.destroy', $sub) }}" method="POST"
-                                            onsubmit="return confirm('Remove this substitute link? BOM item remains.')">
+                                            onsubmit='return confirm(@js(__("planning.boms.substitutes.confirm_remove")));'>
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit"
                                                 class="group p-2 text-slate-400 hover:text-red-600 transition-colors"
-                                                title="Remove Substitute">
+                                                title="{{ __('planning.boms.substitutes.remove_title') }}">
                                                 <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                         d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -186,7 +183,7 @@
                         @empty
                             <tr>
                                 <td colspan="7" class="px-6 py-12 text-center text-sm text-slate-500 italic">
-                                    No substitutes found matching search criteria.
+                                    {{ __('planning.boms.substitutes.empty') }}
                                 </td>
                             </tr>
                         @endforelse
@@ -205,7 +202,7 @@
     <dialog id="importModal" class="rounded-2xl border-none shadow-2xl p-0 transition-all duration-300 w-full max-w-md">
         <div class="p-6">
             <div class="flex items-center justify-between mb-6">
-                <h3 class="text-lg font-bold text-slate-900">Import Substitutes</h3>
+                <h3 class="text-lg font-bold text-slate-900">{{ __('planning.boms.substitutes.modal_title') }}</h3>
                 <button onclick="this.closest('dialog').close()"
                     class="p-2 text-slate-400 hover:text-slate-600 transition-colors">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -221,9 +218,8 @@
                             d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                     </svg>
                     <div class="text-xs text-amber-800">
-                        <p class="font-bold">Important Notice</p>
-                        <p class="mt-1">This import <strong>will NOT update</strong> existing substitute records to protect
-                            BOM integrity. It only adds new substitute links.</p>
+                        <p class="font-bold">{{ __('planning.boms.substitutes.notice') }}</p>
+                        <p class="mt-1">{{ __('planning.boms.substitutes.notice_before') }} <strong>{{ __('planning.boms.substitutes.notice_strong') }}</strong> {{ __('planning.boms.substitutes.notice_after') }}</p>
                     </div>
                 </div>
             </div>
@@ -232,8 +228,7 @@
                 class="space-y-4 shadow-none">
                 @csrf
                 <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">Select Excel
-                        File</label>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1.5">{{ __('planning.boms.substitutes.file_label') }}</label>
                     <input type="file" name="file" required
                         class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 shadow-none border border-slate-200 rounded-xl p-1">
                 </div>
@@ -241,18 +236,17 @@
                 <div class="flex items-center gap-2 px-1">
                     <input type="checkbox" name="auto_create_parts" id="auto_create_parts" value="1"
                         class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                    <label for="auto_create_parts" class="text-sm text-slate-600">Auto-register missing substitute
-                        parts</label>
+                    <label for="auto_create_parts" class="text-sm text-slate-600">{{ __('planning.boms.substitutes.auto_create') }}</label>
                 </div>
 
                 <div class="flex gap-2 pt-4">
                     <button type="button" onclick="this.closest('dialog').close()"
                         class="flex-1 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-200 transition-all">
-                        Cancel
+                        {{ __('planning.boms.substitutes.cancel') }}
                     </button>
                     <button type="submit"
                         class="flex-1 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 transition-all">
-                        Start Import
+                        {{ __('planning.boms.substitutes.start') }}
                     </button>
                 </div>
             </form>

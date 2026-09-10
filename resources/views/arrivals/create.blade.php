@@ -1,13 +1,13 @@
 <x-app-layout>
     <x-slot name="header">
-        Create Departure Record
+        {{ __('incoming.arrivals.create.header') }}
     </x-slot>
 
     <div class="py-8">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             @if ($errors->any())
                 <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 space-y-2">
-                    <div class="font-semibold">Silakan periksa kembali kolom yang ditandai.</div>
+                    <div class="font-semibold">{{ __('incoming.arrivals.create.error_title') }}</div>
                     <ul class="list-disc list-inside space-y-1 text-red-800">
                         @foreach ($errors->all() as $error)
                             <li>{{ $error }}</li>
@@ -18,11 +18,11 @@
 
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-xl font-bold text-slate-900">Departure Form</h1>
-                    <p class="text-sm text-slate-600">Isi detail vendor, jadwal, transport, dan dokumen.</p>
+                    <h1 class="text-xl font-bold text-slate-900">{{ __('incoming.arrivals.create.title') }}</h1>
+                    <p class="text-sm text-slate-600">{{ __('incoming.arrivals.create.description') }}</p>
                 </div>
                 <a href="{{ route('departures.index') }}"
-                    class="text-sm text-indigo-600 hover:text-blue-700 font-medium">Back to list</a>
+                    class="text-sm text-indigo-600 hover:text-blue-700 font-medium">{{ __('incoming.arrivals.create.back') }}</a>
             </div>
 
             <form method="POST" action="{{ route('departures.store') }}" class="space-y-6" id="arrival-form"
@@ -31,21 +31,21 @@
 
                 <!-- Section 1: Vendor & Invoice -->
                 <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <h2 class="text-xs font-semibold text-slate-500 tracking-wide mb-4 uppercase">Vendor & Invoice</h2>
+                    <h2 class="text-xs font-semibold text-slate-500 tracking-wide mb-4 uppercase">{{ __('incoming.arrivals.create.vendor_invoice') }}</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="md:col-span-2 space-y-1">
                             <label for="vendor_name"
-                                class="text-[11px] font-semibold text-slate-500 uppercase">Vendor</label>
+                                class="text-[11px] font-semibold text-slate-500 uppercase">{{ __('incoming.arrivals.create.vendor') }}</label>
                             <div class="relative">
                                 <input type="text" id="vendor_name" name="vendor_name" value="{{ old('vendor_name') }}"
-                                    placeholder="Ketik nama vendor..."
+                                    placeholder="{{ __('incoming.arrivals.create.vendor_placeholder') }}"
                                     class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs"
                                     autocomplete="off" required>
                                 <div id="vendor-suggestions"
                                     class="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto hidden">
                                 </div>
                             </div>
-                            <p class="text-xs text-slate-500">Mulai ketik untuk melihat saran (autocomplete).</p>
+                            <p class="text-xs text-slate-500">{{ __('incoming.arrivals.create.vendor_hint') }}</p>
                             <input type="hidden" name="vendor_id" id="vendor_id" value="{{ old('vendor_id') }}">
                             @error('vendor_id') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
@@ -71,7 +71,7 @@
 
                         <div class="space-y-1">
                             <label for="currency"
-                                class="text-[11px] font-semibold text-slate-500 uppercase">Currency</label>
+                                class="text-[11px] font-semibold text-slate-500 uppercase">{{ __('incoming.arrivals.create.currency') }}</label>
                             <select id="currency" name="currency"
                                 class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs">
                                 <option value="USD" {{ old('currency', 'USD') == 'USD' ? 'selected' : '' }}>USD</option>
@@ -86,9 +86,8 @@
 
                 <!-- Section 2: Shipment Schedule -->
                 <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <h2 class="text-xs font-semibold text-slate-500 tracking-wide mb-1 uppercase">Shipment Schedule</h2>
-                    <p class="text-xs text-slate-500 mb-4">Isi jadwal keberangkatan, kedatangan, serta detail kapal dan
-                        pelabuhan.</p>
+                    <h2 class="text-xs font-semibold text-slate-500 tracking-wide mb-1 uppercase">{{ __('incoming.arrivals.create.schedule') }}</h2>
+                    <p class="text-xs text-slate-500 mb-4">{{ __('incoming.arrivals.create.schedule_desc') }}</p>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-1">
                             <label for="etd" class="text-[11px] font-semibold text-slate-500 uppercase">ETD</label>
@@ -107,13 +106,13 @@
                                 GCI</label>
                             <input type="date" id="eta_gci" name="eta_gci" value="{{ old('eta_gci') }}"
                                 class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs">
-                            <p class="text-[10px] text-slate-500">Estimasi tiba di GCI (opsional).</p>
+                            <p class="text-[10px] text-slate-500">{{ __('incoming.arrivals.create.eta_gci_hint') }}</p>
                             @error('eta_gci') <p class="text-[10px] text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
-                            <label for="vessel" class="text-[11px] font-semibold text-slate-500 uppercase">Vessel</label>
+                            <label for="vessel" class="text-[11px] font-semibold text-slate-500 uppercase">{{ __('incoming.arrivals.create.vessel') }}</label>
                             <input type="text" id="vessel" name="vessel" value="{{ old('vessel') }}"
-                                placeholder="Nama kapal (opsional)"
+                                placeholder="{{ __('incoming.arrivals.create.vessel_placeholder') }}"
                                 class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs">
                             @error('vessel') <p class="text-[10px] text-red-600">{{ $message }}</p> @enderror
                         </div>
@@ -133,11 +132,10 @@
                                         d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
                                         clip-rule="evenodd" />
                                 </svg>
-                                <span class="text-xs font-bold uppercase tracking-wider">Automated HS Code</span>
+                                <span class="text-xs font-bold uppercase tracking-wider">{{ __('incoming.arrivals.create.hs_title') }}</span>
                             </div>
                             <p class="text-xs text-indigo-600 leading-relaxed">
-                                HS Code akan di-generate otomatis berdasarkan Master Part dari setiap item yang Anda
-                                tambahkan.
+                                {{ __('incoming.arrivals.create.hs_desc') }}
                             </p>
                         </div>
                     </div>
@@ -145,15 +143,15 @@
 
                 <!-- Section 3: Transport -->
                 <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <h2 class="text-xs font-semibold text-slate-500 tracking-wide mb-1 uppercase">Transport</h2>
-                    <p class="text-xs text-slate-500 mb-4">Detail trucking dan container.</p>
+                    <h2 class="text-xs font-semibold text-slate-500 tracking-wide mb-1 uppercase">{{ __('incoming.arrivals.create.transport') }}</h2>
+                    <p class="text-xs text-slate-500 mb-4">{{ __('incoming.arrivals.create.transport_desc') }}</p>
                     <div class="space-y-4">
                         <div class="space-y-1">
                             <label for="trucking_company_id"
-                                class="text-[11px] font-semibold text-slate-500 uppercase">Trucking Company</label>
+                                class="text-[11px] font-semibold text-slate-500 uppercase">{{ __('incoming.arrivals.create.trucking') }}</label>
                             <select id="trucking_company_id" name="trucking_company_id"
                                 class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs">
-                                <option value="">Pilih trucking company</option>
+                                <option value="">{{ __('incoming.arrivals.create.trucking_placeholder') }}</option>
                                 @foreach($truckings as $trucking)
                                     <option value="{{ $trucking->id }}" {{ old('trucking_company_id') == $trucking->id ? 'selected' : '' }}>
                                         {{ $trucking->company_name }}
@@ -167,9 +165,8 @@
                         <div class="space-y-2">
                             <div class="flex items-center justify-between gap-3">
                                 <div>
-                                    <label class="text-sm font-medium text-slate-700">Containers & Seal Code</label>
-                                    <p class="text-xs text-slate-500">1 container = 1 seal code. 1 invoice bisa punya
-                                        banyak container.</p>
+                                    <label class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.create.containers_title') }}</label>
+                                    <p class="text-xs text-slate-500">{{ __('incoming.arrivals.create.containers_desc') }}</p>
                                 </div>
                             </div>
 
@@ -186,35 +183,34 @@
 
                 <!-- Section 4: Documents & Notes -->
                 <div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-                    <h2 class="text-xs font-semibold text-slate-500 tracking-wide mb-4 uppercase">Documents & Notes</h2>
+                    <h2 class="text-xs font-semibold text-slate-500 tracking-wide mb-4 uppercase">{{ __('incoming.arrivals.create.docs') }}</h2>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-1">
-                            <label for="bl_no" class="text-sm font-medium text-slate-700">Bill of Lading</label>
+                            <label for="bl_no" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.create.bl') }}</label>
                             <input type="text" id="bl_no" name="bl_no" value="{{ old('bl_no') }}" placeholder="BL-56789"
                                 class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             @error('bl_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
-                            <label for="pen_no" class="text-sm font-medium text-slate-700">Nomor PEN</label>
+                            <label for="pen_no" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.create.pen_no') }}</label>
                             <input type="text" id="pen_no" name="pen_no" value="{{ old('pen_no') }}" placeholder="Nomor PEN"
                                 class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             @error('pen_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
-                            <label for="pen_date" class="text-sm font-medium text-slate-700">Tanggal No PEN</label>
+                            <label for="pen_date" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.create.pen_date') }}</label>
                             <input type="date" id="pen_date" name="pen_date" value="{{ old('pen_date') }}"
                                 class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             @error('pen_date') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
-                            <label for="aju_no" class="text-sm font-medium text-slate-700">Nomor AJU</label>
+                            <label for="aju_no" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.create.aju_no') }}</label>
                             <input type="text" id="aju_no" name="aju_no" value="{{ old('aju_no') }}" placeholder="Nomor AJU"
                                 class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             @error('aju_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
-                            <label for="bl_status" class="text-sm font-medium text-slate-700">Bill of Lading
-                                Status</label>
+                            <label for="bl_status" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.create.bl_status') }}</label>
                             <select id="bl_status" name="bl_status"
                                 class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                                 <option value="">-</option>
@@ -225,25 +221,24 @@
                             @error('bl_status') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1 md:col-span-2">
-                            <label for="bl_file" class="text-sm font-medium text-slate-700">Upload Bill of Lading
-                                (PDF/JPG/PNG)</label>
+                            <label for="bl_file" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.create.bl_file') }}</label>
                             <input type="file" id="bl_file" name="bl_file" accept="application/pdf,image/*"
                                 class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
-                            <p class="text-xs text-slate-500">Maks 10MB.</p>
+                            <p class="text-xs text-slate-500">{{ __('incoming.arrivals.create.bl_max') }}</p>
                             @error('bl_file') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
-                            <label for="price_term" class="text-sm font-medium text-slate-700">Price Term</label>
+                            <label for="price_term" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.create.price_term') }}</label>
                             <input type="text" id="price_term" name="price_term" value="{{ old('price_term') }}"
                                 placeholder="FOB / CIF / EXW"
                                 class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             @error('price_term') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="md:col-span-2 space-y-1">
-                            <label for="notes" class="text-sm font-medium text-slate-700">Notes</label>
+                            <label for="notes" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.create.notes') }}</label>
                             <textarea id="notes" name="notes" rows="3"
                                 class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                placeholder="Catatan atau instruksi khusus">{{ old('notes') }}</textarea>
+                                placeholder="{{ __('incoming.arrivals.create.notes_placeholder') }}">{{ old('notes') }}</textarea>
                             @error('notes') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                     </div>
@@ -265,7 +260,7 @@
                                     stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h18M3 12h18M3 17h18" />
                                 </svg>
-                                Qty Goods Sheet
+                                {{ __('incoming.arrivals.create.qty_sheet') }}
                             </button>
                             <button type="button" id="refresh-parts"
                                 class="inline-flex w-full items-center justify-center gap-2 px-3 py-2 text-xs font-semibold text-slate-600 bg-slate-100 rounded-xl border border-slate-200 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed transition sm:w-auto"
@@ -275,7 +270,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round"
                                         d="M4.5 9.75a7.5 7.5 0 0 1 13.208-3.464M19.5 14.25a7.5 7.5 0 0 1-13.208 3.464M4.5 4.5v5.25H9.75M19.5 19.5v-5.25H14.25" />
                                 </svg>
-                                <span data-label>Sync Part Catalog</span>
+                                <span data-label>{{ __('incoming.arrivals.create.sync_parts') }}</span>
                             </button>
                         </div>
                     </div>
@@ -288,7 +283,7 @@
                 <div class="flex justify-end">
                     <button type="submit"
                         class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors">
-                        Save Departure
+                        {{ __('incoming.arrivals.create.save') }}
                     </button>
                 </div>
             </form>
@@ -301,14 +296,14 @@
             <div class="rounded-2xl bg-white shadow-xl border border-slate-200 overflow-hidden">
                 <div class="flex items-center justify-between gap-4 px-6 py-4 border-b border-slate-200 bg-slate-50">
                     <div>
-                        <div class="text-lg font-black text-slate-900">Qty Goods Sheet</div>
-                        <div class="text-xs text-slate-600">Bulk input untuk Qty Goods (support paste banyak baris).
+                        <div class="text-lg font-black text-slate-900">{{ __('incoming.arrivals.create.sheet_title') }}</div>
+                        <div class="text-xs text-slate-600">{{ __('incoming.arrivals.create.sheet_desc') }}
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
                         <button type="button"
                             class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100"
-                            data-close-qty-goods-sheet>Close</button>
+                            data-close-qty-goods-sheet>{{ __('incoming.arrivals.create.close') }}</button>
                     </div>
                 </div>
                 <div class="max-h-[70vh] overflow-auto">
@@ -438,26 +433,30 @@
             const idx = containerIndex++;
             const containerNo = escapeHtml(existing?.container_no ?? '');
             const seal = escapeHtml(existing?.seal_code ?? '');
+            const i18nContainerNo = @js(__('incoming.arrivals.create.container_no'));
+            const i18nSealCode = @js(__('incoming.arrivals.create.seal_code'));
+            const i18nAddContainer = @js(__('incoming.arrivals.create.add_container'));
+            const i18nRemoveContainer = @js(__('incoming.arrivals.create.remove_container'));
 
             const row = document.createElement('div');
             row.className = 'rounded-xl border border-slate-200 bg-white p-4 shadow-sm';
             row.innerHTML = `
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div>
-                        <label class="text-xs font-semibold text-slate-500">Container No</label>
+                        <label class="text-xs font-semibold text-slate-500">${i18nContainerNo}</label>
                         <input type="text" name="containers[${idx}][container_no]" class="mt-1 w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="e.g. SKLU1809368" value="${containerNo}" required>
                     </div>
                     <div>
-                        <label class="text-xs font-semibold text-slate-500">Seal Code</label>
+                        <label class="text-xs font-semibold text-slate-500">${i18nSealCode}</label>
                         <input type="text" name="containers[${idx}][seal_code]" class="mt-1 w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="e.g. HUPH019101" value="${seal}" required>
                     </div>
                 </div>
                 <div class="mt-3 flex flex-wrap justify-end gap-2">
                     <button type="button" class="add-container inline-flex items-center justify-center gap-2 rounded-lg border border-blue-200 px-3 py-2 text-blue-700 hover:bg-blue-50 text-xs font-semibold whitespace-nowrap">
-                        Add Container
+                        ${i18nAddContainer}
                     </button>
                     <button type="button" class="remove-container inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-red-700 hover:bg-red-50 text-xs font-semibold whitespace-nowrap">
-                        Hapus Container
+                        ${i18nRemoveContainer}
                     </button>
                 </div>
             `;

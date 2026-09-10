@@ -4,10 +4,10 @@
 <div class="space-y-6">
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Add Pricing Master</h1>
-            <p class="mt-1 text-sm text-slate-500">Input pricing baru secara terpusat untuk purchasing, OSP, subcon, selling, dan costing.</p>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">{{ __('master.pricing.create.title') }}</h1>
+            <p class="mt-1 text-sm text-slate-500">{{ __('master.pricing.create.subtitle') }}</p>
         </div>
-        <a href="{{ route('pricing.index') }}" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Back to List</a>
+        <a href="{{ route('pricing.index') }}" class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">{{ __('master.pricing.create.back') }}</a>
     </div>
 
     @if(session('success'))
@@ -20,7 +20,7 @@
 
     <div class="max-w-4xl rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div class="border-b border-slate-100 px-6 py-4">
-            <h2 class="text-lg font-bold text-slate-900">New Pricing Entry</h2>
+            <h2 class="text-lg font-bold text-slate-900">{{ __('master.pricing.create.form_title') }}</h2>
         </div>
         <div class="p-6">
             @include('pricing._form')

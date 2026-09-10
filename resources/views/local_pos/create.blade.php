@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Create Local PO
+        {{ __('master.local_pos.create.header') }}
     </x-slot>
 
     @php
@@ -18,7 +18,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
             @if ($errors->any())
                 <div class="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-800">
-                    <div class="font-semibold mb-2">Gagal membuat Local PO:</div>
+                    <div class="font-semibold mb-2">{{ __('master.local_pos.create.error_title') }}</div>
                     <ul class="list-disc ml-5 space-y-1">
                         @foreach ($errors->all() as $err)
                             <li>{{ $err }}</li>
@@ -40,22 +40,21 @@
 
                 <div class="flex items-center justify-between pb-6 border-b border-slate-200">
                     <div>
-                        <h3 class="text-xl font-bold text-slate-900">Local PO (Updated)</h3>
-                        <p class="text-sm text-slate-600 mt-1">Buat PO lokal tanpa proses Departure, lalu langsung
-                            Receive.</p>
+                        <h3 class="text-xl font-bold text-slate-900">{{ __('master.local_pos.create.title') }}</h3>
+                        <p class="text-sm text-slate-600 mt-1">{{ __('master.local_pos.create.subtitle') }}</p>
                     </div>
                     <div class="flex items-center gap-2">
                         <a href="{{ route('local-pos.index') }}"
-                            class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">Back</a>
+                            class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">{{ __('master.local_pos.create.back') }}</a>
                     </div>
                 </div>
 
                 <div class="grid md:grid-cols-4 gap-4">
                     <div class="md:col-span-2">
-                        <label for="vendor_id" class="text-sm font-semibold text-slate-700">Vendor (LOCAL)</label>
+                        <label for="vendor_id" class="text-sm font-semibold text-slate-700">{{ __('master.local_pos.create.vendor') }}</label>
                         <select id="vendor_id" name="vendor_id" class="mt-1 w-full rounded-xl border-slate-200" required
                             x-model="vendor_id">
-                            <option value="" disabled>Select vendor</option>
+                            <option value="" disabled>{{ __('master.local_pos.create.vendor_select') }}</option>
                             @foreach ($vendors as $v)
                                 <option value="{{ $v->id }}">{{ $v->vendor_name }}</option>
                             @endforeach
@@ -64,7 +63,7 @@
                     </div>
 
                     <div>
-                        <label for="po_no" class="text-sm font-semibold text-slate-700">PO No</label>
+                        <label for="po_no" class="text-sm font-semibold text-slate-700">{{ __('master.local_pos.create.po_no') }}</label>
                         <input id="po_no" type="text" name="po_no" value="{{ old('po_no') }}"
                             class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="PO-LOCAL-001"
                             required>
@@ -72,7 +71,7 @@
                     </div>
 
                     <div>
-                        <label for="po_date" class="text-sm font-semibold text-slate-700">PO Date</label>
+                        <label for="po_date" class="text-sm font-semibold text-slate-700">{{ __('master.local_pos.create.po_date') }}</label>
                         <input id="po_date" type="date" name="po_date" value="{{ old('po_date', now()->toDateString()) }}"
                             class="mt-1 w-full rounded-xl border-slate-200" required>
                         @error('po_date') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
@@ -81,16 +80,16 @@
 
                 <div class="grid md:grid-cols-4 gap-4">
                     <div>
-                        <label for="currency" class="text-sm font-semibold text-slate-700">Currency</label>
+                        <label for="currency" class="text-sm font-semibold text-slate-700">{{ __('master.local_pos.create.currency') }}</label>
                         <input id="currency" type="text" name="currency" value="{{ old('currency', 'IDR') }}"
                             class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="IDR">
                         @error('currency') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
 
                     <div class="md:col-span-3">
-                        <label for="notes" class="text-sm font-semibold text-slate-700">Notes</label>
+                        <label for="notes" class="text-sm font-semibold text-slate-700">{{ __('master.local_pos.create.notes') }}</label>
                         <input id="notes" type="text" name="notes" value="{{ old('notes') }}"
-                            class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="Optional">
+                            class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="{{ __('master.local_pos.create.notes_placeholder') }}">
                         @error('notes') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                 </div>
@@ -99,14 +98,14 @@
 
                 <div class="bg-white rounded-xl p-6 border border-slate-200 space-y-4">
                     <div class="flex items-center justify-between">
-                        <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">Items</h4>
+                        <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide">{{ __('master.local_pos.create.items') }}</h4>
                         <button type="button"
                             class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
                             @click="addItem()">
                             <svg class="h-4 w-4 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                             </svg>
-                            Add Item
+                            {{ __('master.local_pos.create.add_item') }}
                         </button>
                     </div>
 
@@ -114,11 +113,11 @@
                         <table class="min-w-full divide-y divide-slate-200 text-sm">
                             <thead class="bg-slate-50">
                                 <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                    <th class="px-4 py-3 text-left font-semibold w-72">Part</th>
-                                    <th class="px-4 py-3 text-left font-semibold">Size</th>
-                                    <th class="px-4 py-3 text-right font-semibold">Qty Goods</th>
-                                    <th class="px-4 py-3 text-right font-semibold">Price per UOM (IDR)</th>
-                                    <th class="px-4 py-3 text-right font-semibold">Action</th>
+                                    <th class="px-4 py-3 text-left font-semibold w-72">{{ __('master.local_pos.create.th_part') }}</th>
+                                    <th class="px-4 py-3 text-left font-semibold">{{ __('master.local_pos.create.th_size') }}</th>
+                                    <th class="px-4 py-3 text-right font-semibold">{{ __('master.local_pos.create.th_qty') }}</th>
+                                    <th class="px-4 py-3 text-right font-semibold">{{ __('master.local_pos.create.th_price') }}</th>
+                                    <th class="px-4 py-3 text-right font-semibold">{{ __('master.local_pos.create.th_action') }}</th>
                                 </tr>
                             </thead>
 
@@ -138,9 +137,9 @@
                                                     return parts.filter(p => p.vendor_id == vendor_id && p.label.toLowerCase().includes(this.search.toLowerCase()));
                                                 },
                                                 get selectedLabel() {
-                                                    if (!vendor_id) return 'Select vendor first';
+                                                    if (!vendor_id) return '{{ __('master.local_pos.create.select_vendor_first') }}';
                                                     let p = parts.find(p => p.id == item.part_id);
-                                                    return p ? p.label : 'Select part';
+                                                    return p ? p.label : '{{ __('master.local_pos.create.select_part') }}';
                                                 },
                                                 init() {
                                                     this.trigger = this.$refs.trigger;
@@ -192,9 +191,9 @@
 
                                                         <div
                                                             class="sticky top-0 z-10 bg-white px-2 py-1.5 border-b border-slate-100">
-                                                            <input type="text" x-model="search" aria-label="Search part"
+                                                            <input type="text" x-model="search" aria-label="{{ __('master.local_pos.create.search_part_aria') }}"
                                                                 class="w-full border-slate-200 rounded-lg text-xs placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500"
-                                                                placeholder="Search part..." @click.stop>
+                                                                placeholder="{{ __('master.local_pos.create.search_part') }}" @click.stop>
                                                         </div>
 
                                                         <template x-for="p in filteredParts" :key="p.id">
@@ -218,7 +217,7 @@
 
                                                         <div x-show="filteredParts.length === 0"
                                                             class="cursor-default select-none relative py-2 pl-3 pr-9 text-slate-500 italic text-xs">
-                                                            No part found
+                                                            {{ __('master.local_pos.create.no_part') }}
                                                         </div>
                                                     </div>
                                                 </template>
@@ -254,7 +253,7 @@
                                         <td class="px-4 py-3 text-right">
                                             <button type="button" class="text-red-600 hover:text-red-800 font-semibold"
                                                 @click="removeItem(index)" :disabled="items.length <= 1"
-                                                :class="{'opacity-50 cursor-not-allowed': items.length <= 1}">Remove</button>
+                                                :class="{'opacity-50 cursor-not-allowed': items.length <= 1}">{{ __('master.local_pos.create.remove') }}</button>
                                         </td>
                                     </tr>
                                 </template>
@@ -267,10 +266,10 @@
 
                 <div class="flex items-center justify-end gap-4 pt-6 border-t border-slate-200">
                     <a href="{{ route('local-pos.index') }}"
-                        class="px-5 py-2.5 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors text-sm font-medium">Cancel</a>
+                        class="px-5 py-2.5 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors text-sm font-medium">{{ __('master.local_pos.create.cancel') }}</a>
                     <button type="submit"
                         class="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors shadow-sm">
-                        Create &amp; Receive
+                        {{ __('master.local_pos.create.submit') }}
                     </button>
                 </div>
             </form>

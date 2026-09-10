@@ -26,7 +26,7 @@
 @endphp
 
 <{{ $tag }} @if ($href) href="{{ $href }}" @endif
-    {{ $attributes->merge(['class' => 'group relative flex min-h-[6.5rem] flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500']) }}>
+    {{ $attributes->merge(['class' => 'group relative flex min-h-[6.5rem] flex-col justify-between rounded-xl border border-slate-200/90 bg-white p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500']) }}>
     <div class="flex items-start justify-between gap-2">
         <span class="inline-flex h-10 w-10 items-center justify-center rounded-lg ring-1 {{ $p['bg'] }} {{ $p['text'] }} {{ $p['ring'] }}">
             <x-icon :name="$icon" class="h-5 w-5" />

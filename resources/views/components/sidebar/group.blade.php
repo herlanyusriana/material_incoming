@@ -6,9 +6,9 @@
 ])
 
 @php
-    $navLinkBase = 'group flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200';
-    $navActive = 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-sm shadow-indigo-600/20';
-    $navInactive = 'text-slate-600 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-violet-50 hover:text-slate-900';
+    $navLinkBase = 'group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150';
+    $navActive = 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/20';
+    $navInactive = 'text-slate-600 hover:bg-indigo-50 hover:text-slate-950';
 @endphp
 
 <details class="group" {{ ($active || $open) ? 'open' : '' }}>
@@ -25,8 +25,7 @@
             </svg>
         </div>
     </summary>
-    <div x-show="!sidebarCollapsed" x-cloak class="relative mt-2 ml-4 pl-4 space-y-1">
-        <div class="absolute left-1 top-2 bottom-2 w-px bg-gradient-to-b from-indigo-300 via-indigo-200 to-transparent"></div>
+    <div x-show="!sidebarCollapsed" x-cloak class="relative mt-2 ml-4 space-y-1 border-l border-indigo-100 pl-4">
         {{ $slot }}
     </div>
 </details>

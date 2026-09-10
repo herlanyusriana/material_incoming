@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Warehouse • {{ $meta['title'] }}
+        {{ __('warehouse.bin_transfers.index.header', ['title' => $meta['title']]) }}
     </x-slot>
 
     <div class="py-6">
@@ -16,16 +16,16 @@
                     <h2 class="text-xl font-bold text-slate-900">{{ $meta['history_title'] }}</h2>
                     <a href="{{ $mode === 'batch_to_batch' ? route('warehouse.batch-transfers.create') : route('warehouse.bin-transfers.create') }}"
                         class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm transition-colors">
-                        + New {{ $meta['title'] }}
+                        {{ __('warehouse.bin_transfers.index.new_btn', ['title' => $meta['title']]) }}
                     </a>
                 </div>
 
                 <form method="GET" class="px-6 py-4 bg-slate-50 border-b border-slate-200">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Part</label>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.bin_transfers.index.part') }}</label>
                             <select name="part_id" class="w-full rounded-lg border-slate-300 text-sm">
-                                <option value="">All Parts</option>
+                                <option value="">{{ __('warehouse.bin_transfers.index.all_parts') }}</option>
                                 @foreach($parts as $part)
                                     <option value="{{ $part->id }}" {{ request('part_id') == $part->id ? 'selected' : '' }}>
                                         {{ $part->part_no }}
@@ -34,9 +34,9 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Location</label>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.bin_transfers.index.location') }}</label>
                             <select name="location" class="w-full rounded-lg border-slate-300 text-sm">
-                                <option value="">All Locations</option>
+                                <option value="">{{ __('warehouse.bin_transfers.index.all_locations') }}</option>
                                 @foreach($locations as $location)
                                     <option value="{{ $location->location_code }}" {{ request('location') == $location->location_code ? 'selected' : '' }}>
                                         {{ $location->location_code }}
@@ -45,17 +45,17 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">From Date</label>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.bin_transfers.index.from_date') }}</label>
                             <input type="date" name="date_from" value="{{ request('date_from') }}" class="w-full rounded-lg border-slate-300 text-sm">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">To Date</label>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.bin_transfers.index.to_date') }}</label>
                             <input type="date" name="date_to" value="{{ request('date_to') }}" class="w-full rounded-lg border-slate-300 text-sm">
                         </div>
                     </div>
                     <div class="mt-3 flex gap-2">
-                        <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold">Apply Filters</button>
-                        <a href="{{ $mode === 'batch_to_batch' ? route('warehouse.batch-transfers.index') : route('warehouse.bin-transfers.index') }}" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700">Clear</a>
+                        <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold">{{ __('warehouse.bin_transfers.index.apply_filters') }}</button>
+                        <a href="{{ $mode === 'batch_to_batch' ? route('warehouse.batch-transfers.index') : route('warehouse.bin-transfers.index') }}" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700">{{ __('warehouse.bin_transfers.index.clear') }}</a>
                     </div>
                 </form>
 
@@ -63,14 +63,14 @@
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Date</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Part</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">From</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.bin_transfers.index.th_date') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.bin_transfers.index.th_part') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.bin_transfers.index.th_from') }}</th>
                                 <th class="px-4 py-3 text-center text-xs font-bold text-slate-700 uppercase">-></th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">To</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">Qty</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">By</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-700 uppercase">Actions</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.bin_transfers.index.th_to') }}</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.bin_transfers.index.th_qty') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.bin_transfers.index.th_by') }}</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.bin_transfers.index.th_actions') }}</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-slate-200">
@@ -109,16 +109,16 @@
                                     <td class="px-4 py-3 text-sm text-slate-700">{{ $transfer->creator->name ?? '-' }}</td>
                                     <td class="px-4 py-3 text-center">
                                         <div class="flex items-center justify-center gap-2">
-                                            <a href="{{ route('warehouse.bin-transfers.show', $transfer) }}" class="text-indigo-600 hover:text-indigo-900 font-semibold text-sm">View</a>
+                                            <a href="{{ route('warehouse.bin-transfers.show', $transfer) }}" class="text-indigo-600 hover:text-indigo-900 font-semibold text-sm">{{ __('warehouse.bin_transfers.index.view') }}</a>
                                             <span class="text-slate-300">|</span>
-                                            <a href="{{ route('warehouse.bin-transfers.label', $transfer) }}" target="_blank" class="text-green-600 hover:text-green-900 font-semibold text-sm">Label</a>
+                                            <a href="{{ route('warehouse.bin-transfers.label', $transfer) }}" target="_blank" class="text-green-600 hover:text-green-900 font-semibold text-sm">{{ __('warehouse.bin_transfers.index.label') }}</a>
                                         </div>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
                                     <td colspan="8" class="px-4 py-12 text-center text-slate-500">
-                                        No {{ strtolower($meta['title']) }} records yet.
+                                        {{ __('warehouse.bin_transfers.index.empty', ['title' => strtolower($meta['title'])]) }}
                                     </td>
                                 </tr>
                             @endforelse

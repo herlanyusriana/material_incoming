@@ -1,10 +1,10 @@
 <x-app-layout>
     <x-page-header 
-        title="Departure Records" 
-        subtitle="Manage import arrivals and process receives for each departure."
+        :title="__('incoming.arrivals.index.title')" 
+        :subtitle="__('incoming.arrivals.index.subtitle')"
         :breadcrumbs="[
-            ['label' => 'Incoming Material', 'url' => '#'],
-            ['label' => 'Import List']
+            ['label' => __('incoming.arrivals.index.crumb_parent'), 'url' => '#'],
+            ['label' => __('incoming.arrivals.index.crumb_current')]
         ]"
     >
         <x-slot name="actions">
@@ -12,7 +12,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
-                <span>New Departure</span>
+                <span>{{ __('incoming.arrivals.index.new') }}</span>
             </a>
         </x-slot>
     </x-page-header>
@@ -25,19 +25,19 @@
 
     <x-data-table 
         searchable="true" 
-        searchPlaceholder="Cari Invoice atau Vendor..."
+        :searchPlaceholder="__('incoming.arrivals.index.search_placeholder')"
         searchName="search"
         :searchValue="request('search')"
     >
         <x-slot name="head">
-            <th class="px-4 py-3 text-left font-semibold">Invoice</th>
-            <th class="px-4 py-3 text-left font-semibold">Vendor</th>
-            <th class="px-4 py-3 text-left font-semibold">ETD</th>
-            <th class="px-4 py-3 text-left font-semibold">ETA JKT</th>
-            <th class="px-4 py-3 text-left font-semibold">ETA GCI</th>
-            <th class="px-4 py-3 text-left font-semibold">Items</th>
-            <th class="px-4 py-3 text-left font-semibold">Total Value</th>
-            <th class="px-4 py-3 text-center font-semibold w-32">Actions</th>
+            <th class="px-4 py-3 text-left font-semibold">{{ __('incoming.arrivals.index.invoice') }}</th>
+            <th class="px-4 py-3 text-left font-semibold">{{ __('incoming.arrivals.index.vendor') }}</th>
+            <th class="px-4 py-3 text-left font-semibold">{{ __('incoming.arrivals.index.etd') }}</th>
+            <th class="px-4 py-3 text-left font-semibold">{{ __('incoming.arrivals.index.eta_jkt') }}</th>
+            <th class="px-4 py-3 text-left font-semibold">{{ __('incoming.arrivals.index.eta_gci') }}</th>
+            <th class="px-4 py-3 text-left font-semibold">{{ __('incoming.arrivals.index.items') }}</th>
+            <th class="px-4 py-3 text-left font-semibold">{{ __('incoming.arrivals.index.total_value') }}</th>
+            <th class="px-4 py-3 text-center font-semibold w-32">{{ __('incoming.arrivals.index.actions') }}</th>
         </x-slot>
 
         @forelse ($departures as $arrival)
@@ -52,7 +52,7 @@
                     <div class="font-bold text-slate-900 flex items-center gap-2">
                         {{ $arrival->invoice_no }}
                         @if ($isReceiveComplete)
-                            <span class="gci-badge-success">Complete</span>
+                            <span class="gci-badge-success">{{ __('incoming.arrivals.index.complete') }}</span>
                         @endif
                         @if ($arrival->purchaseOrder)
                             <span class="gci-badge-info" title="Auto-generated from PO">PO: {{ $arrival->purchaseOrder->po_number }}</span>
@@ -67,7 +67,7 @@
                 <td class="text-xs font-mono text-slate-600">{{ $arrival->ETA?->format('Y-m-d') ?? '-' }}</td>
                 <td class="text-xs font-mono text-slate-600">{{ $arrival->ETA_GCI?->format('Y-m-d') ?? '-' }}</td>
                 <td>
-                    <div class="font-semibold text-slate-900">{{ $totalItems }} item{{ $totalItems != 1 ? 's' : '' }}</div>
+                    <div class="font-semibold text-slate-900">{{ $totalItems != 1 ? __('incoming.arrivals.index.items_plural', ['count' => $totalItems]) : __('incoming.arrivals.index.item', ['count' => $totalItems]) }}</div>
                     <div class="text-xs text-slate-500">{{ number_format($totalQtyExpected) }} pcs</div>
                 </td>
                 <td>
@@ -77,27 +77,27 @@
                 </td>
                 <td>
                     <div class="flex items-center justify-center gap-1.5">
-                        <a href="{{ route('departures.show', $arrival) }}" class="gci-btn-icon bg-indigo-50 text-indigo-600 hover:bg-indigo-100" title="View Details">
+                        <a href="{{ route('departures.show', $arrival) }}" class="gci-btn-icon bg-indigo-50 text-indigo-600 hover:bg-indigo-100" title="{{ __('incoming.arrivals.index.view') }}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12s3.75-7.5 9.75-7.5 9.75 7.5 9.75 7.5-3.75 7.5-9.75 7.5S2.25 12 2.25 12Z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 15.75A3.75 3.75 0 1 0 12 8.25a3.75 3.75 0 0 0 0 7.5Z" />
                             </svg>
                         </a>
-                        <a href="{{ route('departures.edit', $arrival) }}" class="gci-btn-icon bg-slate-100 text-slate-600 hover:bg-slate-200" title="Edit">
+                        <a href="{{ route('departures.edit', $arrival) }}" class="gci-btn-icon bg-slate-100 text-slate-600 hover:bg-slate-200" title="{{ __('incoming.arrivals.index.edit') }}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 7.125 16.862 4.487" />
                             </svg>
                         </a>
-                        <a href="{{ route('departures.invoice', $arrival) }}" target="_blank" class="gci-btn-icon bg-slate-700 text-white hover:bg-slate-800" title="Print Invoice">
+                        <a href="{{ route('departures.invoice', $arrival) }}" target="_blank" class="gci-btn-icon bg-slate-700 text-white hover:bg-slate-800" title="{{ __('incoming.arrivals.index.print_invoice') }}">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2m2 4h6a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2Zm8-12V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4h10Z" />
                             </svg>
                         </a>
-                        <form action="{{ route('departures.destroy', $arrival) }}" method="POST" onsubmit="return confirm('Yakin hapus departure ini?');" class="inline-block">
+                        <form action="{{ route('departures.destroy', $arrival) }}" method="POST" onsubmit='return confirm(@js(__('incoming.arrivals.index.confirm_delete')));' class="inline-block">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="gci-btn-icon bg-red-50 text-red-600 hover:bg-red-100" title="Delete">
+                            <button type="submit" class="gci-btn-icon bg-red-50 text-red-600 hover:bg-red-100" title="{{ __('incoming.arrivals.index.delete') }}">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 7h12m-9 4v5m6-5v5M9 7l.867-2.6A1 1 0 0 1 10.81 3.5h2.38a1 1 0 0 1 .943.9L15 7m-9 0h12v12a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V7Z" />
                                 </svg>
@@ -114,10 +114,10 @@
                             <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
                         </svg>
                     </div>
-                    <div class="gci-empty-title">No departures recorded yet</div>
-                    <div class="gci-empty-text mb-4">Create your first departure to get started.</div>
+                    <div class="gci-empty-title">{{ __('incoming.arrivals.index.empty_title') }}</div>
+                    <div class="gci-empty-text mb-4">{{ __('incoming.arrivals.index.empty_text') }}</div>
                     <a href="{{ route('departures.create') }}" class="gci-btn-secondary">
-                        Create Departure
+                        {{ __('incoming.arrivals.index.empty_cta') }}
                     </a>
                 </div>
             </x-slot>

@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Warehouse • Putaway Queue
+        {{ __('warehouse.putaway.index.header') }}
     </x-slot>
 
     <div class="py-6">
@@ -24,23 +24,23 @@
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl overflow-hidden">
                 <div class="px-6 py-4 border-b border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                     <div>
-                        <h2 class="text-xl font-bold text-slate-900">Putaway Queue</h2>
-                        <div class="text-xs text-slate-500">QC PASS tapi belum ada lokasi gudang</div>
+                        <h2 class="text-xl font-bold text-slate-900">{{ __('warehouse.putaway.index.title') }}</h2>
+                        <div class="text-xs text-slate-500">{{ __('warehouse.putaway.index.subtitle') }}</div>
                     </div>
 
                     <form method="GET" class="flex flex-wrap items-center gap-2">
-                        <input type="text" name="search" value="{{ $search }}" placeholder="Search tag / arrival / part"
+                        <input type="text" name="search" value="{{ $search }}" placeholder="{{ __('warehouse.putaway.index.search_ph') }}"
                             class="w-64 rounded-lg border-slate-300 text-sm">
                         <select name="per_page" class="rounded-lg border-slate-300 text-sm">
                             @foreach([25,50,100,200] as $opt)
-                                <option value="{{ $opt }}" {{ (int) $perPage === $opt ? 'selected' : '' }}>{{ $opt }}/page</option>
+                                <option value="{{ $opt }}" {{ (int) $perPage === $opt ? 'selected' : '' }}>{{ $opt }}{{ __('warehouse.putaway.index.per_page_suffix') }}</option>
                             @endforeach
                         </select>
                         <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold">
-                            Filter
+                            {{ __('warehouse.putaway.index.filter') }}
                         </button>
                         <a href="{{ route('warehouse.putaway.index') }}" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700">
-                            Clear
+                            {{ __('warehouse.putaway.index.clear') }}
                         </a>
                     </form>
                 </div>
@@ -49,19 +49,19 @@
                     <form id="bulk-putaway-form" method="POST" action="{{ route('warehouse.putaway.bulk') }}" class="flex flex-col md:flex-row md:items-end gap-3">
                         @csrf
                         <div class="flex-1">
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Bulk Location</label>
-                            <input name="location_code" list="locs" placeholder="Location code (scan/ketik)"
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.putaway.index.bulk_location') }}</label>
+                            <input name="location_code" list="locs" placeholder="{{ __('warehouse.putaway.index.bulk_location_ph') }}"
                                 class="w-full md:w-64 rounded-lg border-slate-300 text-sm" required>
-                            <div class="mt-1 text-xs text-slate-500">Pilih beberapa row di bawah, lalu klik Bulk Putaway.</div>
+                            <div class="mt-1 text-xs text-slate-500">{{ __('warehouse.putaway.index.bulk_hint') }}</div>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Putaway Date</label>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.putaway.index.putaway_date') }}</label>
                             <input type="date" name="putaway_date" value="{{ old('putaway_date', now()->format('Y-m-d')) }}"
                                 class="w-full md:w-44 rounded-lg border-slate-300 text-sm">
                         </div>
                         <div>
                             <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-semibold">
-                                Bulk Putaway Selected
+                                {{ __('warehouse.putaway.index.bulk_submit') }}
                             </button>
                         </div>
                     </form>
@@ -74,15 +74,15 @@
                                 <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">
                                     <label class="inline-flex items-center gap-2">
                                         <input id="check-all" type="checkbox" class="rounded border-slate-300">
-                                        Select
+                                        {{ __('warehouse.putaway.index.th_select') }}
                                     </label>
                                 </th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Date</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Arrival</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Part</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Tag</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">Qty</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Putaway</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.putaway.index.th_date') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.putaway.index.th_arrival') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.putaway.index.th_part') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.putaway.index.th_tag') }}</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.putaway.index.th_qty') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.putaway.index.th_putaway') }}</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-slate-200">
@@ -121,18 +121,18 @@
                                         <div class="flex items-center gap-2">
                                             <form method="POST" action="{{ route('warehouse.putaway.store', $r) }}" class="flex flex-wrap items-center gap-2">
                                                 @csrf
-                                                <input name="location_code" list="locs" placeholder="Location code"
+                                                <input name="location_code" list="locs" placeholder="{{ __('warehouse.putaway.index.location_ph') }}"
                                                     class="w-44 rounded-lg border-slate-300 text-sm" required>
                                                 <input type="date" name="putaway_date" value="{{ old('putaway_date', now()->format('Y-m-d')) }}"
                                                     class="w-40 rounded-lg border-slate-300 text-sm">
                                                 <button type="submit" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg">
-                                                    Save
+                                                    {{ __('warehouse.putaway.index.save') }}
                                                 </button>
                                             </form>
-                                            <form method="POST" action="{{ route('warehouse.putaway.destroy', $r) }}" onsubmit="return confirm('WARNING: Yakin hapus tag {{ $r->tag }} ini? Saldo inventori akan dikurangi kembali!');">
+                                            <form method="POST" action="{{ route('warehouse.putaway.destroy', $r) }}" onsubmit='return confirm(@js(__('warehouse.putaway.index.delete_confirm', ['tag' => $r->tag])))'>
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="px-2 py-2 text-rose-600 hover:text-white hover:bg-rose-600 rounded-lg transition-colors border border-rose-200" title="Delete dari antrean">
+                                                <button type="submit" class="px-2 py-2 text-rose-600 hover:text-white hover:bg-rose-600 rounded-lg transition-colors border border-rose-200" title="{{ __('warehouse.putaway.index.delete_title') }}">
                                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                 </button>
                                             </form>
@@ -142,7 +142,7 @@
                             @empty
                                 <tr>
                                     <td colspan="7" class="px-6 py-8 text-center text-slate-600">
-                                        No putaway tasks.
+                                        {{ __('warehouse.putaway.index.empty') }}
                                     </td>
                                 </tr>
                             @endforelse

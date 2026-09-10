@@ -35,6 +35,40 @@ class LauncherTest extends TestCase
             ->assertSee(__('modules.master_data'));
     }
 
+    public function test_production_module_exposes_manual_work_order_tile(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/module/production')
+            ->assertOk()
+            ->assertSee(__('modules.wo_tracking'))
+            ->assertSee(route('production.wo-tracking.index'), false);
+    }
+
+    public function test_inventory_dashboard_renders_category_tabs_and_filtered_tiles(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/module/inventory?cat=rm')
+            ->assertOk()
+            ->assertSee(__('modules.inventory'))
+            ->assertSee(__('modules.cat_rm'))
+            ->assertSee(__('modules.incoming_material'))
+            ->assertSee(__('modules.stock'))
+            ->assertDontSee(__('modules.outgoing_material'));
+    }
+
+    public function test_legacy_warehouse_module_redirects_to_inventory(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/module/warehouse')
+            ->assertRedirect('/module/inventory');
+    }
+
     public function test_unknown_module_returns_404(): void
     {
         $user = User::factory()->create();

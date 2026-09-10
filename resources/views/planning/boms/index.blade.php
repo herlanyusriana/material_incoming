@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Planning • BOM GCI
+        {{ __('planning.boms.index.header') }}
     </x-slot>
 
     <div class="py-6" x-data="planningBoms()">
@@ -30,7 +30,7 @@
                     <div class="font-semibold flex items-center gap-2">
                         <span
                             class="w-5 h-5 rounded-full bg-red-200 flex items-center justify-center text-red-700 text-xs">!</span>
-                        Validation error
+                        {{ __('planning.boms.index.validation') }}
                     </div>
                     <ul class="mt-1.5 list-disc pl-5 space-y-0.5 text-red-700">
                         @foreach ($errors->all() as $message)
@@ -255,12 +255,12 @@
                                 BOM
                             </div>
                             <div>
-                                <div class="text-2xl md:text-3xl font-black text-slate-900">Bill of Materials</div>
+                                <div class="text-2xl md:text-3xl font-black text-slate-900">{{ __('planning.boms.index.title') }}</div>
                                 <div class="mt-1 text-sm text-slate-500">
-                                    BOM GCI • Manage component structures
+                                    {{ __('planning.boms.index.subtitle') }}
                                     <span
                                         class="ml-2 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-[10px] font-bold uppercase tracking-wider border border-indigo-100">
-                                        {{ $boms->total() }} BOMs
+                                        {{ __('planning.boms.index.count', ['count' => $boms->total()]) }}
                                     </span>
                                 </div>
                             </div>
@@ -270,7 +270,7 @@
                             <button
                                 class="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 shadow-sm"
                                 @click="openCreate()">
-                                + Add BOM
+                                {{ __('planning.boms.index.add') }}
                             </button>
                         </div>
                     </div>
@@ -280,7 +280,7 @@
                         <form method="GET" class="flex flex-wrap items-end gap-3">
                             <div>
                                 <label for="bom-search"
-                                    class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Search</label>
+                                    class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">{{ __('planning.boms.index.search_label') }}</label>
                                 <div class="relative">
                                     <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
                                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -289,17 +289,16 @@
                                     </svg>
                                     <input id="bom-search" name="q" value="{{ $q ?? '' }}"
                                         class="w-full pl-9 rounded-xl border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                        placeholder="Part no / name...">
+                                        placeholder="{{ __('planning.boms.index.search_ph') }}">
                                 </div>
                             </div>
 
                             <div>
                                 <label for="bom-gci"
-                                    class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Part
-                                    GCI</label>
+                                    class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">{{ __('planning.boms.index.gci_label') }}</label>
                                 <select id="bom-gci" name="gci_part_id"
                                     class="rounded-xl border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    <option value="">All Part GCI</option>
+                                    <option value="">{{ __('planning.boms.index.all_gci') }}</option>
                                     @foreach ($fgParts as $p)
                                         <option value="{{ $p->id }}" @selected((string) ($gciPartId ?? '') === (string) $p->id)>
                                             {{ $p->part_no }} — {{ $p->part_name ?? '-' }}
@@ -310,57 +309,57 @@
 
                             <button type="submit"
                                 class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-semibold text-sm shadow-sm transition-colors">
-                                Filter
+                                {{ __('planning.boms.index.filter') }}
                             </button>
                         </form>
 
                         <div class="flex items-center gap-2 ml-auto flex-wrap">
                             <a href="{{ route('planning.boms.export', request()->query()) }}"
                                 class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                                Export
+                                {{ __('planning.boms.index.export') }}
                             </a>
                             <button type="button"
                                 class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                                 @click="openImport()">
-                                Import
+                                {{ __('planning.boms.index.import') }}
                             </button>
                             <form action="{{ route('planning.boms.sync-incoming-parts', request()->only(['gci_part_id', 'q'])) }}" method="POST"
-                                onsubmit="return confirm('Auto sync incoming part hanya akan mengisi BOM yang kandidat vendor part-nya unik. Lanjutkan?')">
+                                onsubmit='return confirm(@js(__("planning.boms.index.confirm_autosync")));'>
                                 @csrf
                                 <button type="submit"
                                     class="inline-flex items-center rounded-xl border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100">
-                                    Auto Sync Incoming Part
+                                    {{ __('planning.boms.index.autosync') }}
                                 </button>
                             </form>
                             <a href="{{ route('planning.boms.substitutes.export') }}"
                                 class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50"
-                                title="Export Substitutes to Excel">
-                                Exp. Subst.
+                                title="{{ __('planning.boms.index.exp_subst_title') }}">
+                                {{ __('planning.boms.index.exp_subst') }}
                             </a>
                             <button type="button"
                                 class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50"
-                                @click="openImportSubstitute()" title="Import Substitutes via Excel">
-                                Imp. Subst.
+                                @click="openImportSubstitute()" title="{{ __('planning.boms.index.imp_subst_title') }}">
+                                {{ __('planning.boms.index.imp_subst') }}
                             </button>
                             <form action="{{ route('planning.boms.truncate') }}" method="POST"
-                                onsubmit="return confirm('HAPUS SEMUA BOM? Data items & substitutes juga akan terhapus. Aksi ini tidak bisa di-undo!')">
+                                onsubmit='return confirm(@js(__("planning.boms.index.confirm_truncate")));'>
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit"
                                     class="inline-flex items-center rounded-xl bg-red-50 border border-red-200 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-100"
-                                    title="Hapus semua BOM beserta items dan substitutes">
-                                    Clear All BOM
+                                    title="{{ __('planning.boms.index.clear_all_title') }}">
+                                    {{ __('planning.boms.index.clear_all') }}
                                 </button>
                             </form>
                             <a href="{{ route('outgoing.product-mapping') }}#where-used"
                                 class="inline-flex items-center rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">
                                 <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                Where-Used
+                                {{ __('planning.boms.index.where_used') }}
                             </a>
                             <a href="{{ route('planning.boms.explosion-search') }}"
                                 class="inline-flex items-center rounded-xl bg-blue-50 border border-blue-200 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-100">
                                 <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3v18h18M7 14l3-3 4 4 5-6" /></svg>
-                                Explosion
+                                {{ __('planning.boms.index.explosion') }}
                             </a>
                         </div>
                     </div>
@@ -372,17 +371,17 @@
                         <thead class="bg-slate-50 border-b border-slate-200">
                             <tr class="text-xs font-bold text-slate-500 uppercase tracking-wider">
                                 <th class="px-2 py-2 text-center font-bold sticky-col-no th-sticky w-10">#</th>
-                                <th class="px-2 py-2 text-left font-bold sticky-col-fg th-sticky min-w-[200px]">FG Part</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">Process</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap hide-tablet">Machine</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">WIP Part</th>
-                                <th class="px-2 py-2 text-right font-bold whitespace-nowrap hide-tablet">Qty WIP</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap hide-tablet">UOM WIP</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">RM Part</th>
-                                <th class="px-2 py-2 text-right font-bold whitespace-nowrap">Qty</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">UOM</th>
-                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap hide-tablet">Policy</th>
-                                <th class="px-2 py-2 text-center font-bold sticky-col-actions th-sticky-actions min-w-[100px]">Actions</th>
+                                <th class="px-2 py-2 text-left font-bold sticky-col-fg th-sticky min-w-[200px]">{{ __('planning.boms.index.th_fg') }}</th>
+                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">{{ __('planning.boms.index.th_process') }}</th>
+                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap hide-tablet">{{ __('planning.boms.index.th_machine') }}</th>
+                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">{{ __('planning.boms.index.th_wip') }}</th>
+                                <th class="px-2 py-2 text-right font-bold whitespace-nowrap hide-tablet">{{ __('planning.boms.index.th_wip_qty') }}</th>
+                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap hide-tablet">{{ __('planning.boms.index.th_wip_uom') }}</th>
+                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">{{ __('planning.boms.index.th_rm') }}</th>
+                                <th class="px-2 py-2 text-right font-bold whitespace-nowrap">{{ __('planning.boms.index.th_qty') }}</th>
+                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap">{{ __('planning.boms.index.th_uom') }}</th>
+                                <th class="px-2 py-2 text-left font-bold whitespace-nowrap hide-tablet">{{ __('planning.boms.index.th_policy') }}</th>
+                                <th class="px-2 py-2 text-center font-bold sticky-col-actions th-sticky-actions min-w-[100px]">{{ __('planning.boms.index.th_actions') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
@@ -425,11 +424,10 @@
                                                 {{ strtoupper($bom->status) }}
                                             </span>
                                             <span
-                                                class="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">FG
-                                                Master Header</span>
+                                                class="text-[10px] text-slate-400 font-bold uppercase tracking-widest italic">{{ __('planning.boms.index.fg_header') }}</span>
                                             <span class="text-[10px] text-slate-300">·</span>
                                             <span class="text-[10px] text-slate-500">
-                                                {{ $items->count() }} line{{ $items->count() !== 1 ? 's' : '' }}
+                                                {{ __('planning.boms.index.lines', ['count' => $items->count()]) }}
                                             </span>
                                         </div>
                                     </td>
@@ -438,29 +436,29 @@
                                         <div class="flex items-center justify-center gap-1">
                                             <form action="{{ route('planning.boms.update', $bom) }}" method="POST"
                                                 class="inline"
-                                                onsubmit="return confirm('Toggle status BOM ke {{ $bom->status === 'active' ? 'INACTIVE' : 'ACTIVE' }}?')">
+                                                onsubmit='return confirm(@js(__("planning.boms.index.confirm_toggle", ["status" => $bom->status === 'active' ? 'INACTIVE' : 'ACTIVE'])));'>
                                                 @csrf
                                                 @method('PUT')
                                                 <input type="hidden" name="status"
                                                     value="{{ $bom->status === 'active' ? 'inactive' : 'active' }}">
                                                 <button type="submit" class="action-btn hover:bg-slate-100"
-                                                    title="Toggle status ke {{ $bom->status === 'active' ? 'Inactive' : 'Active' }}"
-                                                    aria-label="Toggle status ke {{ $bom->status === 'active' ? 'Inactive' : 'Active' }}">
+                                                    title="{{ __('planning.boms.index.toggle_title', ['status' => $bom->status === 'active' ? __('planning.boms.index.inactive') : __('planning.boms.index.active')]) }}"
+                                                    aria-label="{{ __('planning.boms.index.toggle_title', ['status' => $bom->status === 'active' ? __('planning.boms.index.inactive') : __('planning.boms.index.active')]) }}">
                                                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                                 </button>
                                             </form>
                                             <button type="button" class="action-btn hover:bg-indigo-50 text-indigo-700"
-                                                title="Change FG" @click="openChangeFg(@js([
+                                                title="{{ __('planning.boms.index.change_fg_title') }}" @click="openChangeFg(@js([
                                                     'action' => route('planning.boms.update', $bom),
                                                     'part_id' => $bom->part_id,
                                                     'current_label' => ($bom->part?->part_no ?? '-') . ' — ' . ($bom->part?->part_name ?? '-'),
                                                 ]))">FG</button>
                                             <form action="{{ route('planning.boms.destroy', $bom) }}" method="POST"
-                                                class="inline" onsubmit="return confirm('Delete BOM?')">
+                                                class="inline" onsubmit='return confirm(@js(__("planning.boms.index.confirm_delete_bom")));'>
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="action-btn hover:bg-red-50 text-red-600"
-                                                    title="Delete" aria-label="Delete">
+                                                    title="{{ __('planning.boms.index.delete_title') }}" aria-label="{{ __('planning.boms.index.delete_title') }}">
                                                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                 </button>
                                             </form>
@@ -515,9 +513,9 @@
                                             @php
                                                 $policy = $item->consumption_policy_override ?: ($item->componentPart?->consumption_policy ?: (($item->componentPart?->is_backflush ?? true) ? 'backflush_return' : 'direct_issue'));
                                                 $policyLabels = [
-                                                    'direct_issue' => ['Pakai Habis', 'bg-slate-100 text-slate-700 border-slate-200'],
-                                                    'backflush_return' => ['Balik Sisa', 'bg-orange-100 text-orange-800 border-orange-200'],
-                                                    'backflush_line_stock' => ['Simpan di Line', 'bg-emerald-100 text-emerald-800 border-emerald-200'],
+                                                    'direct_issue' => [__('planning.boms.index.policy_direct'), 'bg-slate-100 text-slate-700 border-slate-200'],
+                                                    'backflush_return' => [__('planning.boms.index.policy_backflush'), 'bg-orange-100 text-orange-800 border-orange-200'],
+                                                    'backflush_line_stock' => [__('planning.boms.index.policy_line_full'), 'bg-emerald-100 text-emerald-800 border-emerald-200'],
                                                 ];
                                                 [$policyLabel, $policyClass] = $policyLabels[$policy] ?? ['-', 'bg-slate-100 text-slate-500 border-slate-200'];
                                             @endphp
@@ -530,7 +528,7 @@
                                             <div class="flex items-center justify-center gap-1">
                                                 <button type="button"
                                                     class="relative h-7 px-2 rounded-lg border border-orange-200 bg-orange-50/60 hover:bg-orange-100 text-orange-700 flex items-center justify-center text-[10px] gap-1 font-semibold transition-all"
-                                                    title="Manage Substitutes" @click="openSubstitutePanel(@js([
+                                                    title="{{ __('planning.boms.index.subs_title') }}" @click="openSubstitutePanel(@js([
                                                         'bom_item_id' => $item->id,
                                                         'action' => route('planning.bom-items.substitutes.store', $item),
                                                         'store_action' => route('planning.bom-items.substitutes.store', $item),
@@ -560,7 +558,7 @@
                                                         ])->values(),
                                                     ]))">
                                                     <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                                    Subs
+                                                    {{ __('planning.boms.index.subs') }}
                                                     @if ($subCount > 0)
                                                         <span
                                                             class="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-orange-600 text-white text-[9px] font-bold">
@@ -568,7 +566,7 @@
                                                         </span>
                                                     @endif
                                                 </button>
-                                                <button type="button" class="action-btn hover:bg-slate-100" title="Edit" aria-label="Edit" @click="openLineModal(@js([
+                                                <button type="button" class="action-btn hover:bg-slate-100" title="{{ __('planning.boms.index.edit_title') }}" aria-label="{{ __('planning.boms.index.edit_title') }}" @click="openLineModal(@js([
                                                     'mode' => 'edit',
                                                     'action' => route('planning.boms.items.store', $bom),
                                                     'bom_item_id' => $item->id,
@@ -604,18 +602,18 @@
                                                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                                 </button>
                                                 <form action="{{ route('planning.boms.items.destroy', $item) }}" method="POST"
-                                                    class="inline" onsubmit="return confirm('Delete BOM line?')">
+                                                    class="inline" onsubmit='return confirm(@js(__("planning.boms.index.confirm_delete_line")));'>
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="action-btn hover:bg-red-50 text-red-600"
-                                                        title="Delete">🗑</button>
+                                                        title="{{ __('planning.boms.index.delete_title') }}">🗑</button>
                                                 </form>
                                             </div>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr class="bg-slate-50/50" x-show="expanded[{{ $bomId }}]" x-cloak>
-                                        <td colspan="20" class="px-3 py-4 text-center text-slate-500">No BOM lines</td>
+                                        <td colspan="20" class="px-3 py-4 text-center text-slate-500">{{ __('planning.boms.index.empty_lines') }}</td>
                                     </tr>
                                 @endforelse
 
@@ -648,13 +646,13 @@
                                                 'usage_qty' => 1,
                                                 'wip_part_label' => '',
                                             ]))">
-                                            + Add Line
+                                            {{ __('planning.boms.index.add_line') }}
                                         </button>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="20" class="px-4 py-8 text-center text-slate-500">No BOM</td>
+                                    <td colspan="20" class="px-4 py-8 text-center text-slate-500">{{ __('planning.boms.index.empty') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -665,8 +663,7 @@
                 <div class="border-t border-slate-200 p-4 bg-slate-50">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div class="text-sm text-slate-500">
-                            <span class="font-semibold">Tip:</span> Expand dulu, lalu klik <span class="font-semibold">+
-                                Add Line</span> untuk nambah BOM line. Edit/delete pakai icon di kanan.
+                            <span class="font-semibold">{{ __('planning.boms.index.tip_label') }}</span> {{ __('planning.boms.index.tip_before') }} <span class="font-semibold">{{ __('planning.boms.index.tip_add') }}</span> {{ __('planning.boms.index.tip_after') }}
                         </div>
                         <div>{{ $boms->links() }}</div>
                     </div>
@@ -687,7 +684,7 @@
                                         d="M12 4v16m8-8H4" />
                                 </svg>
                             </div>
-                            <div class="text-sm font-semibold text-slate-900">Add BOM</div>
+                            <div class="text-sm font-semibold text-slate-900">{{ __('planning.boms.index.modal_add') }}</div>
                         </div>
                         <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50"
                             @click="closeCreate()">✕</button>
@@ -696,27 +693,27 @@
                     <form action="{{ route('planning.boms.store') }}" method="POST" class="px-5 py-4 space-y-4">
                         @csrf
                         <div>
-                            <label for="bom-fg-part" class="text-sm font-semibold text-slate-700">FG Part (Part GCI)</label>
+                            <label for="bom-fg-part" class="text-sm font-semibold text-slate-700">{{ __('planning.boms.index.fg_part') }}</label>
                             <select id="bom-fg-part" name="part_id" class="mt-1 w-full rounded-xl border-slate-200" required>
-                                <option value="" disabled selected>Select part</option>
+                                <option value="" disabled selected>{{ __('planning.boms.index.select_part') }}</option>
                                 @foreach ($fgParts as $p)
                                     <option value="{{ $p->id }}">{{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div>
-                            <label for="bom-status" class="text-sm font-semibold text-slate-700">Status</label>
+                            <label for="bom-status" class="text-sm font-semibold text-slate-700">{{ __('planning.boms.index.status') }}</label>
                             <select id="bom-status" name="status" class="mt-1 w-full rounded-xl border-slate-200" required>
-                                <option value="active" selected>Active</option>
-                                <option value="inactive">Inactive</option>
+                                <option value="active" selected>{{ __('planning.boms.index.active') }}</option>
+                                <option value="inactive">{{ __('planning.boms.index.inactive') }}</option>
                             </select>
                         </div>
 
                         <div class="flex justify-end gap-2 pt-2">
                             <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50"
-                                @click="closeCreate()">Cancel</button>
+                                @click="closeCreate()">{{ __('planning.boms.index.cancel') }}</button>
                             <button type="submit"
-                                class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Create</button>
+                                class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">{{ __('planning.boms.index.create') }}</button>
                         </div>
                     </form>
                 </div>
@@ -736,36 +733,34 @@
                                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                 </svg>
                             </div>
-                            <div class="text-sm font-semibold text-slate-900">Import BOM (Excel)</div>
+                            <div class="text-sm font-semibold text-slate-900">{{ __('planning.boms.index.modal_import') }}</div>
                         </div>
                         <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50"
                             @click="closeImport()">✕</button>
                     </div>
 
                     <form action="{{ route('planning.boms.import') }}" method="POST" enctype="multipart/form-data"
-                        class="px-5 py-4 space-y-4" onsubmit="showLoading('Importing BOM...')">
+                        class="px-5 py-4 space-y-4" onsubmit='showLoading(@js(__("planning.boms.index.loading_import_bom")))'>
                         @csrf
 
                         <div class="text-sm text-slate-700 space-y-1">
-                            <div>Gunakan format kolom yang sama seperti hasil <span class="font-semibold">Export
-                                    BOM</span>.
+                            <div>{{ __('planning.boms.index.import_hint_before') }} <span class="font-semibold">{{ __('planning.boms.index.import_hint_export') }}</span>.
                             </div>
-                            <div class="text-xs text-slate-500">Master <span class="font-mono text-indigo-700">FG Part
-                                    No.</span> harus sudah terdaftar di GCI Parts sebelum import. Komponen RM/WIP akan
-                                disimpan langsung di level BOM.</div>
+                            <div class="text-xs text-slate-500">{{ __('planning.boms.index.import_hint_master_before') }} <span class="font-mono text-indigo-700">FG Part
+                                    No.</span> {{ __('planning.boms.index.import_hint_master_after') }}</div>
                         </div>
 
                         <div>
-                            <label for="bom-import-file" class="text-sm font-semibold text-slate-700">File</label>
+                            <label for="bom-import-file" class="text-sm font-semibold text-slate-700">{{ __('planning.boms.index.file') }}</label>
                             <input id="bom-import-file" type="file" name="file" accept=".xlsx,.xls,.csv"
                                 class="mt-1 w-full rounded-xl border-slate-200" required>
                         </div>
 
                         <div class="flex justify-end gap-2 pt-2">
                             <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50"
-                                @click="closeImport()">Cancel</button>
+                                @click="closeImport()">{{ __('planning.boms.index.cancel') }}</button>
                             <button type="submit"
-                                class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold">Import</button>
+                                class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold">{{ __('planning.boms.index.import_btn') }}</button>
                         </div>
                     </form>
                 </div>
@@ -785,55 +780,52 @@
                                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                 </svg>
                             </div>
-                            <div class="text-sm font-semibold text-slate-900">Import Substitutes (Excel)</div>
+                            <div class="text-sm font-semibold text-slate-900">{{ __('planning.boms.index.modal_import_sub') }}</div>
                         </div>
                         <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50"
                             @click="closeImportSubstitute()">✕</button>
                     </div>
 
                     <div class="px-5 pt-4 pb-2 text-xs text-slate-600">
-                        Pilih mode import:
-                        <span class="font-semibold">Per-FG</span> (butuh `fg_part_no`) atau
-                        <span class="font-semibold">Mapping</span> (RM→Substitute, apply ke semua BOM line yang match).
+                        {{ __('planning.boms.index.import_mode') }}
+                        <span class="font-semibold">{{ __('planning.boms.index.mode_fg') }}</span> {{ __('planning.boms.index.mode_needs') }}
+                        <span class="font-semibold">{{ __('planning.boms.index.mode_mapping') }}</span> {{ __('planning.boms.index.mode_apply') }}
                     </div>
 
                     <div class="px-5 pb-2 flex gap-2">
                         <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-bold border"
                             :class="subImportMode === 'fg' ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'"
                             @click="subImportMode = 'fg'">
-                            Per-FG
+                            {{ __('planning.boms.index.mode_fg') }}
                         </button>
                         <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-bold border"
                             :class="subImportMode === 'mapping' ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'"
                             @click="subImportMode = 'mapping'">
-                            Mapping
+                            {{ __('planning.boms.index.mode_mapping') }}
                         </button>
                     </div>
 
                     <div x-show="subImportMode === 'fg'" x-cloak>
                         <form action="{{ route('planning.boms.substitutes.import') }}" method="POST"
                             enctype="multipart/form-data" class="px-5 py-4 space-y-4"
-                            onsubmit="showLoading('Importing Substitutes...')">
+                            onsubmit='showLoading(@js(__("planning.boms.index.loading_import_sub")))'>
                             @csrf
 
                             <div class="text-sm text-slate-700 space-y-1">
                                 <div class="flex justify-between items-center">
-                                    <div>Upload Excel dengan kolom:</div>
+                                    <div>{{ __('planning.boms.index.upload_cols') }}</div>
                                     <a href="{{ route('planning.boms.substitutes.template') }}"
-                                        class="text-xs text-indigo-600 hover:text-indigo-800 underline font-semibold">Download
-                                        Template</a>
+                                        class="text-xs text-indigo-600 hover:text-indigo-800 underline font-semibold">{{ __('planning.boms.index.download_template') }}</a>
                                 </div>
                                 <div class="font-mono text-xs bg-slate-100 p-2 rounded">fg_part_no, fg_part_name,
                                     component_part_no, component_part_name, substitute_part_no, substitute_part_name,
                                     ratio,
                                     priority, status</div>
-                                <div class="text-xs text-slate-500">Pastikan FG Part No dan Component Part No sesuai
-                                    untuk
-                                    mencocokan BOM line yang tepat.</div>
+                                <div class="text-xs text-slate-500">{{ __('planning.boms.index.match_hint') }}</div>
                             </div>
 
                             <div>
-                                <label class="text-sm font-semibold text-slate-700">File</label>
+                                <label class="text-sm font-semibold text-slate-700">{{ __('planning.boms.index.file') }}</label>
                                 <input type="file" name="file" accept=".xlsx,.xls,.csv"
                                     class="mt-1 w-full rounded-xl border-slate-200" required>
                             </div>
@@ -843,17 +835,16 @@
                                 <label class="inline-flex items-center gap-2 text-sm text-slate-700">
                                     <input type="checkbox" name="auto_create_parts" value="1"
                                         class="rounded border-slate-300">
-                                    Auto-create missing substitute part (optional)
+                                    {{ __('planning.boms.index.auto_create') }}
                                 </label>
                             </div>
 
                             <div class="flex justify-end gap-2 pt-2">
                                 <button type="button"
                                     class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50"
-                                    @click="closeImportSubstitute()">Cancel</button>
+                                    @click="closeImportSubstitute()">{{ __('planning.boms.index.cancel') }}</button>
                                 <button type="submit"
-                                    class="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold">Import
-                                    Substitutes</button>
+                                    class="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold">{{ __('planning.boms.index.import_substitutes') }}</button>
                             </div>
                         </form>
                     </div>
@@ -861,23 +852,19 @@
                     <div x-show="subImportMode === 'mapping'" x-cloak>
                         <form action="{{ route('planning.boms.substitutes.import-mapping') }}" method="POST"
                             enctype="multipart/form-data" class="px-5 py-4 space-y-4"
-                            onsubmit="showLoading('Importing Substitute Mapping...')">
+                            onsubmit='showLoading(@js(__("planning.boms.index.loading_import_mapping")))'>
                             @csrf
 
                             <div class="text-sm text-slate-700 space-y-1">
                                 <div class="flex justify-between items-center">
-                                    <div>Upload Excel mapping:</div>
+                                    <div>{{ __('planning.boms.index.upload_mapping') }}</div>
                                     <a href="{{ route('planning.boms.substitutes.template-mapping') }}"
-                                        class="text-xs text-indigo-600 hover:text-indigo-800 underline font-semibold">Download
-                                        Template</a>
+                                        class="text-xs text-indigo-600 hover:text-indigo-800 underline font-semibold">{{ __('planning.boms.index.download_template') }}</a>
                                 </div>
                                 <div class="font-mono text-xs bg-slate-100 p-2 rounded">component_part_no,
                                     component_part_name, substitute_part_no, substitute_part_name, supplier, ratio,
                                     priority, status</div>
-                                <div class="text-xs text-slate-500">Akan diterapkan ke semua BOM line yang memakai
-                                    `component_part_no`. Disarankan matikan auto-create agar tidak membuat part baru
-                                    tanpa
-                                    kontrol.</div>
+                                <div class="text-xs text-slate-500">{{ __('planning.boms.index.mapping_hint') }}</div>
                             </div>
 
                             <div class="flex items-center gap-2">
@@ -885,12 +872,12 @@
                                 <label class="inline-flex items-center gap-2 text-sm text-slate-700">
                                     <input type="checkbox" name="auto_create_parts" value="1"
                                         class="rounded border-slate-300">
-                                    Auto-create missing substitute part (optional)
+                                    {{ __('planning.boms.index.auto_create') }}
                                 </label>
                             </div>
 
                             <div>
-                                <label class="text-sm font-semibold text-slate-700">File</label>
+                                <label class="text-sm font-semibold text-slate-700">{{ __('planning.boms.index.file') }}</label>
                                 <input type="file" name="file" accept=".xlsx,.xls,.csv"
                                     class="mt-1 w-full rounded-xl border-slate-200" required>
                             </div>
@@ -898,10 +885,9 @@
                             <div class="flex justify-end gap-2 pt-2">
                                 <button type="button"
                                     class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50"
-                                    @click="closeImportSubstitute()">Cancel</button>
+                                    @click="closeImportSubstitute()">{{ __('planning.boms.index.cancel') }}</button>
                                 <button type="submit"
-                                    class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Import
-                                    Mapping</button>
+                                    class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">{{ __('planning.boms.index.import_mapping') }}</button>
                             </div>
                         </form>
                     </div>
@@ -922,7 +908,7 @@
                             </div>
                             <div>
                                 <div class="text-sm font-bold text-slate-900"
-                                    x-text="lineForm.mode === 'edit' ? 'Edit BOM Line' : 'Add BOM Line'"></div>
+                                    x-text="lineForm.mode === 'edit' ? '{{ __('planning.boms.index.line_edit') }}' : '{{ __('planning.boms.index.line_add') }}'"></div>
                                 <div class="text-[10px] text-slate-500 font-medium" x-text="lineForm.fg_label"></div>
                             </div>
                         </div>
@@ -938,10 +924,10 @@
 
                         {{-- ═══ Main: RM Component ═══ --}}
                         <div class="bg-indigo-50/30 rounded-lg border border-indigo-100 p-3 space-y-2">
-                            <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">Komponen RM</div>
+                            <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">{{ __('planning.boms.index.rm_section') }}</div>
 
                             <div>
-                                <label class="text-[10px] font-semibold text-slate-700">RM Part <span class="text-red-500">*</span></label>
+                                <label class="text-[10px] font-semibold text-slate-700">{{ __('planning.boms.index.rm_part') }} <span class="text-red-500">*</span></label>
                                 <template x-if="lineForm.mode === 'edit'">
                                     <div>
                                         <input type="hidden" name="component_part_id" :value="lineForm.component_part_id">
@@ -952,7 +938,7 @@
                                 <template x-if="lineForm.mode !== 'edit'">
                                     <select name="component_part_id" class="mt-0.5 w-full rounded border-slate-200 text-xs"
                                         x-model="lineForm.component_part_id" required>
-                                        <option value="">-- Pilih RM Part --</option>
+                                        <option value="">{{ __('planning.boms.index.select_rm') }}</option>
                                         @foreach (($rmParts ?? []) as $c)
                                             <option value="{{ optional($c)->id }}">{{ optional($c)->part_no }} — {{ optional($c)->part_name ?? '-' }}</option>
                                         @endforeach
@@ -962,13 +948,13 @@
 
                             <div class="grid grid-cols-2 gap-2">
                                 <div>
-                                    <label class="text-[10px] font-semibold text-slate-700">Qty <span class="text-red-500">*</span></label>
+                                    <label class="text-[10px] font-semibold text-slate-700">{{ __('planning.boms.index.qty') }} <span class="text-red-500">*</span></label>
                                     <input type="number" step="any" min="0" name="usage_qty"
                                         class="mt-0.5 w-full rounded border-slate-200 text-xs" required
                                         x-model="lineForm.usage_qty">
                                 </div>
                                 <div>
-                                    <label class="text-[10px] font-semibold text-slate-700">UOM</label>
+                                    <label class="text-[10px] font-semibold text-slate-700">{{ __('planning.boms.index.uom') }}</label>
                                     <select name="consumption_uom_id" class="mt-0.5 w-full rounded border-slate-200 text-xs"
                                         x-model="lineForm.consumption_uom_id">
                                         <option value="">-</option>
@@ -981,7 +967,7 @@
 
                             <div class="grid grid-cols-2 gap-2">
                                 <div>
-                                    <label class="text-[10px] font-semibold text-slate-700">Make / Buy</label>
+                                    <label class="text-[10px] font-semibold text-slate-700">{{ __('planning.boms.index.make_buy') }}</label>
                                     <select name="make_or_buy" class="mt-0.5 w-full rounded border-slate-200 text-xs"
                                         x-model="lineForm.make_or_buy">
                                         <option value="buy">BUY</option>
@@ -990,13 +976,13 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="text-[10px] font-semibold text-slate-700">Policy Override</label>
+                                    <label class="text-[10px] font-semibold text-slate-700">{{ __('planning.boms.index.policy_override') }}</label>
                                     <select name="consumption_policy_override" class="mt-0.5 w-full rounded border-slate-200 text-xs"
                                         x-model="lineForm.consumption_policy_override">
-                                        <option value="">Default</option>
-                                        <option value="direct_issue">Pakai Habis</option>
-                                        <option value="backflush_return">Balik Sisa</option>
-                                        <option value="backflush_line_stock">Line Stock</option>
+                                        <option value="">{{ __('planning.boms.index.policy_default') }}</option>
+                                        <option value="direct_issue">{{ __('planning.boms.index.policy_direct') }}</option>
+                                        <option value="backflush_return">{{ __('planning.boms.index.policy_backflush') }}</option>
+                                        <option value="backflush_line_stock">{{ __('planning.boms.index.policy_line_short') }}</option>
                                     </select>
                                 </div>
                             </div>
@@ -1008,34 +994,34 @@
                                 class="w-full flex items-center justify-between px-3 py-1.5 bg-slate-50/60 hover:bg-slate-50 transition-colors text-left"
                                 @click="lineForm.showAdvanced = !lineForm.showAdvanced">
                                 <div class="flex items-center gap-2">
-                                    <span class="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Advanced Options</span>
-                                    <span class="text-[9px] text-slate-400 font-medium" x-show="!lineForm.showAdvanced">(klik untuk buka)</span>
-                                    <span class="text-[9px] text-slate-400 font-medium" x-show="lineForm.showAdvanced">(klik untuk tutup)</span>
+                                    <span class="text-[10px] font-bold text-slate-600 uppercase tracking-wider">{{ __('planning.boms.index.advanced') }}</span>
+                                    <span class="text-[9px] text-slate-400 font-medium" x-show="!lineForm.showAdvanced">{{ __('planning.boms.index.adv_open') }}</span>
+                                    <span class="text-[9px] text-slate-400 font-medium" x-show="lineForm.showAdvanced">{{ __('planning.boms.index.adv_close') }}</span>
                                 </div>
                                 <span class="text-slate-500 font-bold text-xs" x-text="lineForm.showAdvanced ? '▾' : '▸'"></span>
                             </button>
 
                             <div x-show="lineForm.showAdvanced" x-cloak class="p-3 space-y-2 bg-white">
                                 {{-- Material --}}
-                                <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Material</div>
+                                <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{{ __('planning.boms.index.material') }}</div>
                                 <div class="grid grid-cols-2 gap-2">
                                     <div>
-                                        <label class="text-[9px] font-semibold text-slate-600">Size</label>
+                                        <label class="text-[9px] font-semibold text-slate-600">{{ __('planning.boms.index.size') }}</label>
                                         <input type="text" name="material_size" class="mt-0.5 w-full rounded border-slate-200 text-xs"
                                             x-model="lineForm.material_size" placeholder="0.7 x 530 x C">
                                     </div>
                                     <div>
-                                        <label class="text-[9px] font-semibold text-slate-600">Spec</label>
+                                        <label class="text-[9px] font-semibold text-slate-600">{{ __('planning.boms.index.spec') }}</label>
                                         <input type="text" name="material_spec" class="mt-0.5 w-full rounded border-slate-200 text-xs"
                                             x-model="lineForm.material_spec" placeholder="SPCC, SUS304">
                                     </div>
                                     <div>
-                                        <label class="text-[9px] font-semibold text-slate-600">Name</label>
+                                        <label class="text-[9px] font-semibold text-slate-600">{{ __('planning.boms.index.mat_name') }}</label>
                                         <input type="text" name="material_name" class="mt-0.5 w-full rounded border-slate-200 text-xs"
                                             x-model="lineForm.material_name">
                                     </div>
                                     <div>
-                                        <label class="text-[9px] font-semibold text-slate-600">Special</label>
+                                        <label class="text-[9px] font-semibold text-slate-600">{{ __('planning.boms.index.special') }}</label>
                                         <input type="text" name="special" class="mt-0.5 w-full rounded border-slate-200 text-xs"
                                             x-model="lineForm.special">
                                     </div>
@@ -1044,22 +1030,22 @@
                                 <hr class="border-slate-100 my-1">
 
                                 {{-- Process & WIP --}}
-                                <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Process &amp; WIP</div>
+                                <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{{ __('planning.boms.index.process_wip') }}</div>
                                 <div class="grid grid-cols-2 gap-2">
                                     <div>
-                                        <label class="text-[9px] font-semibold text-slate-600">Line No</label>
+                                        <label class="text-[9px] font-semibold text-slate-600">{{ __('planning.boms.index.line_no') }}</label>
                                         <input type="number" min="1" name="line_no"
                                             class="mt-0.5 w-full rounded border-slate-200 text-xs" x-model="lineForm.line_no">
                                     </div>
                                     <div>
-                                        <label class="text-[9px] font-semibold text-slate-600">Process Name</label>
+                                        <label class="text-[9px] font-semibold text-slate-600">{{ __('planning.boms.index.process_name') }}</label>
                                         <input type="text" name="process_name" class="mt-0.5 w-full rounded border-slate-200 text-xs"
                                             x-model="lineForm.process_name">
                                     </div>
                                 </div>
                                 <div class="grid grid-cols-2 gap-2">
                                     <div>
-                                        <label class="text-[9px] font-semibold text-slate-600">Machine</label>
+                                        <label class="text-[9px] font-semibold text-slate-600">{{ __('planning.boms.index.machine') }}</label>
                                         <select name="machine_id" class="mt-0.5 w-full rounded border-slate-200 text-xs"
                                             x-model="lineForm.machine_id">
                                             <option value="">-</option>
@@ -1069,7 +1055,7 @@
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="text-[9px] font-semibold text-slate-600">WIP Part</label>
+                                        <label class="text-[9px] font-semibold text-slate-600">{{ __('planning.boms.index.wip_part') }}</label>
                                         <template x-if="lineForm.mode === 'edit'">
                                             <div>
                                                 <input type="hidden" name="wip_part_id" :value="lineForm.wip_part_id">
@@ -1090,13 +1076,13 @@
                                 </div>
                                 <div class="grid grid-cols-2 gap-2">
                                     <div>
-                                        <label class="text-[9px] font-semibold text-slate-600">WIP Qty</label>
+                                        <label class="text-[9px] font-semibold text-slate-600">{{ __('planning.boms.index.wip_qty') }}</label>
                                         <input type="number" step="any" min="0" name="wip_qty"
                                             class="mt-0.5 w-full rounded border-slate-200 text-xs"
                                             x-model="lineForm.wip_qty">
                                     </div>
                                     <div>
-                                        <label class="text-[9px] font-semibold text-slate-600">WIP UOM</label>
+                                        <label class="text-[9px] font-semibold text-slate-600">{{ __('planning.boms.index.wip_uom') }}</label>
                                         <select name="wip_uom_id" class="mt-0.5 w-full rounded border-slate-200 text-xs"
                                             x-model="lineForm.wip_uom_id">
                                             <option value="">-</option>
@@ -1108,14 +1094,14 @@
                                 </div>
                                 <div class="grid grid-cols-2 gap-2">
                                     <div>
-                                        <label class="text-[9px] font-semibold text-slate-600">WIP UOM Legacy</label>
+                                        <label class="text-[9px] font-semibold text-slate-600">{{ __('planning.boms.index.wip_uom_legacy') }}</label>
                                         <input type="text" name="wip_uom" class="mt-0.5 w-full rounded border-slate-200 text-xs"
-                                            x-model="lineForm.wip_uom" placeholder="Legacy UOM">
+                                            x-model="lineForm.wip_uom" placeholder="{{ __('planning.boms.index.wip_uom_legacy_ph') }}">
                                     </div>
                                     <div>
-                                        <label class="text-[9px] font-semibold text-slate-600">WIP Part Name</label>
+                                        <label class="text-[9px] font-semibold text-slate-600">{{ __('planning.boms.index.wip_part_name') }}</label>
                                         <input type="text" name="wip_part_name" class="mt-0.5 w-full rounded border-slate-200 text-xs"
-                                            x-model="lineForm.wip_part_name" placeholder="Editable WIP name">
+                                            x-model="lineForm.wip_part_name" placeholder="{{ __('planning.boms.index.wip_part_name_ph') }}">
                                     </div>
                                 </div>
                                 {{-- Hidden fields untuk scrap_factor & yield_factor --}}
@@ -1126,9 +1112,9 @@
 
                         <div class="flex justify-end gap-2 pt-2 border-t border-slate-200 flex-shrink-0">
                             <button type="button" class="px-3 py-1.5 rounded border border-slate-200 hover:bg-slate-50 text-xs font-medium text-slate-700 transition-colors"
-                                @click="closeLineModal()">Batal</button>
+                                @click="closeLineModal()">{{ __('planning.boms.index.cancel') }}</button>
                             <button type="submit"
-                                class="px-4 py-1.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors shadow-sm">Simpan</button>
+                                class="px-4 py-1.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors shadow-sm">{{ __('planning.boms.index.save') }}</button>
                         </div>
                     </form>
                 </div>
@@ -1316,7 +1302,7 @@
                                             d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                                     </svg>
                                 </div>
-                                Change FG for BOM
+                                {{ __('planning.boms.index.change_fg') }}
                             </div>
                             <div class="text-xs text-slate-500 mt-1" x-text="changeFgForm.current_label"></div>
                         </div>
@@ -1329,10 +1315,10 @@
                         @method('PUT')
 
                         <div>
-                            <label class="text-xs font-semibold text-slate-600">New FG Part</label>
+                            <label class="text-xs font-semibold text-slate-600">{{ __('planning.boms.index.new_fg') }}</label>
                             <select name="part_id" class="mt-1 w-full rounded-xl border-slate-200" required
                                 x-model="changeFgForm.part_id">
-                                <option value="" disabled>Select FG…</option>
+                                <option value="" disabled>{{ __('planning.boms.index.select_fg') }}</option>
                                 @foreach(($fgParts ?? []) as $p)
                                     <option value="{{ optional($p)->id }}">{{ optional($p)->part_no }} —
                                         {{ optional($p)->part_name ?? '-' }}
@@ -1340,17 +1326,17 @@
                                 @endforeach
                             </select>
                             <div class="mt-2 text-xs text-slate-500">
-                                Note: FG hanya bisa dipindah ke part classification <span
+                                {{ __('planning.boms.index.change_note_before') }} <span
                                     class="font-semibold">FG</span>
-                                dan tidak boleh sudah punya BOM lain.
+                                {{ __('planning.boms.index.change_note_after') }}
                             </div>
                         </div>
 
                         <div class="flex justify-end gap-2 pt-2">
                             <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50"
-                                @click="closeChangeFg()">Cancel</button>
+                                @click="closeChangeFg()">{{ __('planning.boms.index.cancel') }}</button>
                             <button type="submit"
-                                class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Save</button>
+                                class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">{{ __('planning.boms.index.save') }}</button>
                         </div>
                     </form>
                 </div>
@@ -1364,7 +1350,7 @@
                     <div class="sticky top-0 bg-gradient-to-r from-orange-600 to-orange-700 text-white px-5 py-4">
                         <div class="flex items-center justify-between">
                             <div>
-                                <div class="text-sm font-semibold">Manage Substitutes</div>
+                                <div class="text-sm font-semibold">{{ __('planning.boms.index.drawer_title') }}</div>
                                 <div class="text-xs text-orange-100" x-text="substituteForm.fg_label"></div>
                             </div>
                             <button type="button" class="w-9 h-9 rounded-xl bg-white/10 hover:bg-white/20"
@@ -1374,51 +1360,49 @@
 
                     <div class="p-5 space-y-4">
                         <div class="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
-                            <div class="font-semibold text-slate-900">BOM Line</div>
+                            <div class="font-semibold text-slate-900">{{ __('planning.boms.index.drawer_bom_line') }}</div>
                             <div class="mt-2 space-y-1 text-slate-700">
-                                <div><span class="text-slate-500">Line:</span> <span class="font-mono"
+                                <div><span class="text-slate-500">{{ __('planning.boms.index.drawer_line') }}</span> <span class="font-mono"
                                         x-text="substituteForm.line_no"></span></div>
-                                <div><span class="text-slate-500">Process:</span> <span
+                                <div><span class="text-slate-500">{{ __('planning.boms.index.drawer_process') }}</span> <span
                                         x-text="substituteForm.process_name"></span></div>
-                                <div><span class="text-slate-500">WIP:</span> <span class="font-mono"
+                                <div><span class="text-slate-500">{{ __('planning.boms.index.drawer_wip') }}</span> <span class="font-mono"
                                         x-text="substituteForm.wip_part_no"></span></div>
-                                <div><span class="text-slate-500">RM:</span> <span class="font-mono font-semibold"
+                                <div><span class="text-slate-500">{{ __('planning.boms.index.drawer_rm') }}</span> <span class="font-mono font-semibold"
                                         x-text="substituteForm.component_part_no"></span></div>
-                                <div><span class="text-slate-500">Material:</span> <span class="font-semibold"
+                                <div><span class="text-slate-500">{{ __('planning.boms.index.drawer_material') }}</span> <span class="font-semibold"
                                         x-text="substituteForm.material_name"></span></div>
-                                <div><span class="text-slate-500">Spec:</span> <span
+                                <div><span class="text-slate-500">{{ __('planning.boms.index.drawer_spec') }}</span> <span
                                         x-text="substituteForm.material_spec"></span></div>
-                                <div><span class="text-slate-500">Consumption:</span> <span class="font-mono"
+                                <div><span class="text-slate-500">{{ __('planning.boms.index.drawer_consumption') }}</span> <span class="font-mono"
                                         x-text="substituteForm.consumption"></span> <span class="font-mono"
                                         x-text="substituteForm.consumption_uom"></span></div>
                             </div>
                         </div>
 
                         <div class="rounded-xl border border-orange-200 bg-orange-50 p-3 text-xs text-orange-900">
-                            Substitutes = alternatif RM untuk menggantikan RM utama saat MRP/PR (priority & ratio).
+                            {{ __('planning.boms.index.drawer_hint') }}
                         </div>
 
                         <div class="space-y-2">
-                            <div class="text-xs font-semibold text-slate-700 uppercase tracking-wider">Existing
-                                Substitutes
+                            <div class="text-xs font-semibold text-slate-700 uppercase tracking-wider">{{ __('planning.boms.index.drawer_existing') }}
                             </div>
                             <div class="overflow-x-auto border border-slate-200 rounded-xl">
                                 <table class="min-w-full text-xs divide-y divide-slate-200">
                                     <thead class="bg-slate-50">
                                         <tr class="text-slate-600 uppercase tracking-wider">
-                                            <th class="px-3 py-2 text-left font-semibold">Part</th>
-                                            <th class="px-3 py-2 text-left font-semibold">Incoming</th>
-                                            <th class="px-3 py-2 text-right font-semibold">Ratio</th>
-                                            <th class="px-3 py-2 text-right font-semibold">Prio</th>
-                                            <th class="px-3 py-2 text-left font-semibold">Status</th>
-                                            <th class="px-3 py-2 text-right font-semibold">Act</th>
+                                            <th class="px-3 py-2 text-left font-semibold">{{ __('planning.boms.index.drawer_th_part') }}</th>
+                                            <th class="px-3 py-2 text-left font-semibold">{{ __('planning.boms.index.drawer_th_incoming') }}</th>
+                                            <th class="px-3 py-2 text-right font-semibold">{{ __('planning.boms.index.drawer_th_ratio') }}</th>
+                                            <th class="px-3 py-2 text-right font-semibold">{{ __('planning.boms.index.drawer_th_prio') }}</th>
+                                            <th class="px-3 py-2 text-left font-semibold">{{ __('planning.boms.index.drawer_th_status') }}</th>
+                                            <th class="px-3 py-2 text-right font-semibold">{{ __('planning.boms.index.drawer_th_act') }}</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-100">
                                         <template x-if="(substituteForm.substitutes || []).length === 0">
                                             <tr>
-                                                <td colspan="6" class="px-3 py-4 text-center text-slate-500">No
-                                                    substitutes
+                                                <td colspan="6" class="px-3 py-4 text-center text-slate-500">{{ __('planning.boms.index.drawer_empty') }}
                                                 </td>
                                             </tr>
                                         </template>
@@ -1456,14 +1440,14 @@
                                                 <td class="px-3 py-2 text-right">
                                                     <button type="button"
                                                         class="w-9 h-9 inline-flex items-center justify-center rounded-xl border border-slate-200 hover:bg-indigo-50 text-indigo-600 mr-1"
-                                                        title="Edit" @click="editSubstitute(s)">✎</button>
+                                                        title="{{ __('planning.boms.index.edit_title') }}" @click="editSubstitute(s)">✎</button>
                                                     <form :action="s.delete_url" method="POST" class="inline-block"
-                                                        onsubmit="return confirm('Remove substitute?')">
+                                                        onsubmit='return confirm(@js(__("planning.boms.index.confirm_remove_sub")));'>
                                                         @csrf
                                                         @method('DELETE')
                                                         <button type="submit"
                                                             class="w-9 h-9 inline-flex items-center justify-center rounded-xl border border-slate-200 hover:bg-red-50 text-red-600"
-                                                            title="Delete" aria-label="Delete">
+                                                            title="{{ __('planning.boms.index.delete_title') }}" aria-label="{{ __('planning.boms.index.delete_title') }}">
                                                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                                         </button>
                                                     </form>
@@ -1477,12 +1461,11 @@
 
                         <div class="space-y-2">
                             <div class="flex items-center justify-between gap-3">
-                                <div class="text-xs font-semibold text-slate-700 uppercase tracking-wider">Add / Update
+                                <div class="text-xs font-semibold text-slate-700 uppercase tracking-wider">{{ __('planning.boms.index.drawer_form') }}
                                     Substitute</div>
                                 <button type="button"
                                     class="text-[11px] font-semibold text-slate-500 hover:text-slate-700"
-                                    x-show="substituteForm.method === 'PUT'" @click="resetSubstituteForm()">Cancel
-                                    Edit</button>
+                                    x-show="substituteForm.method === 'PUT'" @click="resetSubstituteForm()">{{ __('planning.boms.index.drawer_cancel_edit') }}</button>
                             </div>
                             <form :action="substituteForm.action" method="POST"
                                 class="rounded-xl border border-slate-200 p-4 space-y-3 bg-white">
@@ -1491,10 +1474,10 @@
                                     <input type="hidden" name="_method" value="PUT">
                                 </template>
                                 <div>
-                                    <label class="text-xs font-semibold text-slate-600">Substitute Part (GCI)</label>
+                                    <label class="text-xs font-semibold text-slate-600">{{ __('planning.boms.index.drawer_sub_part') }}</label>
                                     <select name="substitute_part_id" class="mt-1 w-full rounded-xl border-slate-200"
                                         required x-model="substituteForm.substitute_part_id">
-                                        <option value="" disabled>Select part</option>
+                                        <option value="" disabled>{{ __('planning.boms.index.select_part') }}</option>
                                         @foreach(($rmParts ?? []) as $p)
                                             <option value="{{ optional($p)->id }}">{{ optional($p)->part_no }} —
                                                 {{ optional($p)->part_name ?? '-' }}
@@ -1503,10 +1486,10 @@
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="text-xs font-semibold text-slate-600">Incoming Part (Vendor)</label>
+                                    <label class="text-xs font-semibold text-slate-600">{{ __('planning.boms.index.drawer_incoming') }}</label>
                                     <select name="incoming_part_id" class="mt-1 w-full rounded-xl border-slate-200"
                                         x-model="substituteForm.incoming_part_id">
-                                        <option value="">(No incoming part linked)</option>
+                                        <option value="">{{ __('planning.boms.index.drawer_no_incoming') }}</option>
                                         @foreach(($incomingParts ?? []) as $ip)
                                             <option value="{{ $ip->id }}">
                                                 {{ $ip->part_no }} —
@@ -1515,42 +1498,42 @@
                                             </option>
                                         @endforeach
                                     </select>
-                                    <div class="text-[10px] text-slate-500 mt-0.5">Link substitute ke Part Incoming.
+                                    <div class="text-[10px] text-slate-500 mt-0.5">{{ __('planning.boms.index.drawer_link_hint') }}
                                     </div>
                                 </div>
                                 <div class="grid grid-cols-3 gap-2">
                                     <div>
-                                        <label class="text-xs font-semibold text-slate-600">Ratio</label>
+                                        <label class="text-xs font-semibold text-slate-600">{{ __('planning.boms.index.drawer_ratio') }}</label>
                                         <input type="number" step="0.001" min="0.001" name="ratio"
                                             class="mt-1 w-full rounded-xl border-slate-200"
                                             x-model="substituteForm.ratio">
                                     </div>
                                     <div>
-                                        <label class="text-xs font-semibold text-slate-600">Priority</label>
+                                        <label class="text-xs font-semibold text-slate-600">{{ __('planning.boms.index.drawer_priority') }}</label>
                                         <input type="number" min="1" name="priority"
                                             class="mt-1 w-full rounded-xl border-slate-200"
                                             x-model="substituteForm.priority">
                                     </div>
                                     <div>
-                                        <label class="text-xs font-semibold text-slate-600">Status</label>
+                                        <label class="text-xs font-semibold text-slate-600">{{ __('planning.boms.index.drawer_status') }}</label>
                                         <select name="status" class="mt-1 w-full rounded-xl border-slate-200"
                                             x-model="substituteForm.status">
-                                            <option value="active">Active</option>
-                                            <option value="inactive">Inactive</option>
+                                            <option value="active">{{ __('planning.boms.index.active') }}</option>
+                                            <option value="inactive">{{ __('planning.boms.index.inactive') }}</option>
                                         </select>
                                     </div>
                                 </div>
                                 <div>
-                                    <label class="text-xs font-semibold text-slate-600">Notes</label>
+                                    <label class="text-xs font-semibold text-slate-600">{{ __('planning.boms.index.drawer_notes') }}</label>
                                     <input type="text" name="notes" maxlength="255"
                                         class="mt-1 w-full rounded-xl border-slate-200"
                                         x-model="substituteForm.notes"
-                                        placeholder="Optional (e.g. thicker / other supplier)">
+                                        placeholder="{{ __('planning.boms.index.drawer_notes_ph') }}">
                                 </div>
                                 <div class="flex justify-end">
                                     <button type="submit"
                                         class="px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white font-semibold"
-                                        x-text="substituteForm.method === 'PUT' ? 'Update Substitute' : 'Save Substitute'">Save Substitute</button>
+                                        x-text="substituteForm.method === 'PUT' ? '{{ __('planning.boms.index.drawer_update') }}' : '{{ __('planning.boms.index.drawer_save') }}'">{{ __('planning.boms.index.drawer_save') }}</button>
                                 </div>
                             </form>
                         </div>

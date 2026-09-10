@@ -5,10 +5,10 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-2xl font-black text-slate-900">Create WH Send Subcon</h1>
-                    <div class="mt-1 text-sm text-slate-600">Satu submit bisa membuat beberapa order subcon sekaligus untuk vendor yang sama.</div>
+                    <h1 class="text-2xl font-black text-slate-900">{{ __('subcon.orders.create.title') }}</h1>
+                    <div class="mt-1 text-sm text-slate-600">{{ __('subcon.orders.create.description') }}</div>
                 </div>
-                <a href="{{ route('subcon.traceability-index') }}" class="text-sm text-slate-500 hover:text-slate-800">&larr; Back</a>
+                <a href="{{ route('subcon.traceability-index') }}" class="text-sm text-slate-500 hover:text-slate-800">&larr; {{ __('subcon.orders.create.back') }}</a>
             </div>
         </div>
 
@@ -34,12 +34,12 @@
 
                 <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                     <div>
-                        <label for="vendor_id" class="block text-sm font-bold text-slate-700 mb-1">Vendor <span class="text-red-500">*</span></label>
+                        <label for="vendor_id" class="block text-sm font-bold text-slate-700 mb-1">{{ __('subcon.orders.create.vendor') }} <span class="text-red-500">*</span></label>
                         <select id="vendor_id" name="vendor_id" required
                             x-model="vendor_id"
                             @change="onVendorChange()"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="">Select Vendor</option>
+                            <option value="">{{ __('subcon.orders.create.select_vendor') }}</option>
                             @foreach ($vendors as $v)
                                 <option value="{{ $v->id }}" @selected(old('vendor_id') == $v->id)>
                                     {{ !empty($v->vendor_code) ? $v->vendor_code . ' - ' : '' }}{{ $v->vendor_name }}
@@ -49,51 +49,51 @@
                     </div>
 
                     <div>
-                        <label for="contract_no_selected" class="block text-sm font-bold text-slate-700 mb-1">Nomor Kontrak <span class="text-red-500">*</span></label>
+                        <label for="contract_no_selected" class="block text-sm font-bold text-slate-700 mb-1">{{ __('subcon.orders.create.contract_no') }} <span class="text-red-500">*</span></label>
                         <select id="contract_no_selected" x-model="contract_no_selected"
                             @change="applyContractSelection()"
                             :disabled="!vendor_id"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="" x-text="vendor_id ? 'Pilih nomor kontrak' : 'Pilih vendor dulu'"></option>
+                            <option value="" x-text="vendor_id ? '{{ __('subcon.orders.create.select_contract') }}' : '{{ __('subcon.orders.create.select_vendor_first') }}'"></option>
                             <template x-for="contract in availableContracts" :key="contract.id">
                                 <option :value="contract.contract_no" x-text="contract.description ? `${contract.contract_no} - ${contract.description}` : contract.contract_no"></option>
                             </template>
-                            <option value="__other__">LAINNYA...</option>
+                            <option value="__other__">{{ __('subcon.orders.create.other') }}</option>
                         </select>
                         <input type="hidden" name="contract_no" x-model="contract_no" required>
                         <input type="text" x-show="showManualContract" x-cloak x-model="contract_no"
                             class="mt-2 w-full rounded-lg border-slate-300 text-sm uppercase focus:border-indigo-500 focus:ring-indigo-500"
-                            placeholder="Masukkan nomor kontrak vendor/subcon" />
+                            placeholder="{{ __('subcon.orders.create.enter_contract') }}" />
                         <p class="mt-1 text-xs text-slate-500" x-show="vendor_id && availableContracts.length === 0" x-cloak>
-                            Belum ada master nomor kontrak untuk vendor ini. Silakan isi manual atau tambahkan di menu Contract Numbers.
+                            {{ __('subcon.orders.create.no_master_hint') }}
                         </p>
                     </div>
 
                     <div>
-                        <label for="sent_date" class="block text-sm font-bold text-slate-700 mb-1">Sent Date <span class="text-red-500">*</span></label>
+                        <label for="sent_date" class="block text-sm font-bold text-slate-700 mb-1">{{ __('subcon.orders.create.sent_date') }} <span class="text-red-500">*</span></label>
                         <input type="date" id="sent_date" name="sent_date" required value="{{ old('sent_date', now()->toDateString()) }}"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                     </div>
 
                     <div>
-                        <label for="expected_return_date" class="block text-sm font-bold text-slate-700 mb-1">Expected Return</label>
+                        <label for="expected_return_date" class="block text-sm font-bold text-slate-700 mb-1">{{ __('subcon.orders.create.expected_return') }}</label>
                         <input type="date" id="expected_return_date" name="expected_return_date" value="{{ old('expected_return_date') }}"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                     </div>
                 </div>
 
                 <div>
-                    <label for="notes" class="block text-sm font-bold text-slate-700 mb-1">Notes</label>
+                    <label for="notes" class="block text-sm font-bold text-slate-700 mb-1">{{ __('subcon.orders.create.notes') }}</label>
                     <textarea id="notes" name="notes" rows="3"
                         class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                        placeholder="Optional notes...">{{ old('notes') }}</textarea>
+                        placeholder="{{ __('subcon.orders.create.notes_placeholder') }}">{{ old('notes') }}</textarea>
                 </div>
 
                 <div class="rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
                     <div>
                         <div>
-                            <div class="text-base font-bold text-slate-900">Item WH Send</div>
-                            <div class="text-sm text-slate-500">Setiap baris akan menjadi 1 order subcon terpisah.</div>
+                            <div class="text-base font-bold text-slate-900">{{ __('subcon.orders.create.items_title') }}</div>
+                            <div class="text-sm text-slate-500">{{ __('subcon.orders.create.items_desc') }}</div>
                         </div>
                     </div>
 
@@ -105,17 +105,17 @@
                                     <div class="flex items-center gap-4">
                                         <div class="text-sm font-black text-indigo-900 flex items-center gap-2">
                                             <div class="h-6 w-6 rounded bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs" x-text="(index + 1)"></div>
-                                            <span x-text="row.process_type || 'Unknown Process'"></span>
+                                            <span x-text="row.process_type || '{{ __('subcon.orders.create.unknown_process') }}'"></span>
                                         </div>
                                         <button type="button" @click="removeRow(index)" class="group flex items-center gap-1 text-rose-500 hover:text-rose-700 transition-colors">
                                             <div class="p-1.5 rounded-lg group-hover:bg-rose-50">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                             </div>
-                                            <span class="text-[10px] font-bold uppercase">Remove</span>
+                                            <span class="text-[10px] font-bold uppercase">{{ __('subcon.orders.create.remove') }}</span>
                                         </button>
                                     </div>
                                     <div class="text-right" x-show="row.target_qty !== undefined">
-                                        <div class="text-[10px] font-bold text-slate-500 uppercase">Sisa Efektif Kontrak</div>
+                                        <div class="text-[10px] font-bold text-slate-500 uppercase">{{ __('subcon.orders.create.remaining_effective') }}</div>
                                         <div class="text-sm font-black" :class="row.remaining_qty > 0 ? 'text-emerald-600' : 'text-rose-600'">
                                             <span x-text="row.remaining_qty"></span>
                                             <span class="text-[10px] text-slate-500" x-text="row.uom || 'PCS'"></span>
@@ -125,7 +125,7 @@
 
                                 <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
                                     <div class="xl:col-span-2 space-y-1">
-                                        <label class="block text-[10px] font-bold uppercase text-slate-500">WIP Part (Hasil Vendor)</label>
+                                        <label class="block text-[10px] font-bold uppercase text-slate-500">{{ __('subcon.orders.create.wip_part') }}</label>
                                         <div class="font-bold text-slate-900 border border-slate-200 bg-slate-50 px-3 py-2 rounded-lg text-sm" x-text="`${row.wip_part_no} - ${row.wip_part_name}`"></div>
                                         <input type="hidden" :name="`items[${index}][gci_part_id]`" :value="row.gci_part_id">
                                         <input type="hidden" :name="`items[${index}][bom_item_id]`" :value="row.bom_item_id">
@@ -133,14 +133,14 @@
                                     </div>
 
                                     <div class="xl:col-span-2 space-y-1">
-                                        <label class="block text-[10px] font-bold uppercase text-slate-500">RM Part (Barang Dikirim)</label>
+                                        <label class="block text-[10px] font-bold uppercase text-slate-500">{{ __('subcon.orders.create.rm_part') }}</label>
                                         <div class="font-bold text-slate-900 border border-slate-200 bg-slate-50 px-3 py-2 rounded-lg text-sm" x-text="`${row.rm_part_no} - ${row.rm_part_name}`"></div>
                                         <input type="hidden" :name="`items[${index}][rm_gci_part_id]`" :value="row.rm_gci_part_id">
                                     </div>
 
                                     <div class="space-y-1">
                                         <label class="block text-[10px] font-bold uppercase text-slate-500">
-                                            Qty Sent <span class="text-red-500">*</span>
+                                            {{ __('subcon.orders.create.qty_sent') }} <span class="text-red-500">*</span>
                                             <span class="text-indigo-600" x-text="`(${row.uom || 'PCS'})`"></span>
                                         </label>
                                         <input type="number"
@@ -151,22 +151,22 @@
                                             x-model="row.qty_sent"
                                             @input="row.weight_kgm = (parseFloat(row.qty_sent || 0) * parseFloat(row.rm_net_weight)).toFixed(4)"
                                             class="w-full rounded-lg border-indigo-300 bg-indigo-50/30 text-sm font-black focus:border-indigo-600 focus:ring-indigo-600 text-indigo-900"
-                                            placeholder="Masukkan Qty"
+                                            placeholder="{{ __('subcon.orders.create.enter_qty') }}"
                                             required>
                                     </div>
 
                                     <div class="space-y-1">
-                                        <label class="block text-[10px] font-bold uppercase text-slate-500">Netto (KGM) <span class="text-red-500">*</span></label>
+                                        <label class="block text-[10px] font-bold uppercase text-slate-500">{{ __('subcon.orders.create.netto') }} <span class="text-red-500">*</span></label>
                                         <input type="number"
                                             step="0.0001"
                                             min="0"
                                             :name="`items[${index}][weight_kgm]`"
                                             x-model="row.weight_kgm"
                                             class="w-full rounded-lg border-emerald-300 bg-emerald-50/30 text-sm font-black focus:border-emerald-600 focus:ring-emerald-600 text-emerald-900"
-                                            placeholder="Manual Netto"
+                                            placeholder="{{ __('subcon.orders.create.manual_netto') }}"
                                             required>
                                         <div class="mt-1 text-[10px] text-slate-400">
-                                            Netto theoretical: <span x-text="parseFloat(parseFloat(row.qty_sent || 0) * parseFloat(row.rm_net_weight)).toFixed(2)"></span> kg
+                                            {{ __('subcon.orders.create.netto_theoretical') }} <span x-text="parseFloat(parseFloat(row.qty_sent || 0) * parseFloat(row.rm_net_weight)).toFixed(2)"></span> kg
                                         </div>
                                     </div>
                                 </div>
@@ -176,8 +176,8 @@
                             <div class="mb-2 text-slate-400">
                                 <svg class="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                             </div>
-                            <div class="text-sm font-bold text-slate-500">Pilih Nomor Kontrak</div>
-                            <div class="text-xs text-slate-400 mt-1">Item part akan otomatis muncul sesuai dengan yang terdaftar di master kontrak.</div>
+                            <div class="text-sm font-bold text-slate-500">{{ __('subcon.orders.create.select_contract_hint_title') }}</div>
+                            <div class="text-xs text-slate-400 mt-1">{{ __('subcon.orders.create.select_contract_hint') }}</div>
                         </div>
                     </div>
                 </div>
@@ -187,12 +187,12 @@
                     <div class="flex gap-3">
                         <a href="{{ route('subcon.traceability-index') }}"
                             class="rounded-xl border border-slate-200 bg-white px-6 py-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50">
-                            Cancel
+                            {{ __('subcon.orders.create.cancel') }}
                         </a>
                         <button type="submit"
                             :disabled="rows.length === 0"
                             class="rounded-xl bg-indigo-600 px-8 py-3 text-sm font-bold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed">
-                            Create WH Send
+                            {{ __('subcon.orders.create.submit') }}
                         </button>
                     </div>
                 </div>
@@ -202,26 +202,26 @@
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div class="flex flex-col gap-2 border-b border-slate-100 px-6 py-4 md:flex-row md:items-center md:justify-between">
                 <div>
-                    <h2 class="text-lg font-black text-slate-900">WH Send to Vendor - Dokumen</h2>
-                    <div class="text-sm text-slate-500">Cetak dokumen pengiriman subcon dari sini: SJ, PL, dan Invoice.</div>
+                    <h2 class="text-lg font-black text-slate-900">{{ __('subcon.orders.create.doc_title') }}</h2>
+                    <div class="text-sm text-slate-500">{{ __('subcon.orders.create.doc_desc') }}</div>
                 </div>
                 <a href="{{ route('subcon.receive-index') }}" class="text-sm font-bold text-indigo-600 hover:text-indigo-800">
-                    Ke WH Receive Subcon
+                    {{ __('subcon.orders.create.to_receive') }}
                 </a>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-sm divide-y divide-slate-200">
                     <thead class="bg-slate-50">
                         <tr>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">Order No</th>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">Nomor Kontrak</th>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">Vendor</th>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">RM Part</th>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">WIP Part</th>
-                            <th class="px-4 py-3 text-right font-bold text-slate-700">Sent</th>
-                            <th class="px-4 py-3 text-center font-bold text-slate-700">Sent Date</th>
-                            <th class="px-4 py-3 text-center font-bold text-slate-700">Status</th>
-                            <th class="px-4 py-3 text-center font-bold text-slate-700">Dokumen</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">{{ __('subcon.orders.index.order_no') }}</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">{{ __('subcon.orders.index.contract_no') }}</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">{{ __('subcon.orders.index.vendor') }}</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">{{ __('subcon.orders.index.rm_part') }}</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">{{ __('subcon.orders.index.wip_part') }}</th>
+                            <th class="px-4 py-3 text-right font-bold text-slate-700">{{ __('subcon.orders.index.sent') }}</th>
+                            <th class="px-4 py-3 text-center font-bold text-slate-700">{{ __('subcon.orders.index.sent_date') }}</th>
+                            <th class="px-4 py-3 text-center font-bold text-slate-700">{{ __('subcon.orders.index.status') }}</th>
+                            <th class="px-4 py-3 text-center font-bold text-slate-700">{{ __('subcon.orders.create.document') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -263,7 +263,7 @@
                                 <td class="px-4 py-3 text-center text-slate-600">{{ $order->sent_date?->format('d/m/Y') ?? '-' }}</td>
                                 <td class="px-4 py-3 text-center">
                                     <span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold {{ $statusColors[$order->status] ?? 'bg-slate-100 text-slate-700' }}">
-                                        {{ ucfirst($order->status) }}
+                                        {{ __('subcon.status.'.$order->status) }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-center">
@@ -276,7 +276,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9" class="px-4 py-8 text-center text-slate-400">Belum ada order yang dikirim ke vendor.</td>
+                                <td colspan="9" class="px-4 py-8 text-center text-slate-400">{{ __('subcon.orders.create.empty_sent') }}</td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -400,7 +400,7 @@
                     }
                 },
                 removeRow(index) {
-                    if (confirm('Hapus baris ini dari pengiriman?')) {
+                    if (confirm(@js(__('subcon.orders.create.confirm_remove')))) {
                         this.rows.splice(index, 1);
                     }
                 }

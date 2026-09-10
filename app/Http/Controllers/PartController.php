@@ -489,6 +489,7 @@ class PartController extends Controller
             'vendor_parts.*.hs_code' => ['nullable', 'string', 'max:50'],
             'vendor_parts.*.quality_inspection' => ['nullable'],
             'vendor_parts.*.status' => ['nullable', 'in:active,inactive'],
+            'uom' => ['nullable', 'string', 'max:20'],
             'consumption_policy' => ['nullable', Rule::in(self::CONSUMPTION_POLICIES)],
             'subcount_enabled' => ['nullable', 'boolean'],
             'subcount_fg_part_id' => ['nullable', 'integer', 'exists:gci_parts,id'],
@@ -496,6 +497,22 @@ class PartController extends Controller
             'subcount_process_type' => ['nullable', 'string', 'max:50'],
             'subcount_rm_part_id' => ['nullable', 'integer', 'exists:gci_parts,id'],
         ]);
+
+        // UOM stok material: canonical (PCS->PCE, KG->KGM); fallback = UOM
+        // vendor part pertama; default PCE. Tidak boleh unit kemasan (COIL dll).
+        $partUom = \App\Support\Uom::canonical($data['uom'] ?? null);
+        if ($partUom === null || \App\Support\Uom::isPackaging($partUom)) {
+            $firstVendorUom = null;
+            foreach (($data['vendor_parts'] ?? []) as $vp) {
+                $candidate = \App\Support\Uom::canonical($vp['uom'] ?? null);
+                if ($candidate !== null && !\App\Support\Uom::isPackaging($candidate)) {
+                    $firstVendorUom = $candidate;
+                    break;
+                }
+            }
+            $partUom = $firstVendorUom ?? 'PCE';
+        }
+        $data['uom'] = $partUom;
 
         $vendorIds = $data['vendor_ids'] ?? [];
         unset($data['vendor_ids']);
@@ -563,6 +580,7 @@ class PartController extends Controller
             'vendor_parts.*.hs_code' => ['nullable', 'string', 'max:50'],
             'vendor_parts.*.quality_inspection' => ['nullable'],
             'vendor_parts.*.status' => ['nullable', 'in:active,inactive'],
+            'uom' => ['nullable', 'string', 'max:20'],
             'consumption_policy' => ['nullable', Rule::in(self::CONSUMPTION_POLICIES)],
             'subcount_enabled' => ['nullable', 'boolean'],
             'subcount_fg_part_id' => ['nullable', 'integer', 'exists:gci_parts,id'],
@@ -570,6 +588,13 @@ class PartController extends Controller
             'subcount_process_type' => ['nullable', 'string', 'max:50'],
             'subcount_rm_part_id' => ['nullable', 'integer', 'exists:gci_parts,id'],
         ]);
+
+        // UOM stok material saat edit: pakai input; kosong -> pertahankan nilai lama.
+        $partUom = \App\Support\Uom::canonical($data['uom'] ?? null);
+        if ($partUom === null || \App\Support\Uom::isPackaging($partUom)) {
+            $partUom = \App\Support\Uom::canonical($part->uom) ?? 'PCE';
+        }
+        $data['uom'] = $partUom;
 
         $vendorIds = $data['vendor_ids'] ?? [];
         unset($data['vendor_ids']);

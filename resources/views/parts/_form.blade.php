@@ -2,16 +2,16 @@
 <div class="w-full p-0 space-y-8">
     <!-- Section 1 — Vendor Information -->
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
-        <h2 class="text-xs font-semibold text-slate-500 tracking-wide uppercase">Vendor Information</h2>
+        <h2 class="text-xs font-semibold text-slate-500 tracking-wide uppercase">{{ __('master.parts.form.section_vendor') }}</h2>
         <div class="space-y-2">
-            <label for="vendor_id" class="text-sm font-medium text-slate-700">Vendor</label>
+            <label for="vendor_id" class="text-sm font-medium text-slate-700">{{ __('master.parts.form.vendor_label') }}</label>
             <select id="vendor_id" name="vendor_id" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
-                <option value="">Select vendor</option>
+                <option value="">{{ __('master.parts.form.vendor_select') }}</option>
                 @foreach ($vendors as $vendor)
                     <option value="{{ $vendor->id }}" data-type="{{ strtolower($vendor->vendor_type) }}" @selected(old('vendor_id', $part->vendor_id ?? '') == $vendor->id)>{{ $vendor->vendor_name }}</option>
                 @endforeach
             </select>
-            <p class="text-xs text-slate-500">Ketik satu kata, daftar vendor akan muncul.</p>
+            <p class="text-xs text-slate-500">{{ __('master.parts.form.vendor_hint') }}</p>
             <x-input-error :messages="$errors->get('vendor_id')" class="mt-1" />
         </div>
     </div>
@@ -59,37 +59,37 @@
     @endphp
 
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
-        <h2 class="text-xs font-semibold text-slate-500 tracking-wide uppercase">Part Identification</h2>
+        <h2 class="text-xs font-semibold text-slate-500 tracking-wide uppercase">{{ __('master.parts.form.section_ident') }}</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-2">
-                <label for="part_no" class="text-sm font-medium text-slate-700">Part Number*</label>
+                <label for="part_no" class="text-sm font-medium text-slate-700">{{ __('master.parts.form.part_no') }}</label>
                 <input type="text" id="part_no" name="part_no" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" value="{{ old('part_no', $part->part_no ?? '') }}" required>
-                <p class="text-xs text-slate-500">Gunakan kode internal singkat.</p>
+                <p class="text-xs text-slate-500">{{ __('master.parts.form.part_no_hint') }}</p>
                 <x-input-error :messages="$errors->get('part_no')" class="mt-1" />
             </div>
             <div class="space-y-1">
-                <label class="text-xs font-medium text-slate-700">Size*</label>
+                <label class="text-xs font-medium text-slate-700">{{ __('master.parts.form.size') }}</label>
                 <div class="flex flex-wrap items-center gap-1.5">
                     <div class="flex-1 min-w-[60px]">
-                        <input type="text" id="size_thickness" name="thickness" class="w-full rounded border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs px-2 py-1" placeholder="Thick" value="{{ $thicknessValue }}">
+                        <input type="text" id="size_thickness" name="thickness" class="w-full rounded border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs px-2 py-1" placeholder="{{ __('master.parts.form.size_thick') }}" value="{{ $thicknessValue }}">
                     </div>
                     <span class="text-slate-400 text-xs font-bold">×</span>
                     <div class="flex-1 min-w-[60px]">
-                        <input type="text" id="size_width" name="width" class="w-full rounded border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs px-2 py-1" placeholder="Width" value="{{ $widthValue }}">
+                        <input type="text" id="size_width" name="width" class="w-full rounded border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs px-2 py-1" placeholder="{{ __('master.parts.form.size_width') }}" value="{{ $widthValue }}">
                     </div>
                     <span class="text-slate-400 text-xs font-bold">×</span>
                     <div class="flex-1 min-w-[60px]">
-                        <input type="text" id="size_length" name="length" class="w-full rounded border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs px-2 py-1" placeholder="Length" value="{{ $lengthValue }}">
+                        <input type="text" id="size_length" name="length" class="w-full rounded border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-xs px-2 py-1" placeholder="{{ __('master.parts.form.size_length') }}" value="{{ $lengthValue }}">
                     </div>
                     <label class="flex items-center gap-1 rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700 whitespace-nowrap">
                         <input type="checkbox" id="size_is_coil" name="is_coil" value="1" class="rounded border-slate-300 text-indigo-600 shadow-sm focus:ring-indigo-500 w-3.5 h-3.5" @checked($isCoil)>
-                        <span>Coil</span>
+                        <span>{{ __('master.parts.form.coil') }}</span>
                     </label>
                 </div>
                 <p class="text-[10px] text-slate-500">
-                    Format: <span id="size-preview-form" class="font-mono">{{ $rawSize ?: '-' }}</span>
-                    &nbsp;·&nbsp; Ceklis Coil = <span class="font-semibold">C</span> di panjang
-                    &nbsp;·&nbsp; tersimpan di <span class="font-semibold">register_no</span>
+                    {{ __('master.parts.form.size_hint_format') }} <span id="size-preview-form" class="font-mono">{{ $rawSize ?: '-' }}</span>
+                    &nbsp;·&nbsp; {{ __('master.parts.form.size_hint_coil') }}
+                    &nbsp;·&nbsp; {{ __('master.parts.form.size_hint_stored') }} <span class="font-semibold">register_no</span>
                 </p>
                 <input type="hidden" id="register_no" name="register_no" value="{{ $rawSize }}" required>
                 <x-input-error :messages="$errors->get('register_no')" class="mt-0.5" />
@@ -99,54 +99,54 @@
 
     <!-- Section 3 — Naming Details -->
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
-        <h2 class="text-xs font-semibold text-slate-500 tracking-wide uppercase">Naming Details</h2>
+        <h2 class="text-xs font-semibold text-slate-500 tracking-wide uppercase">{{ __('master.parts.form.section_naming') }}</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-2">
                 @if(!($part->exists ?? false))
-                    <label for="vendor_part_name_select" class="text-sm font-medium text-slate-700">Vendor Part (Existing)</label>
+                    <label for="vendor_part_name_select" class="text-sm font-medium text-slate-700">{{ __('master.parts.form.vendor_part_existing') }}</label>
                     <select id="vendor_part_name_select" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" disabled>
-                        <option value="">Pilih yang tersedia...</option>
-                        <option value="__other__">Lainnya...</option>
+                        <option value="">{{ __('master.parts.form.vendor_part_available') }}</option>
+                        <option value="__other__">{{ __('master.parts.form.vendor_part_other') }}</option>
                     </select>
-                    <p class="text-xs text-slate-500">Pilih vendor dulu untuk melihat daftar existing. Jika belum ada, pilih <span class="font-semibold">Lainnya</span> lalu isi manual.</p>
+                    <p class="text-xs text-slate-500">{{ __('master.parts.form.vendor_part_hint') }}</p>
                 @endif
-                <label for="part_name_vendor" class="text-sm font-medium text-slate-700">Vendor Part Name*</label>
+                <label for="part_name_vendor" class="text-sm font-medium text-slate-700">{{ __('master.parts.form.vendor_part_name') }}</label>
                 <input type="text" id="part_name_vendor" name="part_name_vendor" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" value="{{ old('part_name_vendor', $part->part_name_vendor ?? '') }}" required>
                 <x-input-error :messages="$errors->get('part_name_vendor')" class="mt-1" />
             </div>
             <div class="space-y-2">
-                <label for="part_name_gci" class="text-sm font-medium text-slate-700">GCI Part Name*</label>
+                <label for="part_name_gci" class="text-sm font-medium text-slate-700">{{ __('master.parts.form.gci_part_name') }}</label>
                 <input type="text" id="part_name_gci" name="part_name_gci" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" value="{{ old('part_name_gci', $part->part_name_gci ?? '') }}" required>
                 <x-input-error :messages="$errors->get('part_name_gci')" class="mt-1" />
             </div>
         </div>
         <div class="space-y-2">
-            <label for="hs_code" class="text-sm font-medium text-slate-700">HS Code</label>
+            <label for="hs_code" class="text-sm font-medium text-slate-700">{{ __('master.parts.form.hs_code') }}</label>
             <input type="text" id="hs_code" name="hs_code" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" placeholder="e.g., 7225.99.10" value="{{ old('hs_code', $part->hs_code ?? '') }}">
-            <p class="text-xs text-slate-500">Harmonized System code for customs.</p>
+            <p class="text-xs text-slate-500">{{ __('master.parts.form.hs_hint') }}</p>
             <x-input-error :messages="$errors->get('hs_code')" class="mt-1" />
         </div>
         <div class="space-y-2">
-            <label for="quality_inspection" class="text-sm font-medium text-slate-700">Quality Inspection</label>
+            <label for="quality_inspection" class="text-sm font-medium text-slate-700">{{ __('master.parts.form.qi_label') }}</label>
             @php $qi = old('quality_inspection', $part->quality_inspection ?? ''); @endphp
             <select id="quality_inspection" name="quality_inspection" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                 <option value="" @selected($qi === '' || $qi === null)>-</option>
                 <option value="YES" @selected(strtoupper((string) $qi) === 'YES')>YES</option>
             </select>
-            <p class="text-xs text-slate-500">Isi YES jika part butuh QC inspection.</p>
+            <p class="text-xs text-slate-500">{{ __('master.parts.form.qi_hint') }}</p>
             <x-input-error :messages="$errors->get('quality_inspection')" class="mt-1" />
         </div>
 
         <!-- Local Vendor Specifics -->
         <div id="local-fields" class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100 hidden">
             <div class="col-span-full">
-                <h3 class="text-xs font-semibold text-indigo-600 tracking-wide uppercase">Local Vendor Details</h3>
-                <p class="mt-1 text-xs text-slate-500">Harga vendor part tidak diatur di Part Master. Gunakan <span class="font-semibold">Pricing Master</span> untuk harga beli.</p>
+                <h3 class="text-xs font-semibold text-indigo-600 tracking-wide uppercase">{{ __('master.parts.form.local_title') }}</h3>
+                <p class="mt-1 text-xs text-slate-500">{{ __('master.parts.form.local_hint') }}</p>
             </div>
             <div class="space-y-2">
-                <label for="uom" class="text-sm font-medium text-slate-700">UOM</label>
+                <label for="uom" class="text-sm font-medium text-slate-700">{{ __('master.parts.form.uom') }}</label>
                 <select id="uom" name="uom" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
-                    <option value="">Select UOM</option>
+                    <option value="">{{ __('master.parts.form.uom_select') }}</option>
                     @foreach(['PCS', 'KG', 'SET', 'EA', 'SHEET', 'COIL', 'LITER', 'METER', 'ROLL'] as $pkg)
                         <option value="{{ $pkg }}" @selected(old('uom', $part->uom ?? '') === $pkg)>{{ $pkg }}</option>
                     @endforeach
@@ -158,19 +158,19 @@
 
     <!-- Section 4 — Operational Status -->
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 space-y-4">
-        <h2 class="text-xs font-semibold text-slate-500 tracking-wide uppercase">Operational Status</h2>
+        <h2 class="text-xs font-semibold text-slate-500 tracking-wide uppercase">{{ __('master.parts.form.section_status') }}</h2>
         <div class="space-y-2">
-            <label for="status" class="text-sm font-medium text-slate-700">Status</label>
+            <label for="status" class="text-sm font-medium text-slate-700">{{ __('master.parts.form.status_label') }}</label>
             <select name="status" id="status" class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
-                <option value="active" @selected(old('status', $part->status ?? 'active') === 'active')>Active</option>
-                <option value="inactive" @selected(old('status', $part->status ?? 'active') === 'inactive')>Inactive</option>
+                <option value="active" @selected(old('status', $part->status ?? 'active') === 'active')>{{ __('master.parts.form.status_active') }}</option>
+                <option value="inactive" @selected(old('status', $part->status ?? 'active') === 'inactive')>{{ __('master.parts.form.status_inactive') }}</option>
             </select>
             <x-input-error :messages="$errors->get('status')" class="mt-1" />
         </div>
     </div>
 
     <div class="flex justify-end">
-        <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700">Save</button>
+        <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700">{{ __('master.parts.form.save') }}</button>
     </div>
 </div>
 
@@ -185,10 +185,10 @@
 			async function loadVendorPartNames(vendorId) {
 		        if (!vendorPartSelect) return;
 		        vendorPartSelect.disabled = true;
-		        vendorPartSelect.innerHTML = '<option value=\"\">Loading...</option>';
+		        vendorPartSelect.innerHTML = '<option value="">' + @js(__('master.parts.form.js_loading')) + '</option>';
 
                 if (!vendorId) {
-                    vendorPartSelect.innerHTML = '<option value=\"\">Pilih yang tersedia...</option><option value=\"__other__\">Lainnya...</option>';
+                    vendorPartSelect.innerHTML = '<option value="">' + @js(__('master.parts.form.vendor_part_available')) + '</option><option value="__other__">' + @js(__('master.parts.form.vendor_part_other')) + '</option>';
                     vendorPartSelect.disabled = true;
                     return;
                 }
@@ -204,14 +204,14 @@
 		            )).sort((a, b) => a.localeCompare(b));
 
                     const current = String(vendorPartInput?.value || '').trim().toUpperCase();
-                    vendorPartSelect.innerHTML = '<option value=\"\">Pilih yang tersedia...</option><option value=\"__other__\">Lainnya...</option>' + names.map((n) => {
+                    vendorPartSelect.innerHTML = '<option value="">' + @js(__('master.parts.form.vendor_part_available')) + '</option><option value="__other__">' + @js(__('master.parts.form.vendor_part_other')) + '</option>' + names.map((n) => {
                         const up = n.toUpperCase();
                         const selected = current && up === current ? ' selected' : '';
-                        return `<option value=\"${escapeHtml(up)}\"${selected}>${escapeHtml(up)}</option>`;
+                        return `<option value="${escapeHtml(up)}"${selected}>${escapeHtml(up)}</option>`;
                     }).join('');
                     vendorPartSelect.disabled = false;
                 } catch (e) {
-                    vendorPartSelect.innerHTML = '<option value=\"\">Pilih yang tersedia...</option><option value=\"__other__\">Lainnya...</option>';
+                    vendorPartSelect.innerHTML = '<option value="">' + @js(__('master.parts.form.vendor_part_available')) + '</option><option value="__other__">' + @js(__('master.parts.form.vendor_part_other')) + '</option>';
                     vendorPartSelect.disabled = false;
                 }
             }
@@ -287,7 +287,7 @@
 		        } else {
 		            lengthInput.disabled = false;
 		            if (lengthInput.placeholder === 'C') {
-		                lengthInput.placeholder = 'Length';
+		                lengthInput.placeholder = @js(__('master.parts.form.size_length'));
 		            }
 		        }
 

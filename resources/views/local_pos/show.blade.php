@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Local PO Details — {{ $arrival->invoice_no }}
+        {{ __('master.local_pos.show.header', ['no' => $arrival->invoice_no]) }}
     </x-slot>
 
     <div class="py-8">
@@ -8,38 +8,38 @@
             <div class="bg-white border border-slate-200 rounded-2xl shadow-lg p-6">
                 <div class="flex items-start justify-between border-b border-slate-200 pb-6 mb-6">
                     <div>
-                        <h3 class="text-xl font-bold text-slate-900">Local PO Information</h3>
-                        <p class="text-sm text-slate-600 mt-1">Vendor: {{ $arrival->vendor->vendor_name }}</p>
+                        <h3 class="text-xl font-bold text-slate-900">{{ __('master.local_pos.show.title') }}</h3>
+                        <p class="text-sm text-slate-600 mt-1">{{ __('master.local_pos.show.vendor_line', ['name' => $arrival->vendor->vendor_name]) }}</p>
                     </div>
                     <div class="flex items-center gap-2">
                         <a href="{{ route('local-pos.export-detail', $arrival) }}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors">
-                            Export Excel
+                            {{ __('master.local_pos.show.export') }}
                         </a>
                         <a href="{{ route('local-pos.edit', $arrival) }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
-                            Edit PO
+                            {{ __('master.local_pos.show.edit') }}
                         </a>
                         <a href="{{ route('local-pos.index') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
-                            Back to List
+                            {{ __('master.local_pos.show.back') }}
                         </a>
                     </div>
                 </div>
 
                 <dl class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
                     <div>
-                        <dt class="font-semibold text-slate-500">PO Number</dt>
+                        <dt class="font-semibold text-slate-500">{{ __('master.local_pos.show.po_number') }}</dt>
                         <dd class="mt-1 text-slate-900 font-medium">{{ $arrival->invoice_no }}</dd>
                     </div>
                     <div>
-                        <dt class="font-semibold text-slate-500">PO Date</dt>
+                        <dt class="font-semibold text-slate-500">{{ __('master.local_pos.show.po_date') }}</dt>
                         <dd class="mt-1 text-slate-900 font-medium">{{ $arrival->invoice_date?->format('d M Y') ?? '-' }}</dd>
                     </div>
                     <div>
-                        <dt class="font-semibold text-slate-500">Currency</dt>
+                        <dt class="font-semibold text-slate-500">{{ __('master.local_pos.show.currency') }}</dt>
                         <dd class="mt-1 text-slate-900 font-medium">{{ $arrival->currency }}</dd>
                     </div>
                     @if($arrival->notes)
                         <div class="md:col-span-3">
-                            <dt class="font-semibold text-slate-500">Notes</dt>
+                            <dt class="font-semibold text-slate-500">{{ __('master.local_pos.show.notes') }}</dt>
                             <dd class="mt-1 text-slate-900">{{ $arrival->notes }}</dd>
                         </div>
                     @endif
@@ -48,19 +48,19 @@
 
             <div class="bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden">
                 <div class="px-6 py-4 border-b border-slate-200 bg-slate-50">
-                    <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wide">Ordered Items</h4>
+                    <h4 class="text-sm font-bold text-slate-700 uppercase tracking-wide">{{ __('master.local_pos.show.items_title') }}</h4>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-slate-200 text-sm">
                         <thead class="bg-white">
                             <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                <th class="px-6 py-3 text-left font-semibold">Part No / Name</th>
-                                <th class="px-6 py-3 text-left font-semibold">Size</th>
-                                <th class="px-6 py-3 text-right font-semibold">Ordered Qty</th>
-                                <th class="px-6 py-3 text-right font-semibold">Price/UOM</th>
-                                <th class="px-6 py-3 text-right font-semibold">Total Price</th>
-                                <th class="px-6 py-3 text-right font-semibold">Received</th>
-                                <th class="px-6 py-3 text-right font-semibold">Remaining</th>
+                                <th class="px-6 py-3 text-left font-semibold">{{ __('master.local_pos.show.th_part') }}</th>
+                                <th class="px-6 py-3 text-left font-semibold">{{ __('master.local_pos.show.th_size') }}</th>
+                                <th class="px-6 py-3 text-right font-semibold">{{ __('master.local_pos.show.th_ordered') }}</th>
+                                <th class="px-6 py-3 text-right font-semibold">{{ __('master.local_pos.show.th_price') }}</th>
+                                <th class="px-6 py-3 text-right font-semibold">{{ __('master.local_pos.show.th_total') }}</th>
+                                <th class="px-6 py-3 text-right font-semibold">{{ __('master.local_pos.show.th_received') }}</th>
+                                <th class="px-6 py-3 text-right font-semibold">{{ __('master.local_pos.show.th_remaining') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
@@ -102,7 +102,7 @@
                         </tbody>
                         <tfoot class="bg-slate-50">
                             <tr>
-                                <td colspan="4" class="px-6 py-3 text-right font-bold text-slate-700">TOTAL ESTIMATED</td>
+                                <td colspan="4" class="px-6 py-3 text-right font-bold text-slate-700">{{ __('master.local_pos.show.total') }}</td>
                                 <td class="px-6 py-3 text-right font-bold text-slate-900">{{ number_format($arrival->items->sum('total_price'), 2) }}</td>
                                 <td colspan="2"></td>
                             </tr>

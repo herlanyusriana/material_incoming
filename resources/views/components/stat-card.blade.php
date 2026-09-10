@@ -33,7 +33,7 @@
     </div>
     <p class="mt-1.5 text-[26px] font-bold leading-none tabular-nums text-foreground">
         @if (is_null($value))
-            —
+            N/A
         @elseif (! is_null($numeric))
             <span x-text="Math.round(current).toLocaleString('id-ID')">{{ number_format($numeric, 0, ',', '.') }}</span>
         @else
@@ -49,4 +49,3 @@
         </p>
     @endif
 </div>
-

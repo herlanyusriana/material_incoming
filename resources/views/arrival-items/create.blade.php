@@ -1,13 +1,13 @@
 <x-app-layout>
     <x-slot name="header">
-        Add Item — {{ $arrival->invoice_no ?? 'Departure' }}
+        {{ __('incoming.items.create.header', ['invoice' => ($arrival->invoice_no ?? 'Departure')]) }}
     </x-slot>
 
     <div class="py-6">
         <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             @if ($errors->any())
                 <div class="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-800">
-                    <div class="font-semibold mb-1">Ada error:</div>
+                    <div class="font-semibold mb-1">{{ __('incoming.items.create.error_title') }}</div>
                     <ul class="list-disc ml-5">
                         @foreach ($errors->all() as $error)
                             <li>{{ $error }}</li>
@@ -21,7 +21,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                     </svg>
-                    <span>Back</span>
+                    <span>{{ __('incoming.items.create.back') }}</span>
                 </a>
             </div>
 
@@ -30,14 +30,14 @@
 
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div class="sm:col-span-2">
-                        <label for="material_group" class="text-sm font-medium text-slate-700">Material Group</label>
-                        <input type="text" id="material_group" name="material_group" value="{{ old('material_group') }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" placeholder="Optional">
+                        <label for="material_group" class="text-sm font-medium text-slate-700">{{ __('incoming.items.create.material_group') }}</label>
+                        <input type="text" id="material_group" name="material_group" value="{{ old('material_group') }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" placeholder="{{ __('incoming.items.create.optional') }}">
                     </div>
 
                     <div class="sm:col-span-2">
-                        <label for="part_id" class="text-sm font-medium text-slate-700">Part</label>
+                        <label for="part_id" class="text-sm font-medium text-slate-700">{{ __('incoming.items.create.part') }}</label>
                         <select id="part_id" name="part_id" class="mt-1 w-full rounded-lg border-slate-300 bg-white text-sm" required>
-                            <option value="">Select part</option>
+                            <option value="">{{ __('incoming.items.create.select_part') }}</option>
                             @foreach ($parts as $p)
                                 <option value="{{ $p->id }}" @selected((string) old('part_id') === (string) $p->id)>{{ $p->part_no }} — {{ $p->part_name_gci }}</option>
                             @endforeach
@@ -45,25 +45,25 @@
                     </div>
 
                     <div class="sm:col-span-2">
-                        <label for="size" class="text-sm font-medium text-slate-700">Size</label>
+                        <label for="size" class="text-sm font-medium text-slate-700">{{ __('incoming.items.create.size') }}</label>
                         <input type="text" id="size" name="size" value="{{ old('size') }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" placeholder="e.g. 0.25 x 557 x 1203">
                     </div>
                 </div>
 
                 <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <h2 class="text-xs font-semibold tracking-wide text-slate-600 uppercase mb-3">Detail Part</h2>
+                    <h2 class="text-xs font-semibold tracking-wide text-slate-600 uppercase mb-3">{{ __('incoming.items.create.detail_part') }}</h2>
 
                     <div class="space-y-3">
                         <div class="sm:flex sm:items-center sm:gap-4">
-                            <label for="qty_goods" class="text-xs font-semibold text-slate-500 sm:w-44">Qty Goods</label>
+                            <label for="qty_goods" class="text-xs font-semibold text-slate-500 sm:w-44">{{ __('incoming.items.create.qty_goods') }}</label>
                             <input type="number" id="qty_goods" name="qty_goods" value="{{ old('qty_goods') }}" min="1" class="mt-1 w-full rounded-lg border-slate-300 bg-white text-sm sm:mt-0 sm:flex-1" required>
                         </div>
 
                         <div class="sm:flex sm:items-center sm:gap-4">
-                            <label for="unit_goods" class="text-xs font-semibold text-slate-500 sm:w-44">Unit Code</label>
+                            <label for="unit_goods" class="text-xs font-semibold text-slate-500 sm:w-44">{{ __('incoming.items.create.unit_code') }}</label>
                             <select id="unit_goods" name="unit_goods" class="mt-1 w-full rounded-lg border-slate-300 bg-white text-sm sm:mt-0 sm:flex-1">
                                 @php $unitGoods = old('unit_goods'); @endphp
-                                <option value="">Pilih satuan</option>
+                                <option value="">{{ __('incoming.items.create.select_unit') }}</option>
                                 <option value="EA" {{ strtoupper((string) $unitGoods) === 'EA' ? 'selected' : '' }}>EA</option>
                                 <option value="ROLL" {{ strtoupper((string) $unitGoods) === 'ROLL' ? 'selected' : '' }}>ROLL</option>
                                 <option value="KGM" {{ strtoupper((string) $unitGoods) === 'KGM' ? 'selected' : '' }}>KGM</option>
@@ -75,14 +75,14 @@
                 </div>
 
                 <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <h2 class="text-xs font-semibold tracking-wide text-slate-600 uppercase mb-3">Detail Packaging</h2>
+                    <h2 class="text-xs font-semibold tracking-wide text-slate-600 uppercase mb-3">{{ __('incoming.items.create.detail_packaging') }}</h2>
 
                     <div class="space-y-3">
                         <div class="sm:flex sm:items-center sm:gap-4">
-                            <label for="unit_bundle" class="text-xs font-semibold text-slate-500 sm:w-44">Jenis Package</label>
+                            <label for="unit_bundle" class="text-xs font-semibold text-slate-500 sm:w-44">{{ __('incoming.items.create.package_type') }}</label>
                             @php $unitBundle = old('unit_bundle'); @endphp
                             <select id="unit_bundle" name="unit_bundle" class="mt-1 w-full rounded-lg border-slate-300 bg-white text-sm sm:mt-0 sm:flex-1">
-                                <option value="">Pilih</option>
+                                <option value="">{{ __('incoming.items.create.select') }}</option>
                                 <option value="BUNDLE" {{ strtoupper((string) $unitBundle) === 'BUNDLE' ? 'selected' : '' }}>BUNDLE</option>
                                 <option value="PALLET" {{ strtoupper((string) $unitBundle) === 'PALLET' ? 'selected' : '' }}>PALLET</option>
                                 <option value="BOX" {{ strtoupper((string) $unitBundle) === 'BOX' ? 'selected' : '' }}>BOX</option>
@@ -93,12 +93,12 @@
                         </div>
 
                         <div class="sm:flex sm:items-center sm:gap-4">
-                            <label for="qty_bundle" class="text-xs font-semibold text-slate-500 sm:w-44">Qty Package</label>
+                            <label for="qty_bundle" class="text-xs font-semibold text-slate-500 sm:w-44">{{ __('incoming.items.create.qty_package') }}</label>
                             <input type="number" id="qty_bundle" name="qty_bundle" value="{{ old('qty_bundle') }}" min="0" class="mt-1 w-full rounded-lg border-slate-300 bg-white text-sm sm:mt-0 sm:flex-1">
                         </div>
 
                         <div class="sm:flex sm:items-center sm:gap-4">
-                            <label class="text-xs font-semibold text-slate-500 sm:w-44">Net Weight (KGM)</label>
+                            <label class="text-xs font-semibold text-slate-500 sm:w-44">{{ __('incoming.items.create.net_weight') }}</label>
                             <div class="mt-1 flex w-full items-center gap-2 sm:mt-0 sm:flex-1">
                                 <input type="text" inputmode="decimal" id="weight_nett" name="weight_nett" value="{{ old('weight_nett') }}" class="w-full rounded-lg border-slate-300 bg-white text-sm" required>
                                 <span class="text-xs font-semibold text-slate-500 w-[56px] text-right">KGM</span>
@@ -106,7 +106,7 @@
                         </div>
 
                         <div class="sm:flex sm:items-center sm:gap-4">
-                            <label class="text-xs font-semibold text-slate-500 sm:w-44">Gross Weight (KGM)</label>
+                            <label class="text-xs font-semibold text-slate-500 sm:w-44">{{ __('incoming.items.create.gross_weight') }}</label>
                             <div class="mt-1 flex w-full items-center gap-2 sm:mt-0 sm:flex-1">
                                 <input type="text" inputmode="decimal" name="weight_gross" value="{{ old('weight_gross') }}" class="w-full rounded-lg border-slate-300 bg-white text-sm" required>
                                 <span class="text-xs font-semibold text-slate-500 w-[56px] text-right">KGM</span>
@@ -116,16 +116,16 @@
                         <div class="sm:flex sm:items-start sm:gap-4">
                             <div class="sm:w-44"></div>
                             <p class="weight-warning mt-1 hidden text-xs font-semibold text-red-600 sm:flex-1">
-                                Net weight harus lebih kecil atau sama dengan gross weight.
+                                {{ __('incoming.items.create.weight_warning') }}
                             </p>
                         </div>
 
                         <div class="sm:flex sm:items-start sm:gap-4">
-                            <label for="total_amount" class="text-xs font-semibold text-slate-500 sm:w-44 sm:pt-2">Total Price</label>
+                            <label for="total_amount" class="text-xs font-semibold text-slate-500 sm:w-44 sm:pt-2">{{ __('incoming.items.create.total_price') }}</label>
                             <div class="mt-1 w-full sm:mt-0 sm:flex-1">
                                 <input type="text" inputmode="decimal" id="total_amount" name="total_amount" value="{{ old('total_amount') }}" class="w-full rounded-lg border-blue-300 bg-white text-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                                 <input type="hidden" name="price" id="price_display" value="">
-                                <div class="mt-1 text-[11px] text-slate-500">Price otomatis = Total / Net Weight (KGM)</div>
+                                <div class="mt-1 text-[11px] text-slate-500">{{ __('incoming.items.create.price_hint') }}</div>
                             </div>
                         </div>
                     </div>
@@ -135,18 +135,18 @@
                     <label class="inline-flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
                         <input type="hidden" name="is_foc" value="0">
                         <input type="checkbox" name="is_foc" value="1" @checked(old('is_foc')) class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-                        <span class="text-sm font-medium text-slate-700">Label FOC</span>
+                        <span class="text-sm font-medium text-slate-700">{{ __('incoming.items.create.foc') }}</span>
                     </label>
                 </div>
 
                 <div>
-                    <label for="notes" class="text-sm font-medium text-slate-700">Notes</label>
+                    <label for="notes" class="text-sm font-medium text-slate-700">{{ __('incoming.items.create.notes') }}</label>
                     <textarea id="notes" name="notes" rows="3" class="mt-1 w-full rounded-lg border-slate-300 text-sm">{{ old('notes') }}</textarea>
                 </div>
 
                 <div class="flex items-center justify-end gap-2">
-                    <a href="{{ route('departures.show', $arrival) }}" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold">Cancel</a>
-                    <button type="submit" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Save Item</button>
+                    <a href="{{ route('departures.show', $arrival) }}" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 font-semibold">{{ __('incoming.items.create.cancel') }}</a>
+                    <button type="submit" class="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">{{ __('incoming.items.create.save') }}</button>
                 </div>
             </form>
         </div>

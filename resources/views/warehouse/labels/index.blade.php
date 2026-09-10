@@ -1,20 +1,20 @@
 <x-app-layout>
     <x-slot name="header">
-        Print Barcode Labels
+        {{ __('warehouse.labels.index.header') }}
     </x-slot>
 
     <div class="space-y-6">
         <!-- Search and Filter -->
         <div class="bg-white border rounded-xl shadow-sm p-6">
             <form method="GET" class="flex gap-4">
-                <input type="text" name="q" value="{{ request('q') }}" placeholder="Search part no or name..."
+                <input type="text" name="q" value="{{ request('q') }}" placeholder="{{ __('warehouse.labels.index.search_ph') }}"
                     class="flex-1 rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" />
                 <select name="policy" class="rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
-                    <option value="">All Policy</option>
-                    <option value="line_stock" @selected(($policy ?? '') === 'line_stock')>Simpan di Line</option>
+                    <option value="">{{ __('warehouse.labels.index.all_policy') }}</option>
+                    <option value="line_stock" @selected(($policy ?? '') === 'line_stock')>{{ __('warehouse.labels.index.line_stock_policy') }}</option>
                 </select>
                 <button type="submit" class="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-                    Search
+                    {{ __('warehouse.labels.index.search') }}
                 </button>
             </form>
         </div>
@@ -24,17 +24,16 @@
             @csrf
             <div class="bg-white border rounded-xl shadow-sm overflow-hidden">
                 <div class="px-6 py-4 border-b bg-slate-50 flex justify-between items-center gap-4">
-                    <h3 class="font-semibold text-slate-900">Select Parts to Print</h3>
+                    <h3 class="font-semibold text-slate-900">{{ __('warehouse.labels.index.select_parts') }}</h3>
                     <div class="flex items-center gap-4">
                         <div class="flex items-center gap-2">
-                            <label for="global-batch" class="text-xs font-bold text-slate-500 uppercase">Batch
-                                No:</label>
-                            <input type="text" id="global-batch" name="batch" placeholder="e.g. B260131"
+                            <label for="global-batch" class="text-xs font-bold text-slate-500 uppercase">{{ __('warehouse.labels.index.batch_no') }}</label>
+                            <input type="text" id="global-batch" name="batch" placeholder="{{ __('warehouse.labels.index.batch_ph') }}"
                                 class="w-32 px-3 py-1.5 text-sm rounded-lg border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" />
                         </div>
                         <button type="submit"
                             class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-semibold shadow-sm">
-                            Print Selected Labels
+                            {{ __('warehouse.labels.index.print_selected') }}
                         </button>
                     </div>
                 </div>
@@ -45,12 +44,12 @@
                             <th class="px-6 py-4 text-left">
                                 <input type="checkbox" id="select-all" class="rounded border-slate-300">
                             </th>
-                            <th class="px-6 py-4 text-left font-semibold">Part No</th>
-                            <th class="px-6 py-4 text-left font-semibold">Barcode</th>
-                            <th class="px-6 py-4 text-left font-semibold">Part Name</th>
-                            <th class="px-6 py-4 text-left font-semibold">Classification</th>
-                            <th class="px-6 py-4 text-left font-semibold">Policy</th>
-                            <th class="px-6 py-4 text-right">Action</th>
+                            <th class="px-6 py-4 text-left font-semibold">{{ __('warehouse.labels.index.th_part_no') }}</th>
+                            <th class="px-6 py-4 text-left font-semibold">{{ __('warehouse.labels.index.th_barcode') }}</th>
+                            <th class="px-6 py-4 text-left font-semibold">{{ __('warehouse.labels.index.th_part_name') }}</th>
+                            <th class="px-6 py-4 text-left font-semibold">{{ __('warehouse.labels.index.th_classification') }}</th>
+                            <th class="px-6 py-4 text-left font-semibold">{{ __('warehouse.labels.index.th_policy') }}</th>
+                            <th class="px-6 py-4 text-right">{{ __('warehouse.labels.index.th_action') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -74,17 +73,17 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-xs text-slate-600">
-                                    {{ $part->consumption_policy === 'backflush_line_stock' ? 'Simpan di Line' : ($part->consumption_policy ?: '-') }}
+                                    {{ $part->consumption_policy === 'backflush_line_stock' ? __('warehouse.labels.index.line_stock_policy') : ($part->consumption_policy ?: '-') }}
                                 </td>
                                 <td class="px-6 py-4 text-right space-x-3">
                                     <a href="{{ route('warehouse.labels.part', $part) }}" target="_blank"
                                         class="text-indigo-600 hover:text-indigo-900 font-medium text-xs uppercase">
-                                        Print Single
+                                        {{ __('warehouse.labels.index.print_single') }}
                                     </a>
                                     @if($part->consumption_policy === 'backflush_line_stock')
                                         <a href="{{ route('warehouse.labels.line-stock', $part) }}" target="_blank"
                                             class="text-emerald-700 hover:text-emerald-900 font-medium text-xs uppercase">
-                                            Line Stock QR
+                                            {{ __('warehouse.labels.index.line_stock_qr') }}
                                         </a>
                                     @endif
                                 </td>
@@ -92,7 +91,7 @@
                         @empty
                             <tr>
                                 <td colspan="7" class="px-6 py-12 text-center text-slate-500 italic">
-                                    No parts found.
+                                    {{ __('warehouse.labels.index.empty') }}
                                 </td>
                             </tr>
                         @endforelse

@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        BOM Explosion {{ $bom ? '• ' . $bom->part->part_no : '(Search)' }}
+        {{ __('planning.boms.explosion.header') }} {{ $bom ? '• ' . $bom->part->part_no : '(' . __('planning.boms.explosion.search_badge') . ')' }}
     </x-slot>
 
     <div class="py-6">
@@ -25,7 +25,7 @@
                 <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6">
                     <h3 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                         <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                        BOM Explosion Search
+                        {{ __('planning.boms.explosion.search_title') }}
                     </h3>
                     
                     <form method="GET" action="{{ route('planning.boms.explosion-search') }}" class="space-y-4">
@@ -34,15 +34,15 @@
                             <label class="flex-1 cursor-pointer">
                                 <input type="radio" name="mode" value="customer" {{ ($searchMode ?? 'fg') === 'customer' ? 'checked' : '' }} class="sr-only peer">
                                 <div class="px-4 py-3 rounded-xl border-2 border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 hover:bg-slate-50 transition-colors">
-                                    <div class="font-semibold text-slate-900">Search by Customer Product</div>
-                                    <div class="text-xs text-slate-600 mt-1">Find FG parts used in customer products</div>
+                                    <div class="font-semibold text-slate-900">{{ __('planning.boms.explosion.by_customer') }}</div>
+                                    <div class="text-xs text-slate-600 mt-1">{{ __('planning.boms.explosion.by_customer_hint') }}</div>
                                 </div>
                             </label>
                             <label class="flex-1 cursor-pointer">
                                 <input type="radio" name="mode" value="fg" {{ ($searchMode ?? 'fg') === 'fg' ? 'checked' : '' }} class="sr-only peer">
                                 <div class="px-4 py-3 rounded-xl border-2 border-slate-200 peer-checked:border-indigo-600 peer-checked:bg-indigo-50 hover:bg-slate-50 transition-colors">
-                                    <div class="font-semibold text-slate-900">Search by FG Part (GCI)</div>
-                                    <div class="text-xs text-slate-600 mt-1">Show full BOM explosion to RM</div>
+                                    <div class="font-semibold text-slate-900">{{ __('planning.boms.explosion.by_fg') }}</div>
+                                    <div class="text-xs text-slate-600 mt-1">{{ __('planning.boms.explosion.by_fg_hint') }}</div>
                                 </div>
                             </label>
                         </div>
@@ -54,12 +54,12 @@
                                 name="search"
                                 value="{{ $searchQuery ?? '' }}"
                                 class="flex-1 rounded-xl border-slate-200 text-lg"
-                                placeholder="Enter part number..."
-                                aria-label="Search part number"
+                                placeholder="{{ __('planning.boms.explosion.search_ph') }}"
+                                aria-label="{{ __('planning.boms.explosion.search_aria') }}"
                                 required
                             >
                             <button type="submit" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold">
-                                Search
+                                {{ __('planning.boms.explosion.search_btn') }}
                             </button>
                         </div>
                     </form>
@@ -67,13 +67,13 @@
                     {{-- Customer Part Results (if searching by customer) --}}
                     @if(isset($customerPart) && $customerPartComponents->count() > 0)
                         <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                            <h4 class="font-bold text-blue-900 mb-3">Customer Product Found:</h4>
+                            <h4 class="font-bold text-blue-900 mb-3">{{ __('planning.boms.explosion.customer_found') }}</h4>
                             <div class="text-sm text-blue-800 mb-3">
-                                <div><strong>Customer:</strong> {{ $customerPart->customer->name ?? '-' }}</div>
-                                <div><strong>Part No:</strong> {{ $customerPart->customer_part_no }}</div>
-                                <div><strong>Part Name:</strong> {{ $customerPart->customer_part_name }}</div>
+                                <div><strong>{{ __('planning.boms.explosion.customer_label') }}</strong> {{ $customerPart->customer->name ?? '-' }}</div>
+                                <div><strong>{{ __('planning.boms.explosion.part_no_label') }}</strong> {{ $customerPart->customer_part_no }}</div>
+                                <div><strong>{{ __('planning.boms.explosion.part_name_label') }}</strong> {{ $customerPart->customer_part_name }}</div>
                             </div>
-                            <div class="text-sm font-semibold text-blue-900 mb-2">FG Parts used in this product:</div>
+                            <div class="text-sm font-semibold text-blue-900 mb-2">{{ __('planning.boms.explosion.fg_used') }}</div>
                             <div class="space-y-2">
                                 @foreach($customerPartComponents as $component)
                                     <div class="bg-white rounded-lg p-3 border border-blue-200">
@@ -81,15 +81,15 @@
                                             <div>
                                                 <div class="font-mono font-bold">{{ $component->part->part_no }}</div>
                                                 <div class="text-xs text-slate-600">{{ $component->part->part_name }}</div>
-                                                <div class="text-xs text-slate-500">Usage: {{ $component->usage_qty }} pcs</div>
+                                                <div class="text-xs text-slate-500">{{ __('planning.boms.explosion.usage') }} {{ $component->usage_qty }} pcs</div>
                                             </div>
                                             @if($component->part->bom)
                                                 <a href="{{ route('planning.boms.explosion', $component->part->bom) }}" 
                                                    class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-sm">
-                                                    View BOM Explosion
+                                                    {{ __('planning.boms.explosion.view_explosion') }}
                                                 </a>
                                             @else
-                                                <span class="text-xs text-slate-400">No BOM</span>
+                                                <span class="text-xs text-slate-400">{{ __('planning.boms.explosion.no_bom') }}</span>
                                             @endif
                                         </div>
                                     </div>
@@ -109,7 +109,7 @@
                                 <svg class="h-8 w-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                             </div>
                             <div class="flex-1">
-                                <div class="text-sm font-semibold text-blue-900">Customer Product</div>
+                                <div class="text-sm font-semibold text-blue-900">{{ __('planning.boms.explosion.customer_product') }}</div>
                                 <div class="font-bold text-lg text-blue-900">{{ $customerPart->customer_part_no }} - {{ $customerPart->customer_part_name }}</div>
                                 <div class="text-sm text-blue-700">{{ $customerPart->customer->name ?? '-' }}</div>
                             </div>
@@ -127,8 +127,8 @@
                                 <p class="text-slate-600 mt-1">{{ $bom->part->part_name }}</p>
                                 <div class="flex items-center gap-4 mt-2 text-sm">
                                     <span class="px-2 py-1 rounded-full bg-indigo-100 text-indigo-800 font-semibold">{{ $bom->part->classification }}</span>
-                                    <span class="text-slate-500">Revision: <span class="font-semibold">{{ $bom->revision ?? 'A' }}</span></span>
-                                    <span class="text-slate-500">Status: <span class="font-semibold {{ $bom->status === 'active' ? 'text-green-600' : 'text-slate-400' }}">{{ strtoupper($bom->status) }}</span></span>
+                                    <span class="text-slate-500">{{ __('planning.boms.explosion.revision') }} <span class="font-semibold">{{ $bom->revision ?? 'A' }}</span></span>
+                                    <span class="text-slate-500">{{ __('planning.boms.explosion.status_label') }} <span class="font-semibold {{ $bom->status === 'active' ? 'text-green-600' : 'text-slate-400' }}">{{ strtoupper($bom->status) }}</span></span>
                                 </div>
                             </div>
                         @endif
@@ -140,11 +140,11 @@
                                 @if(isset($searchQuery))
                                     <input type="hidden" name="search" value="{{ $searchQuery }}">
                                 @endif
-                                <label for="qty" class="text-sm font-semibold text-slate-700">Quantity:</label>
+                                <label for="qty" class="text-sm font-semibold text-slate-700">{{ __('planning.boms.explosion.qty_label') }}</label>
                                 <input id="qty" type="number" name="qty" value="{{ $quantity }}" min="1" step="1" class="w-24 rounded-lg border-slate-200 text-sm">
-                                <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold text-sm">Recalculate</button>
+                                <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-semibold text-sm">{{ __('planning.boms.explosion.recalculate') }}</button>
                             </form>
-                            <a href="{{ route('planning.boms.explosion-search') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold text-sm">New Search</a>
+                            <a href="{{ route('planning.boms.explosion-search') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold text-sm">{{ __('planning.boms.explosion.new_search') }}</a>
                         </div>
                     </div>
                 </div>
@@ -153,23 +153,23 @@
                 <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6">
                     <h4 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                         <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
-                        BOM Structure (Multi-Level Explosion)
+                        {{ __('planning.boms.explosion.structure') }}
                     </h4>
                     
                     <div class="overflow-x-auto border border-slate-200 rounded-xl">
                         <table class="min-w-full text-sm divide-y divide-slate-200">
                             <thead class="bg-slate-50">
                                 <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                    <th class="px-4 py-3 text-left font-semibold">Level</th>
-                                    <th class="px-4 py-3 text-left font-semibold">Line</th>
-                                    <th class="px-4 py-3 text-left font-semibold">Component Part</th>
-                                    <th class="px-4 py-3 text-left font-semibold">Process / Machine</th>
-                                    <th class="px-4 py-3 text-left font-semibold">WIP Output</th>
-                                    <th class="px-4 py-3 text-right font-semibold">Usage Qty</th>
-                                    <th class="px-4 py-3 text-right font-semibold">Total Qty</th>
-                                    <th class="px-4 py-3 text-left font-semibold">UOM</th>
-                                    <th class="px-4 py-3 text-center font-semibold">Make/Buy</th>
-                                    <th class="px-4 py-3 text-left font-semibold">Material Spec</th>
+                                    <th class="px-4 py-3 text-left font-semibold">{{ __('planning.boms.explosion.th_level') }}</th>
+                                    <th class="px-4 py-3 text-left font-semibold">{{ __('planning.boms.explosion.th_line') }}</th>
+                                    <th class="px-4 py-3 text-left font-semibold">{{ __('planning.boms.explosion.th_component') }}</th>
+                                    <th class="px-4 py-3 text-left font-semibold">{{ __('planning.boms.explosion.th_process') }}</th>
+                                    <th class="px-4 py-3 text-left font-semibold">{{ __('planning.boms.explosion.th_wip') }}</th>
+                                    <th class="px-4 py-3 text-right font-semibold">{{ __('planning.boms.explosion.th_usage') }}</th>
+                                    <th class="px-4 py-3 text-right font-semibold">{{ __('planning.boms.explosion.th_total') }}</th>
+                                    <th class="px-4 py-3 text-left font-semibold">{{ __('planning.boms.explosion.th_uom') }}</th>
+                                    <th class="px-4 py-3 text-center font-semibold">{{ __('planning.boms.explosion.th_make_buy') }}</th>
+                                    <th class="px-4 py-3 text-left font-semibold">{{ __('planning.boms.explosion.th_spec') }}</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 bg-white">
@@ -240,10 +240,10 @@
                                             @if($item['scrap_factor'] > 0 || $item['yield_factor'] != 1)
                                                 <div class="text-xs text-orange-600">
                                                     @if($item['scrap_factor'] > 0)
-                                                        Scrap: {{ number_format($item['scrap_factor'] * 100, 1) }}%
+                                                        {{ __('planning.boms.explosion.scrap') }} {{ number_format($item['scrap_factor'] * 100, 1) }}%
                                                     @endif
                                                     @if($item['yield_factor'] != 1)
-                                                        Yield: {{ number_format($item['yield_factor'] * 100, 1) }}%
+                                                        {{ __('planning.boms.explosion.yield') }} {{ number_format($item['yield_factor'] * 100, 1) }}%
                                                     @endif
                                                 </div>
                                             @endif
@@ -280,7 +280,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="10" class="px-4 py-8 text-center text-slate-500">No components in this BOM</td>
+                                        <td colspan="10" class="px-4 py-8 text-center text-slate-500">{{ __('planning.boms.explosion.empty_components') }}</td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -292,19 +292,19 @@
                 <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6">
                     <h4 class="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
                         <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-                        Total Material Requirements Summary
+                        {{ __('planning.boms.explosion.summary') }}
                     </h4>
                     
                     <div class="overflow-x-auto border border-slate-200 rounded-xl">
                         <table class="min-w-full text-sm divide-y divide-slate-200">
                             <thead class="bg-emerald-50">
                                 <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                    <th class="px-4 py-3 text-left font-semibold">Part Number</th>
-                                    <th class="px-4 py-3 text-left font-semibold">Part Name</th>
-                                    <th class="px-4 py-3 text-right font-semibold">Total Quantity</th>
-                                    <th class="px-4 py-3 text-left font-semibold">UOM</th>
-                                    <th class="px-4 py-3 text-center font-semibold">Make/Buy</th>
-                                    <th class="px-4 py-3 text-left font-semibold">Material Spec</th>
+                                    <th class="px-4 py-3 text-left font-semibold">{{ __('planning.boms.explosion.sum_part_no') }}</th>
+                                    <th class="px-4 py-3 text-left font-semibold">{{ __('planning.boms.explosion.sum_part_name') }}</th>
+                                    <th class="px-4 py-3 text-right font-semibold">{{ __('planning.boms.explosion.sum_total') }}</th>
+                                    <th class="px-4 py-3 text-left font-semibold">{{ __('planning.boms.explosion.sum_uom') }}</th>
+                                    <th class="px-4 py-3 text-center font-semibold">{{ __('planning.boms.explosion.sum_make_buy') }}</th>
+                                    <th class="px-4 py-3 text-left font-semibold">{{ __('planning.boms.explosion.sum_spec') }}</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 bg-white">
@@ -327,7 +327,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="px-4 py-8 text-center text-slate-500">No materials</td>
+                                        <td colspan="6" class="px-4 py-8 text-center text-slate-500">{{ __('planning.boms.explosion.empty_materials') }}</td>
                                     </tr>
                                 @endforelse
                             </tbody>

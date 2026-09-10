@@ -23,9 +23,9 @@
                                 class="shrink-0 text-right text-xs tabular-nums text-slate-500 sm:text-sm"
                             @endif>
                             @if (is_array($cell))
-                                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium {{ $cell['class'] ?? 'bg-slate-100 text-slate-600' }}">{{ $cell['label'] ?? '—' }}</span>
+                                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium {{ $cell['class'] ?? 'bg-slate-100 text-slate-600' }}">{{ $cell['label'] ?? 'N/A' }}</span>
                             @else
-                                {{ $cell ?? '—' }}
+                                {{ $cell ?? 'N/A' }}
                             @endif
                         </span>
                     @endforeach

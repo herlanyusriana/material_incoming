@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Warehouse • Special Stock Adjustment
+        {{ __('warehouse.stock.adjustments_create.header') }}
     </x-slot>
 
     <div class="py-6">
@@ -14,11 +14,11 @@
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl overflow-hidden">
                 <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
                     <div>
-                        <div class="text-xl font-bold text-slate-900">Create Special Adjustment</div>
-                        <div class="text-sm text-slate-500">Hanya untuk special event seperti stock opname, audit, correction posting, damage atau loss confirmation.</div>
+                        <div class="text-xl font-bold text-slate-900">{{ __('warehouse.stock.adjustments_create.title') }}</div>
+                        <div class="text-sm text-slate-500">{{ __('warehouse.stock.adjustments_create.subtitle') }}</div>
                     </div>
                     <a href="{{ route('warehouse.stock-adjustments.index') }}" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50">
-                        Back
+                        {{ __('warehouse.stock.adjustments_create.back') }}
                     </a>
                 </div>
 
@@ -26,79 +26,79 @@
                     @csrf
 
                     <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                        Perpindahan stok tidak diproses di halaman ini. Gunakan menu <span class="font-semibold">Bin to Bin</span> atau proses transfer batch terpisah, bukan stock adjustment.
+                        {{ __('warehouse.stock.adjustments_create.notice') }}
                     </div>
 
                     <div>
-                        <label class="block text-sm font-semibold text-slate-700">Special Event</label>
+                        <label class="block text-sm font-semibold text-slate-700">{{ __('warehouse.stock.adjustments_create.event') }}</label>
                         <select name="event_type" class="mt-1 w-full rounded-xl border-slate-200" required>
-                            <option value="">-- select event --</option>
+                            <option value="">{{ __('warehouse.stock.adjustments_create.select_event') }}</option>
                             @foreach($eventTypes as $eventType)
                                 <option value="{{ $eventType }}" @selected(old('event_type') === $eventType)>{{ strtoupper(str_replace('_', ' ', $eventType)) }}</option>
                             @endforeach
                         </select>
-                        <div class="mt-1 text-xs text-slate-500">Adjustment hanya boleh dipakai untuk event khusus yang sudah diotorisasi.</div>
+                        <div class="mt-1 text-xs text-slate-500">{{ __('warehouse.stock.adjustments_create.event_hint') }}</div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-semibold text-slate-700">Part</label>
+                        <label class="block text-sm font-semibold text-slate-700">{{ __('warehouse.stock.adjustments_create.part') }}</label>
                         <input type="hidden" name="part_id" id="part_id" value="{{ old('part_id') }}" required>
                         <div class="relative mt-1">
                             <input type="text" id="part_search" autocomplete="off"
                                 class="w-full rounded-xl border-slate-200 focus:border-indigo-500 focus:ring-indigo-500"
-                                placeholder="Type part no / name (min 2 chars)">
+                                placeholder="{{ __('warehouse.stock.adjustments_create.part_ph') }}">
                             <div id="part_suggestions"
                                 class="absolute z-20 mt-1 w-full max-h-72 overflow-auto rounded-xl border border-slate-200 bg-white shadow-lg hidden">
                             </div>
                         </div>
-                        <div class="mt-1 text-xs text-slate-500">Cari part supaya daftar tidak terlalu berat.</div>
+                        <div class="mt-1 text-xs text-slate-500">{{ __('warehouse.stock.adjustments_create.part_hint') }}</div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-semibold text-slate-700">Location</label>
+                        <label class="block text-sm font-semibold text-slate-700">{{ __('warehouse.stock.adjustments_create.location') }}</label>
                         <select name="location_code" id="location_code" class="mt-1 w-full rounded-xl border-slate-200 uppercase" required>
-                            <option value="">-- select location --</option>
+                            <option value="">{{ __('warehouse.stock.adjustments_create.select_location') }}</option>
                             @foreach($locations as $loc)
                                 <option value="{{ $loc->location_code }}" @selected(strtoupper((string) old('location_code')) === $loc->location_code)>
                                     {{ $loc->location_code }}{{ $loc->class ? ' • Class ' . $loc->class : '' }}{{ $loc->zone ? ' • Zone ' . $loc->zone : '' }}
                                 </option>
                             @endforeach
                         </select>
-                        <div class="mt-1 text-xs text-slate-500">Hanya lokasi status ACTIVE yang bisa dipilih.</div>
+                        <div class="mt-1 text-xs text-slate-500">{{ __('warehouse.stock.adjustments_create.location_hint') }}</div>
                     </div>
 
                     <div id="batch-selector-container" style="display:none;">
-                        <label class="block text-sm font-semibold text-slate-700">Batch No (Optional)</label>
+                        <label class="block text-sm font-semibold text-slate-700">{{ __('warehouse.stock.adjustments_create.batch') }}</label>
                         <select name="batch_no" id="batch_no" class="mt-1 w-full rounded-xl border-slate-200">
-                            <option value="">-- All Batches (Total Qty) --</option>
+                            <option value="">{{ __('warehouse.stock.adjustments_create.all_batches') }}</option>
                         </select>
-                        <div class="mt-1 text-xs text-slate-500">Pilih batch tertentu untuk koreksi per batch. Jika kosong, sistem akan koreksi total qty lokasi itu.</div>
+                        <div class="mt-1 text-xs text-slate-500">{{ __('warehouse.stock.adjustments_create.batch_hint') }}</div>
                         <div id="batch-current-qty" class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm" style="display:none;">
-                            <strong>Current Stock:</strong> <span id="current-qty-value">-</span>
+                            <strong>{{ __('warehouse.stock.adjustments_create.current_stock') }}</strong> <span id="current-qty-value">-</span>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-semibold text-slate-700">Qty After</label>
-                            <input type="number" step="0.0001" min="0" name="qty_after" value="{{ old('qty_after') }}" class="mt-1 w-full rounded-xl border-slate-200" placeholder="0" required>
-                            <div class="mt-1 text-xs text-slate-500">Isi stok fisik final hasil hitung, bukan qty penambahan atau pengurangan.</div>
+                            <label class="block text-sm font-semibold text-slate-700">{{ __('warehouse.stock.adjustments_create.qty_after') }}</label>
+                            <input type="number" step="0.0001" min="0" name="qty_after" value="{{ old('qty_after') }}" class="mt-1 w-full rounded-xl border-slate-200" placeholder="{{ __('warehouse.stock.adjustments_create.qty_ph') }}" required>
+                            <div class="mt-1 text-xs text-slate-500">{{ __('warehouse.stock.adjustments_create.qty_hint') }}</div>
                         </div>
                         <div>
-                            <label class="block text-sm font-semibold text-slate-700">Adjusted At</label>
+                            <label class="block text-sm font-semibold text-slate-700">{{ __('warehouse.stock.adjustments_create.adjusted_at') }}</label>
                             <input type="datetime-local" name="adjusted_at" value="{{ old('adjusted_at') }}" class="mt-1 w-full rounded-xl border-slate-200">
-                            <div class="mt-1 text-xs text-slate-500">Kosongkan untuk pakai waktu sekarang.</div>
+                            <div class="mt-1 text-xs text-slate-500">{{ __('warehouse.stock.adjustments_create.adjusted_hint') }}</div>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-semibold text-slate-700">Reason</label>
-                        <textarea name="reason" rows="3" class="mt-1 w-full rounded-xl border-slate-200" placeholder="contoh: selisih stock opname, koreksi posting, damage/loss confirmation" required>{{ old('reason') }}</textarea>
+                        <label class="block text-sm font-semibold text-slate-700">{{ __('warehouse.stock.adjustments_create.reason') }}</label>
+                        <textarea name="reason" rows="3" class="mt-1 w-full rounded-xl border-slate-200" placeholder="{{ __('warehouse.stock.adjustments_create.reason_ph') }}" required>{{ old('reason') }}</textarea>
                     </div>
 
                     <div class="flex items-center justify-end gap-2">
-                        <a href="{{ route('warehouse.stock-adjustments.index') }}" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50">Cancel</a>
-                        <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Save Adjustment</button>
+                        <a href="{{ route('warehouse.stock-adjustments.index') }}" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50">{{ __('warehouse.stock.adjustments_create.cancel') }}</a>
+                        <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">{{ __('warehouse.stock.adjustments_create.save') }}</button>
                     </div>
                 </form>
             </div>
@@ -119,6 +119,14 @@
         let partDebounce = null;
         let partAbort = null;
 
+        const T = {
+            noMatches: @js(__('warehouse.stock.adjustments_create.no_matches')),
+            loading: @js(__('warehouse.stock.adjustments_create.loading')),
+            allBatches: @js(__('warehouse.stock.adjustments_create.all_batches')),
+            truncated: @js(__('warehouse.stock.adjustments_create.truncated', ['shown' => ':shown', 'total' => ':total'])),
+            noBatch: @js(__('warehouse.stock.adjustments_create.no_batch')),
+        };
+
         function escapeHtml(str) {
             return String(str ?? '')
                 .replace(/&/g, '&amp;')
@@ -131,7 +139,7 @@
         function renderPartSuggestions(items) {
             if (!partSuggestions) return;
             if (!items.length) {
-                partSuggestions.innerHTML = '<div class="px-3 py-2 text-sm text-slate-500 italic">No matches</div>';
+                partSuggestions.innerHTML = '<div class="px-3 py-2 text-sm text-slate-500 italic">' + escapeHtml(T.noMatches) + '</div>';
                 partSuggestions.classList.remove('hidden');
                 return;
             }
@@ -189,13 +197,13 @@
                 if (batchAbort) batchAbort.abort();
                 batchAbort = new AbortController();
 
-                batchSelect.innerHTML = '<option value="">Loading batches...</option>';
+                batchSelect.innerHTML = '<option value="">' + escapeHtml(T.loading) + '</option>';
                 batchContainer.style.display = 'block';
                 batchCurrentQty.style.display = 'none';
 
                 fetchBatches(partId, locationCode, batchAbort.signal)
                     .then(({ batches, total, truncated }) => {
-                        batchSelect.innerHTML = '<option value="">-- All Batches (Total Qty) --</option>';
+                        batchSelect.innerHTML = '<option value="">' + escapeHtml(T.allBatches) + '</option>';
 
                         if (batches.length === 0) {
                             batchContainer.style.display = 'none';
@@ -207,14 +215,14 @@
                             const info = document.createElement('option');
                             info.disabled = true;
                             info.value = '';
-                            info.textContent = `Showing first ${batches.length} of ${total} batches (refine location/part)`;
+                            info.textContent = T.truncated.replace(':shown', batches.length).replace(':total', total);
                             batchSelect.appendChild(info);
                         }
 
                         batches.forEach(batch => {
                             const option = document.createElement('option');
                             option.value = batch.batch_no || '';
-                            const batchLabel = batch.batch_no || '(No Batch)';
+                            const batchLabel = batch.batch_no || T.noBatch;
                             const prodDate = batch.production_date ? ` [${batch.production_date}]` : '';
                             option.textContent = `${batchLabel}${prodDate} - Current: ${batch.qty_on_hand}`;
                             option.dataset.qty = batch.qty_on_hand;

@@ -14,11 +14,14 @@ class ProductionWorkOrder extends BaseModel
     protected $fillable = [
         'work_order_no',
         'gci_part_id',
+        'bom_id',
         'qty_target',
         'qty_actual',
         'status',
         'start_date',
         'end_date',
+        'created_by',
+        'updated_by',
     ];
 
     protected $casts = [
@@ -41,5 +44,31 @@ class ProductionWorkOrder extends BaseModel
     public function downtimes(): HasMany
     {
         return $this->hasMany(ProductionDowntime::class);
+    }
+
+    public function requirements(): HasMany
+    {
+        return $this->hasMany(WoRequirement::class, 'work_order_id');
+    }
+
+    public function allocations(): HasMany
+    {
+        return $this->hasMany(WoMaterialAllocation::class, 'work_order_id');
+    }
+
+    /**
+     * Guard "gak boleh lepas dari tracking": WO hanya boleh closed
+     * kalau semua alokasi sudah terselesaikan (CONSUMED / RETURNED / CANCELLED).
+     */
+    public function hasOpenAllocations(): bool
+    {
+        return $this->allocations()
+            ->whereIn('status', ['RESERVED'])
+            ->exists();
+    }
+
+    public function canBeClosed(): bool
+    {
+        return ! $this->hasOpenAllocations();
     }
 }

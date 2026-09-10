@@ -14,6 +14,7 @@ return [
     'kpi_overview' => 'Key metrics at a glance',
     'analytics' => 'Analytics & trends',
     'quick_nav' => 'Quick navigation',
+    'tools' => 'Cross-category tools',
     'po_trend' => 'Orders per month',
     'forecast_trend' => 'Forecasts per month',
     'receiving_trend' => 'Receives per day (14 days)',

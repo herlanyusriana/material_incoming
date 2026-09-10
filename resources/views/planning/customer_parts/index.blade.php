@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Planning • Customer Part Mapping
+        {{ __('planning.customer_parts.index.header') }}
     </x-slot>
 
     <div class="py-3" x-data="planningCustomerParts()" x-init="init()">
@@ -17,7 +17,7 @@
             @endif
             @if ($errors->any())
                 <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    <div class="font-semibold">Validation error</div>
+                    <div class="font-semibold">{{ __('planning.customer_parts.index.validation') }}</div>
                     <ul class="mt-1 list-disc pl-5 space-y-0.5">
                         @foreach ($errors->all() as $message)
                             <li>{{ $message }}</li>
@@ -27,26 +27,26 @@
             @endif
 
             <x-page-header
-                title="Customer Part Mapping"
-                subtitle="Pemetaan part part customer (LG) ke part GCI untuk diterjemahkan saat upload PLAN."
+                title="{{ __('planning.customer_parts.index.title') }}"
+                subtitle="{{ __('planning.customer_parts.index.subtitle') }}"
                 :breadcrumbs="[
-                    ['label' => 'Planning', 'url' => null],
-                    ['label' => 'Customer Part Mapping']
+                    ['label' => __('planning.customer_parts.index.crumb_planning'), 'url' => null],
+                    ['label' => __('planning.customer_parts.index.crumb_current')]
                 ]"
             >
                 <x-slot name="actions">
                     <a href="{{ route('planning.customer-parts.export', request()->query()) }}"
                         class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-semibold">
-                        Export
+                        {{ __('planning.customer_parts.index.export') }}
                     </a>
                     <button type="button"
                         class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 font-semibold"
                         @click="openImport()">
-                        Import
+                        {{ __('planning.customer_parts.index.import') }}
                     </button>
                     <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold"
                         @click="openCreate()">
-                        Add Customer Part
+                        {{ __('planning.customer_parts.index.add') }}
                     </button>
                 </x-slot>
             </x-page-header>
@@ -54,19 +54,19 @@
             {{-- KPI cards --}}
             <div class="grid gap-4 sm:grid-cols-3">
                 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Total Mapping</div>
+                    <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">{{ __('planning.customer_parts.index.kpi_total') }}</div>
                     <div class="mt-2 text-3xl font-black text-slate-900">{{ number_format((int) ($kpi->total ?? 0)) }}</div>
-                    <div class="text-xs text-slate-400 mt-1">Customer parts terdaftar</div>
+                    <div class="text-xs text-slate-400 mt-1">{{ __('planning.customer_parts.index.kpi_total_hint') }}</div>
                 </div>
                 <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
-                    <div class="text-xs uppercase tracking-wider text-emerald-700 font-semibold">Active</div>
+                    <div class="text-xs uppercase tracking-wider text-emerald-700 font-semibold">{{ __('planning.customer_parts.index.kpi_active') }}</div>
                     <div class="mt-2 text-3xl font-black text-emerald-900">{{ number_format((int) ($kpi->active ?? 0)) }}</div>
-                    <div class="text-xs text-emerald-600/70 mt-1">Mapping aktif</div>
+                    <div class="text-xs text-emerald-600/70 mt-1">{{ __('planning.customer_parts.index.kpi_active_hint') }}</div>
                 </div>
                 <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm">
-                    <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Inactive</div>
+                    <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">{{ __('planning.customer_parts.index.kpi_inactive') }}</div>
                     <div class="mt-2 text-3xl font-black text-slate-700">{{ number_format((int) ($kpi->inactive ?? 0)) }}</div>
-                    <div class="text-xs text-slate-400 mt-1">Mapping nonaktif</div>
+                    <div class="text-xs text-slate-400 mt-1">{{ __('planning.customer_parts.index.kpi_inactive_hint') }}</div>
                 </div>
             </div>
 
@@ -74,21 +74,21 @@
                 <div class="flex flex-wrap items-end justify-between gap-3">
                     <form method="GET" class="flex flex-wrap items-end gap-3">
                         <div class="w-64">
-                            <label class="text-xs font-semibold text-slate-600">Search</label>
+                            <label class="text-xs font-semibold text-slate-600">{{ __('planning.customer_parts.index.filter_search') }}</label>
                             <input type="text" name="search" value="{{ $search }}"
-                                placeholder="Search part no / name..." class="mt-1 w-full rounded-xl border-slate-200">
+                                placeholder="{{ __('planning.customer_parts.index.search_ph') }}" class="mt-1 w-full rounded-xl border-slate-200">
                         </div>
                         <div>
-                            <label class="text-xs font-semibold text-slate-600">Customer</label>
+                            <label class="text-xs font-semibold text-slate-600">{{ __('planning.customer_parts.index.filter_customer') }}</label>
                             <select name="customer_id" class="mt-1 rounded-xl border-slate-200">
-                                <option value="">All</option>
+                                <option value="">{{ __('planning.customer_parts.index.filter_all') }}</option>
                                 @foreach ($customers as $c)
                                     <option value="{{ $c->id }}" @selected((string) $customerId === (string) $c->id)>
                                         {{ $c->code }} — {{ $c->name }}</option>
                                 @endforeach
                             </select>
                         </div>
-                        <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">Filter</button>
+                        <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">{{ __('planning.customer_parts.index.filter') }}</button>
                     </form>
                 </div>
 
@@ -103,17 +103,17 @@
                                         <div class="text-lg font-semibold text-slate-900">{{ $cp->customer_part_no }}</div>
                                         <div
                                             class="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wider">
-                                            {{ $cp->components->count() }} Components
+                                            {{ __('planning.customer_parts.index.components', ['count' => $cp->components->count()]) }}
                                         </div>
                                     </div>
                                     <div class="text-sm text-slate-600">{{ $cp->customer_part_name ?? '-' }}</div>
                                     <div class="mt-1 flex gap-3 text-xs text-slate-500">
                                         <div class="flex items-center gap-1">
-                                            <span class="font-semibold text-slate-400">Line:</span>
+                                            <span class="font-semibold text-slate-400">{{ __('planning.customer_parts.index.line_label') }}</span>
                                             <span class="font-mono text-slate-700">{{ $cp->line ?? 'N/A' }}</span>
                                         </div>
                                         <div class="flex items-center gap-1">
-                                            <span class="font-semibold text-slate-400">Case:</span>
+                                            <span class="font-semibold text-slate-400">{{ __('planning.customer_parts.index.case_label') }}</span>
                                             <span class="font-mono text-slate-700">{{ $cp->case_name ?? 'N/A' }}</span>
                                         </div>
                                     </div>
@@ -125,7 +125,7 @@
                                     </span>
                                     <button type="button"
                                         class="p-1 px-2 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
-                                        @click="openEdit(@js($cp))" title="Edit">
+                                        @click="openEdit(@js($cp))" title="{{ __('planning.customer_parts.index.edit_title') }}">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                             <path stroke-linecap="round" stroke-linejoin="round"
@@ -133,12 +133,12 @@
                                         </svg>
                                     </button>
                                     <form action="{{ route('planning.customer-parts.destroy', $cp) }}" method="POST"
-                                        onsubmit="return confirm('Delete mapping?')">
+                                        onsubmit='return confirm(@js(__("planning.customer_parts.index.confirm_delete")));'>
                                         @csrf
                                         @method('DELETE')
                                         <button
                                             class="p-1 px-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-                                            type="submit" title="Delete">
+                                            type="submit" title="{{ __('planning.customer_parts.index.delete_title') }}">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none"
                                                 viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -151,21 +151,20 @@
 
                             <div class="mt-4">
                                 <div class="mt-2 flex items-center justify-between gap-4">
-                                    <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Mapped Part
-                                        GCI</div>
+                                    <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">{{ __('planning.customer_parts.index.mapped_title') }}</div>
                                     <button type="button"
                                         class="px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold transition-colors border border-indigo-200"
                                         @click="openComponentModal(@js($cp), @js($cp->components->map(fn($c) => ['id' => $c->id, 'part_id' => $c->gci_part_id, 'part_no' => $c->part?->part_no ?? '-', 'part_name' => $c->part?->part_name ?? '-', 'usage_qty' => $c->qty_per_unit])))">
-                                        Manage Components
+                                        {{ __('planning.customer_parts.index.manage') }}
                                     </button>
                                 </div>
                                 <div class="mt-2 overflow-x-auto border border-slate-200 rounded-xl">
                                     <table class="min-w-full text-sm divide-y divide-slate-200">
                                         <thead class="bg-slate-50">
                                             <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                                <th class="px-3 py-2 text-left font-semibold">Part No</th>
-                                                <th class="px-3 py-2 text-left font-semibold">Part Name</th>
-                                                <th class="px-3 py-2 text-right font-semibold">Consumption</th>
+                                                <th class="px-3 py-2 text-left font-semibold">{{ __('planning.customer_parts.index.th_part_no') }}</th>
+                                                <th class="px-3 py-2 text-left font-semibold">{{ __('planning.customer_parts.index.th_part_name') }}</th>
+                                                <th class="px-3 py-2 text-right font-semibold">{{ __('planning.customer_parts.index.th_consumption') }}</th>
                                             </tr>
                                         </thead>
                                         <tbody class="divide-y divide-slate-100">
@@ -181,8 +180,7 @@
                                                 </tr>
                                             @empty
                                                 <tr>
-                                                    <td colspan="3" class="px-3 py-4 text-center text-slate-500 italic">No
-                                                        components mapped</td>
+                                                    <td colspan="3" class="px-3 py-4 text-center text-slate-500 italic">{{ __('planning.customer_parts.index.empty_components') }}</td>
                                                 </tr>
                                             @endforelse
                                         </tbody>
@@ -191,16 +189,15 @@
                             </div>
                         </div>
                     @empty
-                        <div class="rounded-xl border border-dashed border-slate-200 p-8 text-center text-slate-500">No
-                            customer part mapping</div>
+                        <div class="rounded-xl border border-dashed border-slate-200 p-8 text-center text-slate-500">{{ __('planning.customer_parts.index.empty') }}</div>
                     @endforelse
                 </div>
 
                 <div class="border-t border-slate-200 px-4 py-3 bg-slate-50/50 flex flex-wrap items-center justify-between gap-2">
                     <div class="text-xs text-slate-500">
-                        Menampilkan <span class="font-semibold text-slate-700">{{ $customerParts->firstItem() ?? 0 }}</span> -
+                        {{ __('planning.customer_parts.index.showing') }} <span class="font-semibold text-slate-700">{{ $customerParts->firstItem() ?? 0 }}</span> -
                         <span class="font-semibold text-slate-700">{{ $customerParts->lastItem() ?? 0 }}</span>
-                        dari <span class="font-semibold text-slate-700">{{ $customerParts->total() }}</span> mapping
+                        {{ __('planning.customer_parts.index.of') }} <span class="font-semibold text-slate-700">{{ $customerParts->total() }}</span> {{ __('planning.customer_parts.index.rows_mapping') }}
                     </div>
                     <div class="flex gap-1">
                         {{ $customerParts->appends(request()->query())->links() }}
@@ -215,7 +212,7 @@
             <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200">
                 <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
                     <h3 class="text-lg font-bold text-slate-900"
-                        x-text="mode === 'create' ? 'Create Customer Part' : 'Edit Customer Part'"></h3>
+                        x-text="mode === 'create' ? '{{ __('planning.customer_parts.index.modal_create') }}' : '{{ __('planning.customer_parts.index.modal_edit') }}'"></h3>
                     <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50"
                         @click="close()">✕</button>
                 </div>
@@ -228,10 +225,10 @@
                     <input type="hidden" name="id" x-model="form.id">
 
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">Customer</label>
+                        <label class="text-sm font-semibold text-slate-700">{{ __('planning.customer_parts.index.form_customer') }}</label>
                         <select name="customer_id" x-model="form.customer_id"
                             class="mt-1 w-full rounded-xl border-slate-200" required>
-                            <option value="">Select Customer</option>
+                            <option value="">{{ __('planning.customer_parts.index.select_customer') }}</option>
                             @foreach ($customers as $c)
                                 <option value="{{ $c->id }}">{{ $c->code }} — {{ $c->name }}</option>
                             @endforeach
@@ -239,54 +236,54 @@
                     </div>
 
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">Customer Part No</label>
+                        <label class="text-sm font-semibold text-slate-700">{{ __('planning.customer_parts.index.form_no') }}</label>
                         <input type="text" name="customer_part_no" x-model="form.customer_part_no"
                             class="mt-1 w-full rounded-xl border-slate-200" required>
                     </div>
 
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">Customer Part Name</label>
+                        <label class="text-sm font-semibold text-slate-700">{{ __('planning.customer_parts.index.form_name') }}</label>
                         <input type="text" name="customer_part_name" x-model="form.customer_part_name"
                             class="mt-1 w-full rounded-xl border-slate-200">
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="text-sm font-semibold text-slate-700">Line</label>
+                            <label class="text-sm font-semibold text-slate-700">{{ __('planning.customer_parts.index.form_line') }}</label>
                             <input type="text" name="line" x-model="form.line"
                                 class="mt-1 w-full rounded-xl border-slate-200">
                         </div>
                         <div>
-                            <label class="text-sm font-semibold text-slate-700">Case</label>
+                            <label class="text-sm font-semibold text-slate-700">{{ __('planning.customer_parts.index.form_case') }}</label>
                             <input type="text" name="case_name" x-model="form.case_name"
                                 class="mt-1 w-full rounded-xl border-slate-200">
                         </div>
                     </div>
 
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">Status</label>
+                        <label class="text-sm font-semibold text-slate-700">{{ __('planning.customer_parts.index.form_status') }}</label>
                         <select name="status" x-model="form.status" class="mt-1 w-full rounded-xl border-slate-200"
                             required>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
+                            <option value="active">{{ __('planning.customer_parts.index.active') }}</option>
+                            <option value="inactive">{{ __('planning.customer_parts.index.inactive') }}</option>
                         </select>
                     </div>
 
                     <template x-if="mode === 'create'">
                         <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Link to GCI Part (Optional)</h4>
+                            <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">{{ __('planning.customer_parts.index.link_title') }}</h4>
                             <div class="space-y-3">
                                 <div>
-                                    <label class="text-sm font-semibold text-slate-700">GCI Part</label>
+                                    <label class="text-sm font-semibold text-slate-700">{{ __('planning.customer_parts.index.link_part') }}</label>
                                     <select id="create-part-select" name="gci_part_id" class="mt-1 w-full rounded-xl border-slate-200">
-                                        <option value="">Select GCI Part...</option>
+                                        <option value="">{{ __('planning.customer_parts.index.select_gci') }}</option>
                                         @foreach ($parts as $p)
                                             <option value="{{ $p->id }}">{{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
                                         @endforeach
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="text-sm font-semibold text-slate-700">Usage Quantity</label>
+                                    <label class="text-sm font-semibold text-slate-700">{{ __('planning.customer_parts.index.link_qty') }}</label>
                                     <input type="number" step="any" min="0" name="usage_qty" placeholder="1.0"
                                         class="mt-1 w-full rounded-xl border-slate-200">
                                 </div>
@@ -297,9 +294,9 @@
                     <div class="flex items-center justify-end gap-2 pt-2">
                         <button type="button"
                             class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50 font-semibold"
-                            @click="close()">Cancel</button>
+                            @click="close()">{{ __('planning.customer_parts.index.cancel') }}</button>
                         <button type="submit"
-                            class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Save</button>
+                            class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">{{ __('planning.customer_parts.index.save') }}</button>
                     </div>
                 </form>
             </div>
@@ -323,30 +320,29 @@
                 <div class="flex-1 overflow-y-auto p-5 space-y-6">
                     {{-- Add New Component Form --}}
                     <div class="bg-indigo-50 rounded-2xl p-4 border border-indigo-100">
-                        <h4 class="text-xs font-bold text-indigo-900 uppercase tracking-widest mb-3">Add / Update
-                            Component</h4>
+                        <h4 class="text-xs font-bold text-indigo-900 uppercase tracking-widest mb-3">{{ __('planning.customer_parts.index.comp_title') }}</h4>
                         <form :action="compForm.action" method="POST"
                             class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
                             @csrf
                             <div class="md:col-span-2">
-                                <label class="text-[10px] font-bold text-indigo-700 uppercase">Part GCI</label>
+                                <label class="text-[10px] font-bold text-indigo-700 uppercase">{{ __('planning.customer_parts.index.comp_part') }}</label>
                                 <select id="part-select" name="part_id"
                                     class="mt-1 w-full rounded-xl border-indigo-200 bg-white" required>
-                                    <option value="">Search part...</option>
+                                    <option value="">{{ __('planning.customer_parts.index.select_gci') }}</option>
                                     @foreach ($parts as $p)
                                         <option value="{{ $p->id }}">{{ $p->part_no }} — {{ $p->part_name ?? '-' }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div class="md:col-span-1">
-                                <label class="text-[10px] font-bold text-indigo-700 uppercase">Consumption</label>
+                                <label class="text-[10px] font-bold text-indigo-700 uppercase">{{ __('planning.customer_parts.index.comp_consumption') }}</label>
                                 <input type="number" step="any" min="0" name="usage_qty" x-ref="compQtyInput" placeholder="0.000"
                                     class="mt-1 w-full rounded-xl border-indigo-200 bg-white text-sm" required>
                             </div>
                             <div class="md:col-span-1">
                                 <button
                                     class="w-full px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-sm transition-all">
-                                    ADD
+                                    {{ __('planning.customer_parts.index.comp_add') }}
                                 </button>
                             </div>
                         </form>
@@ -354,14 +350,14 @@
 
                     {{-- Existing Components List --}}
                     <div class="space-y-3">
-                        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest">Existing Components</h4>
+                        <h4 class="text-xs font-bold text-slate-500 uppercase tracking-widest">{{ __('planning.customer_parts.index.comp_existing') }}</h4>
                         <div class="border border-slate-100 rounded-xl overflow-hidden shadow-sm">
                             <table class="min-w-full text-xs divide-y divide-slate-100">
                                 <thead class="bg-slate-50">
                                     <tr class="text-slate-500 uppercase tracking-wider">
-                                        <th class="px-4 py-2.5 text-left font-bold">GCI Part</th>
-                                        <th class="px-4 py-2.5 text-right font-bold">Consumption</th>
-                                        <th class="px-4 py-2.5 text-right font-bold">Action</th>
+                                        <th class="px-4 py-2.5 text-left font-bold">{{ __('planning.customer_parts.index.comp_th_part') }}</th>
+                                        <th class="px-4 py-2.5 text-right font-bold">{{ __('planning.customer_parts.index.comp_th_consumption') }}</th>
+                                        <th class="px-4 py-2.5 text-right font-bold">{{ __('planning.customer_parts.index.comp_th_action') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-slate-50">
@@ -378,15 +374,15 @@
                                                     <button type="button"
                                                         class="p-1 px-3 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-bold text-xs transition-colors"
                                                         @click="editComponent(c)">
-                                                        EDIT
+                                                        {{ __('planning.customer_parts.index.comp_edit') }}
                                                     </button>
                                                     <form
                                                         :action="'{{ url('/planning/customer-part-components') }}/' + c.id"
-                                                        method="POST" onsubmit="return confirm('Remove component?')">
+                                                        method="POST" onsubmit='return confirm(@js(__("planning.customer_parts.index.confirm_remove")));'>
                                                         @csrf
                                                         @method('DELETE')
                                                         <button
-                                                            class="p-1 px-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-bold transition-colors" title="Delete">
+                                                            class="p-1 px-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 font-bold transition-colors" title="{{ __('planning.customer_parts.index.delete_title') }}">
                                                             ×
                                                         </button>
                                                     </form>
@@ -396,8 +392,7 @@
                                     </template>
                                     <template x-if="compForm.items.length === 0">
                                         <tr>
-                                            <td colspan="3" class="px-4 py-8 text-center text-slate-400 italic">No
-                                                components mapped yet.</td>
+                                            <td colspan="3" class="px-4 py-8 text-center text-slate-400 italic">{{ __('planning.customer_parts.index.comp_empty') }}</td>
                                         </tr>
                                     </template>
                                 </tbody>
@@ -408,7 +403,7 @@
 
                 <div class="p-4 border-t border-slate-100 flex justify-end">
                     <button type="button" class="px-6 py-2 rounded-xl bg-slate-900 text-white font-bold text-xs"
-                        @click="closeComponentModal()">DONE</button>
+                        @click="closeComponentModal()">{{ __('planning.customer_parts.index.done') }}</button>
                 </div>
             </div>
         </div>
@@ -418,7 +413,7 @@
             x-show="importOpen" x-cloak @keydown.escape.window="closeImport()">
             <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
                 <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
-                    <h3 class="text-lg font-bold text-slate-900">Import Customer Part Mapping</h3>
+                    <h3 class="text-lg font-bold text-slate-900">{{ __('planning.customer_parts.index.import_title') }}</h3>
                     <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50"
                         @click="closeImport()">✕</button>
                 </div>
@@ -427,7 +422,7 @@
                     class="p-5 space-y-4">
                     @csrf
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">Excel File</label>
+                        <label class="text-sm font-semibold text-slate-700">{{ __('planning.customer_parts.index.import_file') }}</label>
                         <input type="file" name="file" accept=".xlsx,.xls,.csv"
                             class="mt-2 w-full rounded-xl border-slate-200" required>
                         Format: Customer Code, Customer Part No, Line, Case, Customer Part Name, Status, GCI Part No,
@@ -443,7 +438,7 @@
                         </button>
                         <button type="submit"
                             class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">
-                            Upload & Import
+                            {{ __('planning.customer_parts.index.upload') }}
                         </button>
                     </div>
                 </form>
@@ -481,14 +476,14 @@
                         this.$nextTick(() => {
                             this.ts = new TomSelect('#part-select', {
                                 create: false,
-                                placeholder: 'Search Part GCI...',
+                                placeholder: @js(__("planning.customer_parts.index.ts_search")),
                                 allowEmptyOption: true,
                                 dropdownParent: 'body'
                             });
 
                             this.createTs = new TomSelect('#create-part-select', {
                                 create: false,
-                                placeholder: 'Search Part GCI to link...',
+                                placeholder: @js(__("planning.customer_parts.index.ts_search_link")),
                                 allowEmptyOption: true,
                                 dropdownParent: 'body'
                             });

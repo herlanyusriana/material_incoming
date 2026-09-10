@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Warehouse • Production Load
+        {{ __('warehouse.production_load.index.header') }}
     </x-slot>
 
     <div class="py-6">
@@ -8,12 +8,12 @@
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl overflow-hidden">
                 <div class="px-6 py-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
                     <div>
-                        <div class="text-xl font-bold text-slate-900">Production Load</div>
-                        <div class="text-sm text-slate-500">Jadwal produksi berdasarkan <span class="font-mono">production_orders.plan_date</span></div>
+                        <div class="text-xl font-bold text-slate-900">{{ __('warehouse.production_load.index.title') }}</div>
+                        <div class="text-sm text-slate-500">{{ __('warehouse.production_load.index.schedule_based_on') }} <span class="font-mono">production_orders.plan_date</span></div>
                     </div>
                     <div class="flex items-center gap-2">
                         <a href="{{ route('production.orders.index') }}" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50">
-                            Production Orders
+                            {{ __('warehouse.production_load.index.production_orders') }}
                         </a>
                     </div>
                 </div>
@@ -21,36 +21,36 @@
                 <form method="GET" class="px-6 py-4 bg-slate-50 border-b border-slate-200">
                     <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">From</label>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.production_load.index.from') }}</label>
                             <input type="date" name="date_from" value="{{ $dateFrom }}" class="w-full rounded-lg border-slate-300 text-sm">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">To</label>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.production_load.index.to') }}</label>
                             <input type="date" name="date_to" value="{{ $dateTo }}" class="w-full rounded-lg border-slate-300 text-sm">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.production_load.index.status') }}</label>
                             <select name="status" class="w-full rounded-lg border-slate-300 text-sm">
-                                <option value="">All</option>
+                                <option value="">{{ __('warehouse.production_load.index.all') }}</option>
                                 @foreach (['planned', 'material_hold', 'released', 'in_production', 'completed'] as $s)
                                     <option value="{{ $s }}" @selected($status === $s)>{{ $s }}</option>
                                 @endforeach
                             </select>
                         </div>
                         <div class="md:col-span-2">
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Search</label>
-                            <input name="search" value="{{ $search }}" class="w-full rounded-lg border-slate-300 text-sm" placeholder="order no / part no / name">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.production_load.index.search_label') }}</label>
+                            <input name="search" value="{{ $search }}" class="w-full rounded-lg border-slate-300 text-sm" placeholder="{{ __('warehouse.production_load.index.search_ph') }}">
                         </div>
                     </div>
                     <div class="mt-3 flex gap-2">
-                        <button class="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold">Apply</button>
-                        <a href="{{ route('warehouse.production-load.index') }}" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700">Clear</a>
+                        <button class="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold">{{ __('warehouse.production_load.index.apply') }}</button>
+                        <a href="{{ route('warehouse.production-load.index') }}" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700">{{ __('warehouse.production_load.index.clear') }}</a>
                     </div>
                 </form>
 
                 @if(!empty($totalsByDate))
                     <div class="px-6 py-4 border-b border-slate-200 bg-white">
-                        <div class="text-sm font-semibold text-slate-700">Total qty per date</div>
+                        <div class="text-sm font-semibold text-slate-700">{{ __('warehouse.production_load.index.total_per_date') }}</div>
                         <div class="mt-2 flex flex-wrap gap-2">
                             @foreach($totalsByDate as $d => $qty)
                                 <span class="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs text-slate-700">
@@ -67,11 +67,11 @@
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Plan Date</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Order No</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Part</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Status</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">Qty Planned</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.production_load.index.th_plan_date') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.production_load.index.th_order_no') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.production_load.index.th_part') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.production_load.index.th_status') }}</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.production_load.index.th_qty') }}</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-slate-200">
@@ -100,7 +100,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="px-6 py-12 text-center text-slate-500">No production orders in range.</td>
+                                    <td colspan="5" class="px-6 py-12 text-center text-slate-500">{{ __('warehouse.production_load.index.empty') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>

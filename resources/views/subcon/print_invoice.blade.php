@@ -238,7 +238,7 @@
 
 <body>
     <div class="toolbar">
-        <button onclick="window.print()">Print Commercial Invoice</button>
+        <button onclick="window.print()">{{ __('subcon.prints.print_invoice') }}</button>
     </div>
 
     <div class="page">

@@ -75,7 +75,7 @@
         <header>
             <div class="h-left">
                 <div class="gl-circle">GL</div>
-                <div class="h-title">LABEL MATERIAL</div>
+                <div class="h-title">{{ __('incoming.receives.label.material') }}</div>
             </div>
             <div class="month-chip">{{ $monthBox }}</div>
         </header>
@@ -99,16 +99,16 @@
                     {!! $qrSvg ?? '' !!}
                 </div>
                 <div class="iqc-section">
-                    <div class="iqc-head">IQC CHECK</div>
+                    <div class="iqc-head">{{ __('incoming.receives.label.iqc') }}</div>
                     <div class="iqc-boxes">
-                        <div class="iqc-box">STAMP</div>
-                        <div class="iqc-box">TTD</div>
+                        <div class="iqc-box">{{ __('incoming.receives.label.stamp') }}</div>
+                        <div class="iqc-box">{{ __('incoming.receives.label.sign') }}</div>
                     </div>
                 </div>
             </section>
         </main>
     </div>
 
-    <button class="no-print" onclick="window.print()">PRINT LABEL</button>
+    <button class="no-print" onclick="window.print()">{{ __('incoming.receives.label.print') }}</button>
 </body>
 </html>

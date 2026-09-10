@@ -6,14 +6,13 @@
     'breadcrumbs' => [],
 ])
 
-<div class="mb-6">
+    <div class="mb-8">
     <x-breadcrumb :items="$breadcrumbs" />
 
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             @if($badge)
-                <div class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-{{ $badgeColor }}-600 mb-1">
-                    <span class="h-1.5 w-1.5 rounded-full bg-{{ $badgeColor }}-500 animate-pulse"></span>
+                <div class="mb-2 inline-flex items-center rounded-md bg-{{ $badgeColor }}-50 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-{{ $badgeColor }}-700 ring-1 ring-inset ring-{{ $badgeColor }}-100">
                     {{ $badge }}
                 </div>
             @endif

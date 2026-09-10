@@ -1,8 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
         <div>
-            <h2 class="font-semibold text-xl text-slate-800 leading-tight">New Part</h2>
-            <p class="text-sm text-slate-500">Register a part number.</p>
+            <h2 class="font-semibold text-xl text-slate-800 leading-tight">{{ __('master.parts.create.title') }}</h2>
+            <p class="text-sm text-slate-500">{{ __('master.parts.create.subtitle') }}</p>
         </div>
     </x-slot>
 

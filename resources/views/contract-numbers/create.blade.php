@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Tambah Nomor Kontrak
+        {{ __('master.contract_numbers.create.header') }}
     </x-slot>
 
     <div class="space-y-6" x-data="contractCreate()">
@@ -18,10 +18,10 @@
             <div class="flex flex-col gap-3 border-b border-slate-100 px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
                 <div>
                     <a href="{{ route('contract-numbers.index') }}" class="text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700">
-                        Back to Contract Numbers
+                        {{ __('master.contract_numbers.create.back') }}
                     </a>
-                    <h1 class="mt-2 text-2xl font-black text-slate-900">Tambah Nomor Kontrak</h1>
-                    <p class="text-sm text-slate-500">Isi header kontrak dan daftar part yang boleh dikirim ke vendor subcon.</p>
+                    <h1 class="mt-2 text-2xl font-black text-slate-900">{{ __('master.contract_numbers.create.title') }}</h1>
+                    <p class="text-sm text-slate-500">{{ __('master.contract_numbers.create.subtitle') }}</p>
                 </div>
             </div>
 
@@ -30,40 +30,40 @@
 
                 <div class="grid gap-4 lg:grid-cols-4">
                     <div class="lg:col-span-2">
-                        <label for="vendor_id" class="text-xs font-bold uppercase tracking-wider text-slate-500">Vendor <span class="text-red-500">*</span></label>
+                        <label for="vendor_id" class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('master.contract_numbers.create.vendor') }} <span class="text-red-500">*</span></label>
                         <select id="vendor_id" name="vendor_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
-                            <option value="">Pilih vendor</option>
+                            <option value="">{{ __('master.contract_numbers.create.vendor_select') }}</option>
                             @foreach($vendors as $vendor)
                                 <option value="{{ $vendor->id }}" @selected(old('vendor_id') == $vendor->id)>{{ $vendor->vendor_name }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div class="lg:col-span-2">
-                        <label for="contract_no" class="text-xs font-bold uppercase tracking-wider text-slate-500">Nomor Kontrak <span class="text-red-500">*</span></label>
+                        <label for="contract_no" class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('master.contract_numbers.create.contract_no') }} <span class="text-red-500">*</span></label>
                         <input id="contract_no" type="text" name="contract_no" value="{{ old('contract_no') }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
                     </div>
                     <div class="lg:col-span-4">
-                        <label for="description" class="text-xs font-bold uppercase tracking-wider text-slate-500">Deskripsi Kontrak</label>
+                        <label for="description" class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('master.contract_numbers.create.description') }}</label>
                         @php $description = old('description'); @endphp
                         <select id="description" name="description" class="mt-1 w-full rounded-xl border-slate-200 text-sm" x-model="description" @change="syncRowsWithDescription()">
-                            <option value="">Pilih deskripsi</option>
+                            <option value="">{{ __('master.contract_numbers.create.description_select') }}</option>
                             <option value="Hardening" @selected($description === 'Hardening')>Hardening</option>
                             <option value="Plating" @selected($description === 'Plating')>Plating</option>
                         </select>
                     </div>
                     <div>
-                        <label for="effective_from" class="text-xs font-bold uppercase tracking-wider text-slate-500">Effective From <span class="text-red-500">*</span></label>
+                        <label for="effective_from" class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('master.contract_numbers.create.effective_from') }} <span class="text-red-500">*</span></label>
                         <input id="effective_from" type="date" name="effective_from" value="{{ old('effective_from', now()->toDateString()) }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
                     </div>
                     <div>
-                        <label for="effective_to" class="text-xs font-bold uppercase tracking-wider text-slate-500">Expired Date</label>
+                        <label for="effective_to" class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('master.contract_numbers.create.expired') }}</label>
                         <input id="effective_to" type="date" name="effective_to" value="{{ old('effective_to') }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
                     </div>
                     <div>
-                        <label for="status" class="text-xs font-bold uppercase tracking-wider text-slate-500">Status <span class="text-red-500">*</span></label>
+                        <label for="status" class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('master.contract_numbers.create.status') }} <span class="text-red-500">*</span></label>
                         <select id="status" name="status" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
-                            <option value="active" @selected(old('status', 'active') === 'active')>Active</option>
-                            <option value="inactive" @selected(old('status') === 'inactive')>Inactive</option>
+                            <option value="active" @selected(old('status', 'active') === 'active')>{{ __('master.contract_numbers.create.status_active') }}</option>
+                            <option value="inactive" @selected(old('status') === 'inactive')>{{ __('master.contract_numbers.create.status_inactive') }}</option>
                         </select>
                     </div>
                 </div>
@@ -71,11 +71,11 @@
                 <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                     <div class="mb-4 flex items-center justify-between">
                         <div>
-                            <h2 class="text-sm font-black text-slate-900">Items Kontrak</h2>
-                            <p class="text-xs text-slate-500">Target dan alarm per WIP/RM.</p>
+                            <h2 class="text-sm font-black text-slate-900">{{ __('master.contract_numbers.create.items_title') }}</h2>
+                            <p class="text-xs text-slate-500">{{ __('master.contract_numbers.create.items_subtitle') }}</p>
                         </div>
                         <button type="button" @click="addRow()" class="rounded-lg bg-indigo-100 px-3 py-1.5 text-xs font-black text-indigo-700 hover:bg-indigo-200">
-                            + Tambah Part
+                            {{ __('master.contract_numbers.create.add_part') }}
                         </button>
                     </div>
 
@@ -83,7 +83,7 @@
                         <template x-for="(row, index) in rows" :key="row.id">
                             <div class="grid grid-cols-12 gap-3 rounded-xl border border-slate-200 bg-white p-3">
                                 <div class="col-span-12 lg:col-span-7">
-                                    <label class="block text-[10px] font-bold uppercase text-slate-500">Part Mapping</label>
+                                    <label class="block text-[10px] font-bold uppercase text-slate-500">{{ __('master.contract_numbers.create.mapping') }}</label>
                                     <input
                                         type="text"
                                         class="mt-1 w-full rounded-lg border-slate-300 text-sm"
@@ -91,7 +91,7 @@
                                         x-model="row.part_search"
                                         @input.debounce.150ms="onPartSearch(index)"
                                         @change="onPartSearch(index)"
-                                        placeholder="Ketik part / nama / RM..."
+                                        placeholder="{{ __('master.contract_numbers.create.mapping_placeholder') }}"
                                         required>
                                     <datalist :id="`subcon-part-options-${index}`">
                                         <template x-for="opt in filteredSubconPartsOptions(row.part_search)" :key="opt.key">
@@ -105,17 +105,17 @@
                                 </div>
                                 <div class="col-span-6 lg:col-span-2">
                                     <label class="block text-[10px] font-bold uppercase text-slate-500">
-                                        Target
+                                        {{ __('master.contract_numbers.create.target') }}
                                         <span class="text-indigo-600" x-text="row.uom ? `(${row.uom})` : ''"></span>
                                     </label>
                                     <input type="number" step="1" min="0" :name="`items[${index}][target_qty]`" x-model="row.target_qty" class="mt-1 w-full rounded-lg border-slate-300 text-sm font-bold" required>
                                 </div>
                                 <div class="col-span-6 lg:col-span-2">
-                                    <label class="block text-[10px] font-bold uppercase text-slate-500">Alarm</label>
+                                    <label class="block text-[10px] font-bold uppercase text-slate-500">{{ __('master.contract_numbers.create.alarm') }}</label>
                                     <input type="number" step="1" min="0" :name="`items[${index}][warning_limit_qty]`" x-model="row.warning_limit_qty" class="mt-1 w-full rounded-lg border-slate-300 text-sm font-bold">
                                 </div>
                                 <div class="col-span-12 flex items-end lg:col-span-1">
-                                    <button type="button" x-show="rows.length > 1" @click="rows.splice(index, 1)" aria-label="Hapus part" class="w-full rounded-lg border border-rose-200 px-3 py-2 text-xs font-black text-rose-600 hover:bg-rose-50">
+                                    <button type="button" x-show="rows.length > 1" @click="rows.splice(index, 1)" aria-label="{{ __('master.contract_numbers.create.remove_part') }}" class="w-full rounded-lg border border-rose-200 px-3 py-2 text-xs font-black text-rose-600 hover:bg-rose-50">
                                         X
                                     </button>
                                 </div>
@@ -125,16 +125,16 @@
                 </div>
 
                 <div>
-                    <label for="notes" class="text-xs font-bold uppercase tracking-wider text-slate-500">Notes / Lampiran Info</label>
+                    <label for="notes" class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('master.contract_numbers.create.notes') }}</label>
                     <textarea id="notes" name="notes" rows="3" class="mt-1 w-full rounded-xl border-slate-200 text-sm">{{ old('notes') }}</textarea>
                 </div>
 
                 <div class="flex justify-end gap-2">
                     <a href="{{ route('contract-numbers.index') }}" class="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">
-                        Cancel
+                        {{ __('master.contract_numbers.create.cancel') }}
                     </a>
                     <button class="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-black text-white hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed">
-                        Save Contract
+                        {{ __('master.contract_numbers.create.save') }}
                     </button>
                 </div>
             </form>

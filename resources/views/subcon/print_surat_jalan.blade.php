@@ -164,7 +164,7 @@
 
 <body>
     <div class="toolbar">
-        <button onclick="window.print()">Print SJ LX-300</button>
+        <button onclick="window.print()">{{ __('subcon.prints.print_sj') }}</button>
     </div>
 
     <div class="sheet">

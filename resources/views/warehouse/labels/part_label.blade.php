@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Part Label - {{ $part->part_no }}</title>
+    <title>{{ __('warehouse.labels.part.title', ['part' => $part->part_no]) }}</title>
     <style>
         @page {
             size: 100mm 75mm;
@@ -128,7 +128,7 @@
         <div class="label-inner">
             <!-- Header -->
             <div class="header">
-                <p class="title-small">Part Number</p>
+                <p class="title-small">{{ __('warehouse.labels.part.part_number') }}</p>
                 <h1 class="part-no">{{ $part->part_no }}</h1>
                 <p class="model-name">{{ $part->part_name }}</p>
             </div>
@@ -146,14 +146,14 @@
             <div style="position: absolute; bottom: 2mm; right: 6mm; text-align: right;">
                 <p
                     style="font-size: 7pt; font-weight: bold; color: #555; text-transform: uppercase; margin-bottom: 0.2mm;">
-                    Batch No</p>
+                    {{ __('warehouse.labels.part.batch_no') }}</p>
                 <p style="font-size: 11pt; font-weight: 900; line-height: 1;">{{ $batch ?: '---' }}</p>
             </div>
 
             <div style="position: absolute; bottom: 2mm; left: 6mm; text-align: left;">
                 <p
                     style="font-size: 7pt; font-weight: bold; color: #555; text-transform: uppercase; margin-bottom: 0.2mm;">
-                    Model</p>
+                    {{ __('warehouse.labels.part.model') }}</p>
                 <p style="font-size: 9pt; font-weight: 900; line-height: 1;">{{ $part->model ?: '-' }}</p>
             </div>
 

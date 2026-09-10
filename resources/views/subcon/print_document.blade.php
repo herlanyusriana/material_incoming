@@ -160,7 +160,7 @@
 
 <body>
     <div class="toolbar">
-        <button onclick="window.print()">Print {{ $docShort }}</button>
+        <button onclick="window.print()">{{ __('subcon.prints.print') }} {{ $docShort }}</button>
     </div>
 
     <div class="page">
@@ -178,12 +178,12 @@
 
         <div class="grid">
             <div class="card">
-                <div class="label">Vendor</div>
+                <div class="label">{{ __('subcon.prints.vendor') }}</div>
                 <div><strong>{{ $subconOrder->vendor->vendor_name ?? '-' }}</strong></div>
                 <div class="muted">Contract: {{ $subconOrder->contract_no ?? '-' }}</div>
             </div>
             <div class="card">
-                <div class="label">Subcon Reference</div>
+                <div class="label">{{ __('subcon.prints.subcon_reference') }}</div>
                 <div><strong>{{ $subconOrder->order_no }}</strong></div>
                 <div class="muted">RM: {{ $subconOrder->rmPart->part_no ?? '-' }} - {{ $subconOrder->rmPart->part_name ?? '-' }}</div>
                 <div class="muted">WIP Return: {{ $subconOrder->gciPart->part_no ?? '-' }} - {{ $subconOrder->gciPart->part_name ?? '-' }}</div>
@@ -231,23 +231,23 @@
 
         <table class="summary">
             <tr>
-                <td>Total Qty</td>
+                <td>{{ __('subcon.prints.total_qty') }}</td>
                 <td class="text-right">{{ number_format($totalQty, 4) }}</td>
             </tr>
             <tr class="total">
-                <td>Total Weight (KGM)</td>
+                <td>{{ __('subcon.prints.total_weight') }}</td>
                 <td class="text-right">{{ number_format($totalWeight, 4) }}</td>
             </tr>
             @if ($showPricing)
                 <tr class="total">
-                    <td>Total Amount ({{ $currency }})</td>
+                    <td>{{ __('subcon.prints.total_amount', ['currency' => $currency]) }}</td>
                     <td class="text-right">{{ number_format($totalAmount, 2) }}</td>
                 </tr>
             @endif
         </table>
 
         <div class="footer-note">
-            Dokumen subcon ini dicetak berdasarkan RM part yang dikirim dari warehouse ke vendor dan referensi WIP part hasil vendor.
+            {{ __('subcon.prints.footer_note') }}
         </div>
     </div>
 </body>

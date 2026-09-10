@@ -73,7 +73,9 @@ class InventoryLocationStock extends BaseModel
             $after = max(0, $before + $qtyChange);
 
             $gciPart = GciPart::find($gciPartId);
-            $uom = $gciPart?->subcount_uom;
+            // UOM stok = UOM material part (gci_parts.uom); fallback subcount_uom
+            // untuk part lama yang belum di-backfill.
+            $uom = $gciPart?->uom ?: $gciPart?->subcount_uom;
 
             if ($record) {
                 $record->update([

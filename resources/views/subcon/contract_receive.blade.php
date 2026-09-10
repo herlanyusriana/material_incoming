@@ -11,10 +11,10 @@
         <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                 <div>
-                    <h1 class="text-2xl font-black text-slate-900">Receive Kontrak {{ $contractNo }}</h1>
+                    <h1 class="text-2xl font-black text-slate-900">{{ __('subcon.orders.contract_receive.title', ['contract' => $contractNo]) }}</h1>
                     <div class="mt-1 text-sm text-slate-600">{{ $vendor?->vendor_name ?? '-' }} · {{ $orders->count() }} item outstanding</div>
                 </div>
-                <a href="{{ route('subcon.receive-index') }}" class="text-sm font-semibold text-slate-500 hover:text-slate-800">&larr; Back</a>
+                <a href="{{ route('subcon.receive-index') }}" class="text-sm font-semibold text-slate-500 hover:text-slate-800">&larr; {{ __('subcon.orders.contract_receive.back') }}</a>
             </div>
         </div>
 
@@ -26,35 +26,35 @@
             <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div class="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
                     <div>
-                        <label for="received_date" class="mb-1 block text-sm font-bold text-slate-700">Received Date <span class="text-red-500">*</span></label>
+                        <label for="received_date" class="mb-1 block text-sm font-bold text-slate-700">{{ __('subcon.orders.contract_receive.received_date') }} <span class="text-red-500">*</span></label>
                         <input type="date" id="received_date" name="received_date" value="{{ old('received_date', now()->format('Y-m-d')) }}"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                     </div>
                     <div>
-                        <label for="receive_location_code" class="mb-1 block text-sm font-bold text-slate-700">WH Good Location</label>
+                        <label for="receive_location_code" class="mb-1 block text-sm font-bold text-slate-700">{{ __('subcon.orders.contract_receive.wh_good') }}</label>
                         <input type="text" id="receive_location_code" name="receive_location_code" value="{{ old('receive_location_code') }}"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            placeholder="Kosongkan kalau tidak perlu catat stok ke lokasi">
+                            placeholder="{{ __('subcon.orders.contract_receive.wh_good_placeholder') }}">
                     </div>
                     <div>
-                        <label for="reject_location_code" class="mb-1 block text-sm font-bold text-slate-700">WH Reject Location</label>
+                        <label for="reject_location_code" class="mb-1 block text-sm font-bold text-slate-700">{{ __('subcon.orders.contract_receive.wh_reject') }}</label>
                         <input type="text" id="reject_location_code" name="reject_location_code" value="{{ old('reject_location_code') }}"
                             class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                            placeholder="Kosongkan untuk lokasi reject default">
+                            placeholder="{{ __('subcon.orders.contract_receive.wh_reject_placeholder') }}">
                     </div>
                     <div>
-                        <label for="sj_file" class="mb-1 block text-sm font-bold text-slate-700">Upload SJ</label>
+                        <label for="sj_file" class="mb-1 block text-sm font-bold text-slate-700">{{ __('subcon.orders.contract_receive.upload_sj') }}</label>
                         <input type="file" id="sj_file" name="sj_file" accept=".pdf,image/jpeg,image/png"
                             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
                     <div>
-                        <label for="invoice_file" class="mb-1 block text-sm font-bold text-slate-700">Upload Invoice</label>
+                        <label for="invoice_file" class="mb-1 block text-sm font-bold text-slate-700">{{ __('subcon.orders.contract_receive.upload_invoice') }}</label>
                         <input type="file" id="invoice_file" name="invoice_file" accept=".pdf,image/jpeg,image/png"
                             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-indigo-500">
                     </div>
                 </div>
                 <div class="mt-4">
-                    <label for="notes" class="mb-1 block text-sm font-bold text-slate-700">Notes</label>
+                    <label for="notes" class="mb-1 block text-sm font-bold text-slate-700">{{ __('subcon.orders.contract_receive.notes') }}</label>
                     <textarea id="notes" name="notes" rows="2" class="w-full rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('notes') }}</textarea>
                 </div>
             </div>
@@ -62,11 +62,11 @@
             <div class="rounded-2xl border border-slate-200 bg-white shadow-sm">
                 <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 md:flex-row md:items-center md:justify-between">
                     <div>
-                        <h2 class="text-lg font-black text-slate-900">Item Dalam Kontrak</h2>
-                        <div class="mt-1 text-sm text-slate-500">Isi item yang diterima. Item lain bisa dibiarkan 0.</div>
+                        <h2 class="text-lg font-black text-slate-900">{{ __('subcon.orders.contract_receive.items_title') }}</h2>
+                        <div class="mt-1 text-sm text-slate-500">{{ __('subcon.orders.contract_receive.items_desc') }}</div>
                     </div>
                     <button type="button" @click="fillAll()" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700">
-                        Full Semua Outstanding
+                        {{ __('subcon.orders.contract_receive.fill_all') }}
                     </button>
                 </div>
 
@@ -74,15 +74,15 @@
                     <table class="w-full text-sm divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr>
-                                <th class="px-4 py-3 text-left font-bold text-slate-700">Order No</th>
-                                <th class="px-4 py-3 text-left font-bold text-slate-700">RM Part</th>
-                                <th class="px-4 py-3 text-left font-bold text-slate-700">WIP Part</th>
-                                <th class="px-4 py-3 text-right font-bold text-slate-700">Outstanding</th>
-                                <th class="px-4 py-3 text-right font-bold text-slate-700">Qty Good</th>
-                                <th class="px-4 py-3 text-right font-bold text-slate-700">Weight Good</th>
-                                <th class="px-4 py-3 text-right font-bold text-slate-700">Qty NG</th>
-                                <th class="px-4 py-3 text-right font-bold text-slate-700">Weight NG</th>
-                                <th class="px-4 py-3 text-center font-bold text-slate-700">Action</th>
+                                <th class="px-4 py-3 text-left font-bold text-slate-700">{{ __('subcon.orders.contract_receive.order_no') }}</th>
+                                <th class="px-4 py-3 text-left font-bold text-slate-700">{{ __('subcon.orders.contract_receive.rm_part') }}</th>
+                                <th class="px-4 py-3 text-left font-bold text-slate-700">{{ __('subcon.orders.contract_receive.wip_part') }}</th>
+                                <th class="px-4 py-3 text-right font-bold text-slate-700">{{ __('subcon.orders.contract_receive.outstanding') }}</th>
+                                <th class="px-4 py-3 text-right font-bold text-slate-700">{{ __('subcon.orders.contract_receive.qty_good') }}</th>
+                                <th class="px-4 py-3 text-right font-bold text-slate-700">{{ __('subcon.orders.contract_receive.weight_good') }}</th>
+                                <th class="px-4 py-3 text-right font-bold text-slate-700">{{ __('subcon.orders.contract_receive.qty_ng') }}</th>
+                                <th class="px-4 py-3 text-right font-bold text-slate-700">{{ __('subcon.orders.contract_receive.weight_ng') }}</th>
+                                <th class="px-4 py-3 text-center font-bold text-slate-700">{{ __('subcon.orders.contract_receive.action') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -134,7 +134,7 @@
                                     </td>
                                     <td class="px-4 py-3 text-center">
                                         <button type="button" @click="fillRow($el.closest('tr'))" class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100">
-                                            Full Item
+                                            {{ __('subcon.orders.contract_receive.full_item') }}
                                         </button>
                                     </td>
                                 </tr>
@@ -145,9 +145,9 @@
             </div>
 
             <div class="flex justify-end gap-3">
-                <a href="{{ route('subcon.receive-index') }}" class="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">Cancel</a>
-                <button type="submit" class="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed" onclick="return confirm('Simpan receive untuk item kontrak yang terisi?')">
-                    Simpan Receive Kontrak
+                <a href="{{ route('subcon.receive-index') }}" class="rounded-lg border border-slate-300 px-5 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-50">{{ __('subcon.orders.contract_receive.cancel') }}</a>
+                <button type="submit" class="rounded-lg bg-indigo-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed" onclick='return confirm(@js(__('subcon.orders.contract_receive.confirm_save')))'>
+                    {{ __('subcon.orders.contract_receive.submit') }}
                 </button>
             </div>
         </form>

@@ -3,7 +3,7 @@
         $isLocal = strtolower((string) ($arrival->vendor?->vendor_type ?? '')) === 'local';
     @endphp
     <x-slot name="header">
-        {{ $isLocal ? 'Local PO Summary' : 'Receive Summary' }} — {{ $arrival->invoice_no }}
+        {{ ($isLocal ? __('incoming.receives.completed_invoice.header_local') : __('incoming.receives.completed_invoice.header')) }} — {{ $arrival->invoice_no }}
     </x-slot>
 
     <div class="py-6">
@@ -11,10 +11,10 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <div class="text-sm text-slate-600">{{ $arrival->vendor->vendor_name ?? '-' }} • {{ $arrival->invoice_no ?? '-' }}</div>
-                        <h3 class="text-lg font-bold text-slate-900">Receive Records</h3>
+                        <h3 class="text-lg font-bold text-slate-900">{{ __('incoming.receives.completed_invoice.title') }}</h3>
                         @if (!empty($hasPending))
                             <div class="text-sm text-amber-700 mt-1">
-                            Masih ada pending: {{ number_format($pendingItemsCount ?? 0) }} item.
+                            {{ __('incoming.receives.completed_invoice.pending', ['count' => number_format($pendingItemsCount ?? 0)]) }}
                             @if (!empty($hasMissingInspection) || !empty($hasMissingTag))
                                 <span class="text-slate-600">
                                     ({{ collect([
@@ -25,7 +25,7 @@
                             @endif
                             </div>
                         @else
-                            <div class="text-sm text-emerald-700 mt-1">Semua item sudah complete receive.</div>
+                            <div class="text-sm text-emerald-700 mt-1">{{ __('incoming.receives.completed_invoice.all_complete') }}</div>
                             @if ($arrival->transaction_no)
                                 <div class="mt-2">
                                     <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 tracking-wide">
@@ -38,38 +38,38 @@
                 <div class="flex items-center gap-2">
                     @if (!empty($hasPending))
                         <a href="{{ route('receives.invoice.create', $arrival) }}" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors">
-                            Lanjut Receive
+                            {{ __('incoming.receives.completed_invoice.continue') }}
                         </a>
                     @else
                         <a href="{{ route('receives.completed.invoice.export', $arrival) }}" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors">
-                            Export Excel
+                            {{ __('incoming.receives.completed_invoice.export') }}
                         </a>
                     @endif
                     @if (!$isLocal)
                         <a href="{{ route('departures.edit', ['departure' => $arrival, 'customs_only' => 1]) }}" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium rounded-lg transition-colors">
-                            Edit No PEN / AJU
+                            {{ __('incoming.receives.completed_invoice.edit_pen') }}
                         </a>
                     @endif
                     <a href="{{ route('receives.completed') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
-                        Back
+                        {{ __('incoming.receives.completed_invoice.back') }}
                     </a>
                 </div>
             </div>
 
             @if (!$isLocal)
                 <div class="bg-white border border-slate-200 rounded-2xl shadow-lg p-5">
-                    <h4 class="text-sm font-bold text-slate-900">Dokumen Import</h4>
+                    <h4 class="text-sm font-bold text-slate-900">{{ __('incoming.receives.completed_invoice.docs_title') }}</h4>
                     <div class="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                         <div>
-                            <div class="text-slate-500">No PEN</div>
+                            <div class="text-slate-500">{{ __('incoming.receives.completed_invoice.pen_no') }}</div>
                             <div class="font-semibold text-slate-900">{{ $arrival->pen_no ?: '-' }}</div>
                         </div>
                         <div>
-                            <div class="text-slate-500">Tanggal No PEN</div>
+                            <div class="text-slate-500">{{ __('incoming.receives.completed_invoice.pen_date') }}</div>
                             <div class="font-semibold text-slate-900">{{ optional($arrival->pen_date)->format('Y-m-d') ?: '-' }}</div>
                         </div>
                         <div>
-                            <div class="text-slate-500">No AJU</div>
+                            <div class="text-slate-500">{{ __('incoming.receives.completed_invoice.aju_no') }}</div>
                             <div class="font-semibold text-slate-900">{{ $arrival->aju_no ?: '-' }}</div>
                         </div>
                     </div>
@@ -81,14 +81,14 @@
                     <table class="min-w-full divide-y divide-slate-200 text-sm">
                         <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
                             <tr>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Tag</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Invoice / SJ</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Part</th>
-                                <th class="px-4 py-3 text-right font-semibold text-slate-600 text-xs uppercase tracking-wider">Qty</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Bundle</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">QC</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">ATA</th>
-                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">Actions</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">{{ __('incoming.receives.completed_invoice.tag') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">{{ __('incoming.receives.completed_invoice.invoice_sj') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">{{ __('incoming.receives.completed_invoice.part') }}</th>
+                                <th class="px-4 py-3 text-right font-semibold text-slate-600 text-xs uppercase tracking-wider">{{ __('incoming.receives.completed_invoice.qty') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">{{ __('incoming.receives.completed_invoice.bundle') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">{{ __('incoming.receives.completed_invoice.qc') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">{{ __('incoming.receives.completed_invoice.ata') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold text-slate-600 text-xs uppercase tracking-wider">{{ __('incoming.receives.completed_invoice.actions') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
@@ -134,19 +134,19 @@
                                     <td class="px-4 py-4 text-slate-700">{{ $receive->ata_date?->format('Y-m-d H:i') }}</td>
                                     <td class="px-4 py-4 text-sm">
                                         <div class="flex items-center gap-3">
-                                            <a href="{{ route('receives.label', $receive) }}" target="_blank" class="text-indigo-600 hover:text-blue-700 font-medium">Print label</a>
-                                            <a href="{{ route('receives.edit', $receive) }}" class="text-slate-700 hover:text-slate-900 font-medium">Edit</a>
-                                            <form method="POST" action="{{ route('receives.destroy', $receive) }}" class="inline" onsubmit="return confirm('Hapus receive {{ $receive->tag }}? Stok inventory akan dikurangi kembali.');">
+                                            <a href="{{ route('receives.label', $receive) }}" target="_blank" class="text-indigo-600 hover:text-blue-700 font-medium">{{ __('incoming.receives.completed_invoice.print_label') }}</a>
+                                            <a href="{{ route('receives.edit', $receive) }}" class="text-slate-700 hover:text-slate-900 font-medium">{{ __('incoming.receives.completed_invoice.edit') }}</a>
+                                            <form method="POST" action="{{ route('receives.destroy', $receive) }}" class="inline" onsubmit='return confirm(@js(__('incoming.receives.completed_invoice.confirm_delete', ['tag' => $receive->tag])));'>
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="text-red-600 hover:text-red-700 font-medium">Delete</button>
+                                                <button type="submit" class="text-red-600 hover:text-red-700 font-medium">{{ __('incoming.receives.completed_invoice.delete') }}</button>
                                             </form>
                                         </div>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-4 py-12 text-center text-slate-500">No receive records.</td>
+                                    <td colspan="7" class="px-4 py-12 text-center text-slate-500">{{ __('incoming.receives.completed_invoice.empty') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>

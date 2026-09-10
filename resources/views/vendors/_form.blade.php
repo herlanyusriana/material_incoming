@@ -1,65 +1,65 @@
 @csrf
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
     <div class="md:col-span-2">
-        <x-input-label for="vendor_name" value="Vendor Name" />
+        <x-input-label for="vendor_name" :value="__('master.vendors.form.vendor_name')" />
         <x-text-input id="vendor_name" name="vendor_name" type="text" class="mt-1 w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" required value="{{ old('vendor_name', $vendor->vendor_name ?? '') }}" />
         <x-input-error :messages="$errors->get('vendor_name')" class="mt-2" />
     </div>
     <div>
-        <x-input-label for="vendor_type" value="Vendor Type" />
+        <x-input-label for="vendor_type" :value="__('master.vendors.form.vendor_type')" />
         <select id="vendor_type" name="vendor_type" class="mt-1 w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" required>
             @php $vt = old('vendor_type', $vendor->vendor_type ?? 'import'); @endphp
-            <option value="import" @selected($vt === 'import')>Import</option>
-            <option value="local" @selected($vt === 'local')>Local</option>
-            <option value="tolling" @selected($vt === 'tolling')>Tolling</option>
+            <option value="import" @selected($vt === 'import')>{{ __('master.vendors.form.type_import') }}</option>
+            <option value="local" @selected($vt === 'local')>{{ __('master.vendors.form.type_local') }}</option>
+            <option value="tolling" @selected($vt === 'tolling')>{{ __('master.vendors.form.type_tolling') }}</option>
         </select>
         <x-input-error :messages="$errors->get('vendor_type')" class="mt-2" />
     </div>
     <div>
-        <x-input-label for="country_code" value="Country Code (ISO-2)" />
-        <x-text-input id="country_code" name="country_code" type="text" class="mt-1 w-full uppercase rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" required maxlength="2" placeholder="ID" pattern="[A-Za-z]{2}" title="Country code harus 2 huruf (contoh: ID)" value="{{ old('country_code', $vendor->country_code ?? '') }}" />
+        <x-input-label for="country_code" :value="__('master.vendors.form.country_code')" />
+        <x-text-input id="country_code" name="country_code" type="text" class="mt-1 w-full uppercase rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" required maxlength="2" placeholder="ID" pattern="[A-Za-z]{2}" title="{{ __('master.vendors.form.country_title') }}" value="{{ old('country_code', $vendor->country_code ?? '') }}" />
         <x-input-error :messages="$errors->get('country_code')" class="mt-2" />
     </div>
     <div class="md:col-span-3">
-        <x-input-label for="bank_account" value="Bank Account" />
+        <x-input-label for="bank_account" :value="__('master.vendors.form.bank_account')" />
         <textarea id="bank_account" name="bank_account" rows="4" maxlength="255" class="mt-1 w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm">{{ old('bank_account', $vendor->bank_account ?? '') }}</textarea>
         <x-input-error :messages="$errors->get('bank_account')" class="mt-2" />
     </div>
     <div>
-        <x-input-label for="contact_person" value="Contact Person" />
+        <x-input-label for="contact_person" :value="__('master.vendors.form.contact_person')" />
         <x-text-input id="contact_person" name="contact_person" type="text" class="mt-1 w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" value="{{ old('contact_person', $vendor->contact_person ?? '') }}" />
         <x-input-error :messages="$errors->get('contact_person')" class="mt-2" />
     </div>
     <div>
-        <x-input-label for="email" value="Email" />
+        <x-input-label for="email" :value="__('master.vendors.form.email')" />
         <x-text-input id="email" name="email" type="email" class="mt-1 w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" value="{{ old('email', $vendor->email ?? '') }}" />
         <x-input-error :messages="$errors->get('email')" class="mt-2" />
     </div>
     <div>
-        <x-input-label for="phone" value="Phone" />
+        <x-input-label for="phone" :value="__('master.vendors.form.phone')" />
         <x-text-input id="phone" name="phone" type="text" class="mt-1 w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" value="{{ old('phone', $vendor->phone ?? '') }}" />
         <x-input-error :messages="$errors->get('phone')" class="mt-2" />
     </div>
     <div>
-        <x-input-label for="status" value="Status" />
+        <x-input-label for="status" :value="__('master.vendors.form.status')" />
         <select id="status" name="status" class="mt-1 w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm">
-            <option value="active" {{ old('status', $vendor->status ?? 'active') == 'active' ? 'selected' : '' }}>Active</option>
-            <option value="inactive" {{ old('status', $vendor->status ?? '') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+            <option value="active" {{ old('status', $vendor->status ?? 'active') == 'active' ? 'selected' : '' }}>{{ __('master.vendors.form.status_active') }}</option>
+            <option value="inactive" {{ old('status', $vendor->status ?? '') == 'inactive' ? 'selected' : '' }}>{{ __('master.vendors.form.status_inactive') }}</option>
         </select>
         <x-input-error :messages="$errors->get('status')" class="mt-2" />
     </div>
     <div class="md:col-span-3">
-        <x-input-label for="address" value="Address" />
+        <x-input-label for="address" :value="__('master.vendors.form.address')" />
         <textarea id="address" name="address" rows="3" class="mt-1 w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm">{{ old('address', $vendor->address ?? '') }}</textarea>
         <x-input-error :messages="$errors->get('address')" class="mt-2" />
     </div>
     <div class="md:col-span-3">
-        <x-input-label for="signature" value="Signature" />
+        <x-input-label for="signature" :value="__('master.vendors.form.signature')" />
         <input type="file" id="signature" name="signature" accept="image/*" class="mt-1 w-full rounded-xl border-slate-300 focus:border-indigo-500 focus:ring-indigo-500 px-4 py-2.5 text-sm" />
-        <p class="mt-1 text-xs text-slate-500">Upload signature image for invoices (JPG, PNG, max 2MB)</p>
+        <p class="mt-1 text-xs text-slate-500">{{ __('master.vendors.form.signature_hint') }}</p>
         @if(isset($vendor) && $vendor->signature_path)
             <div class="mt-2">
-                <p class="text-xs text-slate-600 mb-1">Current signature:</p>
+                <p class="text-xs text-slate-600 mb-1">{{ __('master.vendors.form.signature_current') }}</p>
                 <img src="{{ Storage::url($vendor->signature_path) }}" alt="Signature" class="h-16 border rounded">
             </div>
         @endif
@@ -68,6 +68,6 @@
 </div>
 
 <div class="mt-8 flex items-center justify-end gap-3">
-    <a href="{{ route('vendors.index') }}" class="border border-slate-300 text-slate-700 rounded-xl px-4 py-2 hover:bg-slate-50">Cancel</a>
-    <x-primary-button class="bg-indigo-600 hover:bg-indigo-700 rounded-xl px-6 py-3 text-white">Save</x-primary-button>
+    <a href="{{ route('vendors.index') }}" class="border border-slate-300 text-slate-700 rounded-xl px-4 py-2 hover:bg-slate-50">{{ __('master.vendors.form.cancel') }}</a>
+    <x-primary-button class="bg-indigo-600 hover:bg-indigo-700 rounded-xl px-6 py-3 text-white">{{ __('master.vendors.form.save') }}</x-primary-button>
 </div>

@@ -1,13 +1,13 @@
 <x-app-layout>
     <x-slot name="header">
-        {{ ($customsOnly ?? false) ? 'Edit Dokumen Import' : 'Edit Departure' }}
+        {{ ($customsOnly ?? false) ? __('incoming.arrivals.edit.header_customs') : __('incoming.arrivals.edit.header') }}
     </x-slot>
 
     <div class="py-8">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             @if ($errors->any())
                 <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 space-y-2">
-                    <div class="font-semibold">Periksa kembali kolom tanggal di bawah.</div>
+                    <div class="font-semibold">{{ __('incoming.arrivals.edit.error_title') }}</div>
                     <ul class="list-disc list-inside space-y-1 text-red-800">
                         @foreach ($errors->all() as $error)
                             <li>{{ $error }}</li>
@@ -19,7 +19,7 @@
             <div class="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-6">
                 <div>
                     <h2 class="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                        {{ ($customsOnly ?? false) ? 'Dokumen Import' : 'Departure ' . ($arrival->invoice_no ?? 'Edit') }}
+                        {{ ($customsOnly ?? false) ? __('incoming.arrivals.edit.title_docs') : __('incoming.arrivals.edit.title_departure', ['invoice' => ($arrival->invoice_no ?? 'Edit')]) }}
                         @if (!($customsOnly ?? false) && $arrival->purchaseOrder)
                             <span
                                 class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-100 text-indigo-700"
@@ -30,8 +30,8 @@
                     </h2>
                     <p class="text-sm text-slate-500">
                         {{ ($customsOnly ?? false)
-                            ? 'Isi atau koreksi No PEN, Tanggal No PEN, dan No AJU untuk invoice import yang sudah complete receive.'
-                            : 'Edit informasi utama departure. Items & receive records tidak diubah dari halaman ini.' }}
+                            ? '{{ __('incoming.arrivals.edit.desc_customs') }}'
+                            : '{{ __('incoming.arrivals.edit.desc_departure') }}' }}
                     </p>
                 </div>
 
@@ -46,19 +46,19 @@
                     @if ($customsOnly ?? false)
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div class="space-y-1">
-                                <label class="text-sm font-medium text-slate-700">Invoice No.</label>
+                                <label class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.edit.invoice_no') }}</label>
                                 <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
                                     {{ $arrival->invoice_no ?? '-' }}
                                 </div>
                             </div>
                             <div class="space-y-1">
-                                <label class="text-sm font-medium text-slate-700">Vendor</label>
+                                <label class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.edit.vendor') }}</label>
                                 <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
                                     {{ $arrival->vendor->vendor_name ?? '-' }}
                                 </div>
                             </div>
                             <div class="space-y-1">
-                                <label class="text-sm font-medium text-slate-700">Invoice Date</label>
+                                <label class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.edit.invoice_date') }}</label>
                                 <div class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
                                     {{ optional($arrival->invoice_date)->format('Y-m-d') ?? '-' }}
                                 </div>
@@ -85,19 +85,19 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div class="space-y-1">
-                                <label for="etd" class="text-sm font-medium text-slate-700">ETD</label>
+                                <label for="etd" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.edit.etd') }}</label>
                                 <input type="date" id="etd" name="etd"
                                     value="{{ old('etd', optional($arrival->ETD)->format('Y-m-d')) }}"
                                     class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             </div>
                             <div class="space-y-1">
-                                <label for="eta" class="text-sm font-medium text-slate-700">ETA JKT</label>
+                                <label for="eta" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.edit.eta_jkt') }}</label>
                                 <input type="date" id="eta" name="eta"
                                     value="{{ old('eta', optional($arrival->ETA)->format('Y-m-d')) }}"
                                     class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             </div>
                             <div class="space-y-1">
-                                <label for="eta_gci" class="text-sm font-medium text-slate-700">ETA GCI</label>
+                                <label for="eta_gci" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.edit.eta_gci') }}</label>
                                 <input type="date" id="eta_gci" name="eta_gci"
                                     value="{{ old('eta_gci', optional($arrival->ETA_GCI)->format('Y-m-d')) }}"
                                     class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
@@ -107,19 +107,19 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div class="space-y-1">
-                                <label for="vessel" class="text-sm font-medium text-slate-700">Vessel</label>
+                                <label for="vessel" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.edit.vessel') }}</label>
                                 <input type="text" id="vessel" name="vessel" value="{{ old('vessel', $arrival->vessel) }}"
                                     class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             </div>
                             <div class="space-y-1">
-                                <label for="bl_no" class="text-sm font-medium text-slate-700">Bill of Lading</label>
+                                <label for="bl_no" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.edit.bl') }}</label>
                                 <input type="text" id="bl_no" name="bl_no"
                                     value="{{ old('bl_no', $arrival->bill_of_lading) }}"
                                     class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                                 @error('bl_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
                             <div class="space-y-1">
-                                <label for="price_term" class="text-sm font-medium text-slate-700">Price Term</label>
+                                <label for="price_term" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.edit.price_term') }}</label>
                                 <input type="text" id="price_term" name="price_term"
                                     value="{{ old('price_term', $arrival->price_term) }}" placeholder="FOB / CIF / EXW"
                                     class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
@@ -129,21 +129,21 @@
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     @endif
                         <div class="space-y-1">
-                            <label for="pen_no" class="text-sm font-medium text-slate-700">Nomor PEN</label>
+                            <label for="pen_no" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.edit.pen_no') }}</label>
                             <input type="text" id="pen_no" name="pen_no"
                                 value="{{ old('pen_no', $arrival->pen_no) }}"
                                 class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             @error('pen_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
-                            <label for="pen_date" class="text-sm font-medium text-slate-700">Tanggal No PEN</label>
+                            <label for="pen_date" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.edit.pen_date') }}</label>
                             <input type="date" id="pen_date" name="pen_date"
                                 value="{{ old('pen_date', optional($arrival->pen_date)->format('Y-m-d')) }}"
                                 class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                             @error('pen_date') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1">
-                            <label for="aju_no" class="text-sm font-medium text-slate-700">Nomor AJU</label>
+                            <label for="aju_no" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.edit.aju_no') }}</label>
                             <input type="text" id="aju_no" name="aju_no"
                                 value="{{ old('aju_no', $arrival->aju_no) }}"
                                 class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
@@ -153,8 +153,7 @@
                     @if (!($customsOnly ?? false))
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="space-y-1">
-                            <label for="bl_status" class="text-sm font-medium text-slate-700">Bill of Lading
-                                Status</label>
+                            <label for="bl_status" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.edit.bl_status') }}</label>
                             <select id="bl_status" name="bl_status"
                                 class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                                 <option value="">-</option>
@@ -165,17 +164,16 @@
                             @error('bl_status') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         <div class="space-y-1 md:col-span-2">
-                            <label for="bl_file" class="text-sm font-medium text-slate-700">Upload Bill of Lading
-                                (PDF/JPG/PNG)</label>
+                            <label for="bl_file" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.edit.bl_file') }}</label>
                             <input type="file" id="bl_file" name="bl_file" accept="application/pdf,image/*"
                                 class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
                             <div class="text-xs text-slate-500">
                                 @if ($arrival->bill_of_lading_file_url)
-                                    File sekarang:
+                                    {{ __('incoming.arrivals.edit.current_file') }}
                                     <a class="text-indigo-600 hover:underline" href="{{ $arrival->bill_of_lading_file_url }}"
-                                        target="_blank" rel="noopener">Download / View</a>
+                                        target="_blank" rel="noopener">{{ __('incoming.arrivals.edit.download') }}</a>
                                 @else
-                                    Belum ada file.
+                                    {{ __('incoming.arrivals.edit.no_file') }}
                                 @endif
                             </div>
                             @error('bl_file') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
@@ -190,16 +188,15 @@
                                     d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
                                     clip-rule="evenodd" />
                             </svg>
-                            <span class="text-xs font-bold uppercase tracking-wider">Automated HS Code</span>
+                            <span class="text-xs font-bold uppercase tracking-wider">{{ __('incoming.arrivals.edit.hs_title') }}</span>
                         </div>
                         <p class="text-xs text-indigo-600 leading-relaxed">
-                            HS Code akan di-generate otomatis berdasarkan Master Part dari setiap item yang Anda
-                            tambahkan ke departure ini. Sistem akan menggabungkan nomor HS yang sama menjadi satu.
+                            {{ __('incoming.arrivals.edit.hs_desc') }}
                         </p>
                     </div>
 
                     <div class="space-y-1">
-                        <label for="currency" class="text-sm font-medium text-slate-700">Currency</label>
+                        <label for="currency" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.edit.currency') }}</label>
                         <input type="text" id="currency" name="currency"
                             value="{{ old('currency', $arrival->currency) }}"
                             class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
@@ -208,14 +205,13 @@
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="space-y-1">
-                            <label for="port_of_loading" class="text-sm font-medium text-slate-700">Port of
-                                Loading</label>
+                            <label for="port_of_loading" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.edit.port_loading') }}</label>
                             <input type="text" id="port_of_loading" name="port_of_loading"
                                 value="{{ old('port_of_loading', $arrival->port_of_loading) }}"
                                 class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
                         </div>
                         <div class="space-y-1">
-                            <label for="seal_code" class="text-sm font-medium text-slate-700">Seal Code</label>
+                            <label for="seal_code" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.edit.seal_code') }}</label>
                             <input type="text" id="seal_code" name="seal_code"
                                 value="{{ old('seal_code', $arrival->seal_code) }}"
                                 class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">
@@ -240,19 +236,16 @@
                         }
                     @endphp
                     <div class="space-y-1">
-                        <label for="container_numbers" class="text-sm font-medium text-slate-700">Container
-                            Numbers</label>
+                        <label for="container_numbers" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.edit.container_numbers') }}</label>
                         <textarea id="container_numbers" name="container_numbers" rows="4"
                             class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
                             placeholder="1 baris = 1 container\nFormat: CONTAINER_NO [SEAL_CODE]">{{ $containerPrefill }}</textarea>
-                        <p class="text-xs text-slate-500">Contoh: <span class="font-semibold">MSKU1234567 SEAL001</span>
-                            (seal optional). Kalau seal kosong, akan pakai <span class="font-semibold">Seal Code</span>
-                            di atas.</p>
+                        <p class="text-xs text-slate-500">{{ __('incoming.arrivals.edit.container_hint') }}</p>
                         @error('container_numbers') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
 
                     <div class="space-y-1">
-                        <label for="notes" class="text-sm font-medium text-slate-700">Notes</label>
+                        <label for="notes" class="text-sm font-medium text-slate-700">{{ __('incoming.arrivals.edit.notes') }}</label>
                         <textarea id="notes" name="notes" rows="3"
                             class="w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm">{{ old('notes', $arrival->notes) }}</textarea>
                     </div>
@@ -260,7 +253,7 @@
 
                     <div class="flex items-center justify-end gap-3">
                         <a href="{{ ($customsOnly ?? false) ? route('receives.completed.invoice', $arrival) : route('departures.show', $arrival) }}"
-                            class="px-4 py-2 rounded-lg border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-50">Back</a>
+                            class="px-4 py-2 rounded-lg border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-50">{{ __('incoming.arrivals.edit.back') }}</a>
                         <button type="submit"
                             class="px-5 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 transition">Save
                             Changes</button>

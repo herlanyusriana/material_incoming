@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Purchasing • Purchase Requests
+        {{ __('purchasing.requests.index.header') }}
     </x-slot>
 
     <div class="py-6">
@@ -26,21 +26,21 @@
             <div class="bg-white shadow-xl border border-slate-200 rounded-3xl overflow-hidden">
                 <div class="p-6 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-slate-50/50">
                     <div>
-                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Purchase Request List</h2>
-                        <p class="text-sm text-slate-500 mt-1">Manage and track your material requests.</p>
+                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">{{ __('purchasing.requests.index.title') }}</h2>
+                        <p class="text-sm text-slate-500 mt-1">{{ __('purchasing.requests.index.subtitle') }}</p>
                     </div>
                     <div class="flex items-center gap-3">
                         <a href="{{ route('purchasing.purchase-requests.create-from-mrp') }}" class="px-5 py-2.5 rounded-2xl bg-indigo-50 text-indigo-700 font-bold border border-indigo-200 hover:bg-indigo-100 transition-all flex items-center gap-2 shadow-sm uppercase text-xs tracking-wider">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
-                            Pull from MRP
+                            {{ __('purchasing.requests.index.from_mrp') }}
                         </a>
                         <a href="{{ route('purchasing.purchase-requests.create') }}" class="px-5 py-2.5 rounded-2xl bg-slate-900 text-white font-bold hover:bg-slate-800 transition-all flex items-center gap-2 shadow-md uppercase text-xs tracking-wider">
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                             </svg>
-                            New Manual PR
+                            {{ __('purchasing.requests.index.new_pr') }}
                         </a>
                     </div>
                 </div>
@@ -49,12 +49,12 @@
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">PR Number</th>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">Requester</th>
-                                <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">Amount</th>
-                                <th class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-widest">Status</th>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">Date</th>
-                                <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">Actions</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">{{ __('purchasing.requests.index.th_pr') }}</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">{{ __('purchasing.requests.index.th_requester') }}</th>
+                                <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">{{ __('purchasing.requests.index.th_amount') }}</th>
+                                <th class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-widest">{{ __('purchasing.requests.index.th_status') }}</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">{{ __('purchasing.requests.index.th_date') }}</th>
+                                <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">{{ __('purchasing.requests.index.th_actions') }}</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-slate-100">
@@ -62,7 +62,7 @@
                                 <tr class="hover:bg-slate-50/80 transition-colors group">
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm font-bold text-indigo-600 group-hover:text-indigo-700">{{ $request->pr_number }}</div>
-                                        <div class="text-[10px] text-slate-400 font-mono">{{ $request->items->count() }} line items</div>
+                                        <div class="text-[10px] text-slate-400 font-mono">{{ __('purchasing.requests.index.lines', ['count' => $request->items->count()]) }}</div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="flex items-center gap-3">
@@ -95,7 +95,7 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
-                                            <a href="{{ route('purchasing.purchase-requests.show', $request) }}" class="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all" title="View Detail" aria-label="View detail">
+                                            <a href="{{ route('purchasing.purchase-requests.show', $request) }}" class="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all" title="{{ __('purchasing.requests.index.view_label') }}" aria-label="{{ __('purchasing.requests.index.view_label') }}">
                                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
@@ -104,7 +104,7 @@
                                             @if ($request->status === 'Approved')
                                                 <form action="{{ route('purchasing.purchase-requests.convert', $request) }}" method="POST" class="inline">
                                                     @csrf
-                                                    <button type="submit" class="p-2 rounded-xl text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all" title="Convert to PO" aria-label="Convert to PO">
+                                                    <button type="submit" class="p-2 rounded-xl text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all" title="{{ __('purchasing.requests.index.convert_label') }}" aria-label="{{ __('purchasing.requests.index.convert_label') }}">
                                                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                                                         </svg>
@@ -121,8 +121,8 @@
                                             <svg class="h-12 w-12 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                             </svg>
-                                            <span class="font-semibold">No purchase requests found.</span>
-                                            <p class="text-xs">Start by creating a new request from MRP or manually.</p>
+                                            <span class="font-semibold">{{ __('purchasing.requests.index.empty') }}</span>
+                                            <p class="text-xs">{{ __('purchasing.requests.index.empty_hint') }}</p>
                                         </div>
                                     </td>
                                 </tr>

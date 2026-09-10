@@ -1,14 +1,14 @@
 <x-app-layout>
     <x-slot name="header">
-        BOM Where-Used Analysis (Implosion)
+        {{ __('planning.boms.where_used.header') }}
     </x-slot>
 
     <div class="py-6" x-data="whereUsedApp()">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
             {{-- Search Section --}}
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6">
-                <h3 class="text-lg font-bold text-slate-900 mb-4">🔍 Search Component</h3>
-                <p class="text-sm text-slate-600 mb-4">Enter a component part number to see where it's used in BOMs</p>
+                <h3 class="text-lg font-bold text-slate-900 mb-4">🔍 {{ __('planning.boms.where_used.search_title') }}</h3>
+                <p class="text-sm text-slate-600 mb-4">{{ __('planning.boms.where_used.search_hint') }}</p>
                 
                 <div class="flex gap-3">
                     <div class="flex-1">
@@ -17,7 +17,7 @@
                             x-model="searchQuery"
                             @keyup.enter="search()"
                             class="w-full rounded-xl border-slate-200 text-lg"
-                            placeholder="Enter part number (e.g., RM-001, COIL-123)"
+                            placeholder="{{ __('planning.boms.where_used.search_ph') }}"
                         >
                     </div>
                     <button 
@@ -26,14 +26,14 @@
                         class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white rounded-xl font-semibold transition-colors"
                         :class="{ 'opacity-50 cursor-not-allowed': isLoading }"
                     >
-                        <span x-show="!isLoading">Search</span>
-                        <span x-show="isLoading">Searching...</span>
+                        <span x-show="!isLoading">{{ __('planning.boms.where_used.search_btn') }}</span>
+                        <span x-show="isLoading">{{ __('planning.boms.where_used.searching') }}</span>
                     </button>
                 </div>
 
                 {{-- Quick Search Buttons --}}
                 <div class="mt-4 flex flex-wrap gap-2">
-                    <span class="text-xs text-slate-500 font-semibold">Quick search:</span>
+                    <span class="text-xs text-slate-500 font-semibold">{{ __('planning.boms.where_used.quick') }}</span>
                     @foreach($recentParts ?? [] as $part)
                         <button 
                             @click="searchQuery = '{{ $part->part_no }}'; search()"
@@ -50,11 +50,11 @@
                 {{-- No Results --}}
                 <div x-show="results.length === 0 && !isLoading" class="bg-yellow-50 border border-yellow-200 rounded-2xl p-8 text-center">
                     <div class="text-4xl mb-3">📭</div>
-                    <h4 class="text-lg font-bold text-yellow-900 mb-2">No Usage Found</h4>
+                    <h4 class="text-lg font-bold text-yellow-900 mb-2">{{ __('planning.boms.where_used.no_result') }}</h4>
                     <p class="text-yellow-700">
-                        Component <span class="font-mono font-bold" x-text="lastSearchQuery"></span> is not used in any BOM.
+                        {{ __('planning.boms.where_used.no_result_before') }} <span class="font-mono font-bold" x-text="lastSearchQuery"></span> {{ __('planning.boms.where_used.no_result_after') }}
                     </p>
-                    <p class="text-sm text-yellow-600 mt-2">This could mean it's a finished good or hasn't been added to any BOM yet.</p>
+                    <p class="text-sm text-yellow-600 mt-2">{{ __('planning.boms.where_used.no_result_hint') }}</p>
                 </div>
 
                 {{-- Results Table --}}
@@ -62,17 +62,17 @@
                     <div class="flex items-center justify-between mb-4">
                         <div>
                             <h4 class="text-lg font-bold text-slate-900">
-                                Where-Used Results for <span class="font-mono text-indigo-700" x-text="lastSearchQuery"></span>
+                                {{ __('planning.boms.where_used.results_for') }} <span class="font-mono text-indigo-700" x-text="lastSearchQuery"></span>
                             </h4>
                             <p class="text-sm text-slate-600 mt-1">
-                                Found in <span class="font-bold" x-text="results.length"></span> parent assembly/assemblies
+                                {{ __('planning.boms.where_used.found_before') }} <span class="font-bold" x-text="results.length"></span> {{ __('planning.boms.where_used.found_after') }}
                             </p>
                         </div>
                         <button 
                             @click="hasSearched = false; results = []; searchQuery = ''"
                             class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold text-sm"
                         >
-                            New Search
+                            {{ __('planning.boms.where_used.new_search') }}
                         </button>
                     </div>
 
@@ -80,12 +80,12 @@
                         <table class="min-w-full text-sm divide-y divide-slate-200">
                             <thead class="bg-slate-50">
                                 <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                    <th class="px-4 py-3 text-left font-semibold">Parent Part (FG/WIP)</th>
-                                    <th class="px-4 py-3 text-left font-semibold">Part Name</th>
-                                    <th class="px-4 py-3 text-center font-semibold">Revision</th>
-                                    <th class="px-4 py-3 text-center font-semibold">Status</th>
-                                    <th class="px-4 py-3 text-center font-semibold">Customer Products</th>
-                                    <th class="px-4 py-3 text-center font-semibold">Actions</th>
+                                    <th class="px-4 py-3 text-left font-semibold">{{ __('planning.boms.where_used.th_parent') }}</th>
+                                    <th class="px-4 py-3 text-left font-semibold">{{ __('planning.boms.where_used.th_name') }}</th>
+                                    <th class="px-4 py-3 text-center font-semibold">{{ __('planning.boms.where_used.th_rev') }}</th>
+                                    <th class="px-4 py-3 text-center font-semibold">{{ __('planning.boms.where_used.th_status') }}</th>
+                                    <th class="px-4 py-3 text-center font-semibold">{{ __('planning.boms.where_used.th_customer') }}</th>
+                                    <th class="px-4 py-3 text-center font-semibold">{{ __('planning.boms.where_used.th_actions') }}</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100 bg-white">
@@ -110,7 +110,7 @@
                                                 <span 
                                                     class="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold"
                                                     :class="(item.customer_products && item.customer_products.length > 0) ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'"
-                                                    x-text="(item.customer_products && item.customer_products.length > 0) ? item.customer_products.length + ' Products' : 'None'"
+                                                    x-text='(item.customer_products && item.customer_products.length > 0) ? item.customer_products.length + " " + @js(__("planning.boms.where_used.products")) : @js(__("planning.boms.where_used.none"))'
                                                 ></span>
                                             </td>
                                             <td class="px-4 py-3 text-center">
@@ -119,13 +119,13 @@
                                                         :href="`{{ url('planning/boms') }}/${item.id}/explosion`"
                                                         class="px-3 py-1.5 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-semibold text-xs"
                                                     >
-                                                        View Explosion
+                                                        {{ __('planning.boms.where_used.view_explosion') }}
                                                     </a>
                                                     <a 
                                                         :href="`{{ route('planning.boms.index') }}?gci_part_id=${item.part_id}`"
                                                         class="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs"
                                                     >
-                                                        Edit BOM
+                                                        {{ __('planning.boms.where_used.edit_bom') }}
                                                     </a>
                                                 </div>
                                             </td>
@@ -133,15 +133,15 @@
                                         <!-- Customer Products Detail Row -->
                                         <tr x-show="item.customer_products && item.customer_products.length > 0" class="bg-emerald-50">
                                             <td colspan="6" class="px-4 py-3">
-                                                <div class="text-xs font-semibold text-emerald-900 mb-2">📦 Customer Products using this FG Part:</div>
+                                                <div class="text-xs font-semibold text-emerald-900 mb-2">📦 {{ __('planning.boms.where_used.cp_title') }}</div>
                                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
                                                     <template x-for="cp in item.customer_products" :key="cp.customer_part_no">
                                                         <div class="bg-white rounded-lg p-3 border border-emerald-200">
                                                             <div class="font-mono font-bold text-sm text-slate-900" x-text="cp.customer_part_no"></div>
                                                             <div class="text-xs text-slate-600" x-text="cp.customer_part_name"></div>
                                                             <div class="text-xs text-slate-500 mt-1">
-                                                                <span class="font-semibold">Customer:</span> <span x-text="cp.customer_name"></span> | 
-                                                                <span class="font-semibold">Usage:</span> <span x-text="cp.usage_qty"></span> pcs
+                                                                <span class="font-semibold">{{ __('planning.boms.where_used.cp_customer') }}</span> <span x-text="cp.customer_name"></span> | 
+                                                                <span class="font-semibold">{{ __('planning.boms.where_used.cp_usage') }}</span> <span x-text="cp.usage_qty"></span> pcs
                                                             </div>
                                                         </div>
                                                     </template>
@@ -156,14 +156,13 @@
 
                     {{-- Impact Analysis --}}
                     <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                        <h5 class="text-sm font-bold text-blue-900 mb-2">💡 Impact Analysis</h5>
+                        <h5 class="text-sm font-bold text-blue-900 mb-2">💡 {{ __('planning.boms.where_used.impact') }}</h5>
                         <div class="text-sm text-blue-800 space-y-1">
                             <p>
-                                If you change or discontinue <span class="font-mono font-bold" x-text="lastSearchQuery"></span>, 
-                                it will affect <span class="font-bold" x-text="results.length"></span> parent product(s).
+                                {{ __('planning.boms.where_used.impact_before') }} <span class="font-mono font-bold" x-text="lastSearchQuery"></span>{{ __('planning.boms.where_used.impact_middle') }} <span class="font-bold" x-text="results.length"></span> {{ __('planning.boms.where_used.impact_after') }}
                             </p>
                             <p class="text-xs text-blue-600">
-                                Consider checking for substitutes or updating all affected BOMs before making changes.
+                                {{ __('planning.boms.where_used.impact_hint') }}
                             </p>
                         </div>
                     </div>
@@ -174,25 +173,25 @@
             <div x-show="!hasSearched" class="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-200 rounded-2xl p-8">
                 <div class="max-w-2xl mx-auto text-center">
                     <div class="text-5xl mb-4">🔎</div>
-                    <h3 class="text-xl font-bold text-slate-900 mb-3">BOM Where-Used Analysis</h3>
+                    <h3 class="text-xl font-bold text-slate-900 mb-3">{{ __('planning.boms.where_used.info_title') }}</h3>
                     <p class="text-slate-700 mb-4">
-                        Quickly find which products use a specific component. Perfect for:
+                        {{ __('planning.boms.where_used.info_hint') }}
                     </p>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
                         <div class="bg-white rounded-lg p-4 shadow-sm">
                             <div class="text-2xl mb-2">🔄</div>
-                            <div class="font-semibold text-slate-900 text-sm">Substitute Planning</div>
-                            <div class="text-xs text-slate-600 mt-1">Find all products affected by material changes</div>
+                            <div class="font-semibold text-slate-900 text-sm">{{ __('planning.boms.where_used.card_sub') }}</div>
+                            <div class="text-xs text-slate-600 mt-1">{{ __('planning.boms.where_used.card_sub_hint') }}</div>
                         </div>
                         <div class="bg-white rounded-lg p-4 shadow-sm">
                             <div class="text-2xl mb-2">⚠️</div>
-                            <div class="font-semibold text-slate-900 text-sm">Impact Assessment</div>
-                            <div class="text-xs text-slate-600 mt-1">Evaluate effects of discontinuing a part</div>
+                            <div class="font-semibold text-slate-900 text-sm">{{ __('planning.boms.where_used.card_impact') }}</div>
+                            <div class="text-xs text-slate-600 mt-1">{{ __('planning.boms.where_used.card_impact_hint') }}</div>
                         </div>
                         <div class="bg-white rounded-lg p-4 shadow-sm">
                             <div class="text-2xl mb-2">📊</div>
-                            <div class="font-semibold text-slate-900 text-sm">Usage Tracking</div>
-                            <div class="text-xs text-slate-600 mt-1">See complete usage across all products</div>
+                            <div class="font-semibold text-slate-900 text-sm">{{ __('planning.boms.where_used.card_usage') }}</div>
+                            <div class="text-xs text-slate-600 mt-1">{{ __('planning.boms.where_used.card_usage_hint') }}</div>
                         </div>
                     </div>
                 </div>
@@ -225,7 +224,7 @@
                         this.hasSearched = true;
                     } catch (error) {
                         console.error('Error searching:', error);
-                        alert('Error searching. Please try again.');
+                        alert(@js(__("planning.boms.where_used.alert_error")));
                     } finally {
                         this.isLoading = false;
                     }

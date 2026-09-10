@@ -570,14 +570,15 @@ class BomController extends Controller
             'wip_uom_id' => ['nullable', Rule::exists('uoms', 'id')],
         ]);
 
-        $consumptionUomId = isset($validated['consumption_uom_id']) ? (int) ($validated['consumption_uom_id'] ?? 0) : 0;
-        $wipUomId = isset($validated['wip_uom_id']) ? (int) ($validated['wip_uom_id'] ?? 0) : 0;
-
+        // Normalisasi UOM sebelum lookup tabel uoms: PCS->PCE, KG->KGM.
         $consumptionUomCode = isset($validated['consumption_uom']) && is_string($validated['consumption_uom'])
             ? strtoupper(trim($validated['consumption_uom']))
             : null;
         if ($consumptionUomCode === '') {
             $consumptionUomCode = null;
+        }
+        if ($consumptionUomCode !== null) {
+            $consumptionUomCode = \App\Support\Uom::canonical($consumptionUomCode);
         }
 
         $wipUomCode = isset($validated['wip_uom']) && is_string($validated['wip_uom'])
@@ -586,6 +587,12 @@ class BomController extends Controller
         if ($wipUomCode === '') {
             $wipUomCode = null;
         }
+        if ($wipUomCode !== null) {
+            $wipUomCode = \App\Support\Uom::canonical($wipUomCode);
+        }
+
+        $consumptionUomId = isset($validated['consumption_uom_id']) ? (int) ($validated['consumption_uom_id'] ?? 0) : 0;
+        $wipUomId = isset($validated['wip_uom_id']) ? (int) ($validated['wip_uom_id'] ?? 0) : 0;
 
         if ($consumptionUomId > 0) {
             $uom = Uom::query()->find($consumptionUomId);
@@ -619,6 +626,31 @@ class BomController extends Controller
             $componentPartNo = null;
         }
 
+        // ── UOM consistency check (BOM adalah satu-satunya "konverter") ──
+        // BOM line menentukan: 1 (FG|WIP unit) butuh `usage_qty` `<consumption_uom>` RM.
+        // consumption_uom WAJIB = UOM stok part RM (gci_parts.uom) supaya MRP/
+        // konsumsi bisa dicocokkan langsung ke stok tanpa konversi runtime.
+        // PCS<->PCE dan KG->KGM dinormalisasi via App\Support\Uom.
+        $resolvePartIdForUomCheck = function () use ($componentPartId, $componentPartNo, $bomItemId, $bom) {
+            if ($componentPartId > 0) {
+                return (int) $componentPartId;
+            }
+            if ($componentPartNo !== null) {
+                $found = GciPart::query()->where('part_no', $componentPartNo)->value('id');
+                if ($found) {
+                    return (int) $found;
+                }
+            }
+            if ($bomItemId) {
+                return (int) (BomItem::query()
+                    ->where('bom_id', $bom->id)
+                    ->where('id', $bomItemId)
+                    ->value('component_part_id') ?? 0);
+            }
+
+            return 0;
+        };
+
         $incomingPartId = isset($validated['incoming_part_id']) ? (int) ($validated['incoming_part_id'] ?? 0) : 0;
 
         $payload = [
@@ -647,6 +679,29 @@ class BomController extends Controller
         ];
 
         $bomItemId = isset($validated['bom_item_id']) ? (int) $validated['bom_item_id'] : null;
+
+        // ── UOM consistency validation ──
+        // consumption_uom (setelah normalisasi) harus sama dengan UOM stok
+        // part komponen RM (gci_parts.uom). Komponen tanpa part master di-skip
+        // (tetap boleh, hanya free-text line).
+        if ($consumptionUomCode !== null) {
+            $componentPartIdForUom = $resolvePartIdForUomCheck();
+            if ($componentPartIdForUom > 0) {
+                $componentUom = \App\Support\Uom::canonical(
+                    GciPart::query()->whereKey($componentPartIdForUom)->value('uom')
+                );
+                if ($componentUom !== null && !\App\Support\Uom::equivalent($consumptionUomCode, $componentUom)) {
+                    $componentNo = $componentPartNo
+                        ?? (GciPart::query()->whereKey($componentPartIdForUom)->value('part_no') ?? ('ID:' . $componentPartIdForUom));
+
+                    return back()->withInput()->withErrors([
+                        'consumption_uom' => "UOM BOM ({$consumptionUomCode}) tidak sesuai UOM stok part {$componentNo} ({$componentUom}). "
+                            . 'BOM harus memakai UOM stok part — konversi qty dihitung dari usage_qty, bukan ganti satuan.',
+                    ]);
+                }
+            }
+        }
+
         if ($bomItemId) {
             $item = BomItem::query()
                 ->where('bom_id', $bom->id)

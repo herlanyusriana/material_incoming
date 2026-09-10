@@ -23,7 +23,7 @@
 
 @if(empty($mrpRows))
     <div class="rounded-xl border border-dashed border-slate-200 p-10 text-center text-slate-500">
-        No data for this section.
+        {{ __('planning.mrp.table.empty') }}
     </div>
 @else
     @if($showPoAction)
@@ -33,15 +33,15 @@
                 @can('approve_mrp')
                     <button formaction="{{ route('planning.mrp.approve') }}"
                         class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-sm transition-colors">
-                        Approve Selected
+                        {{ __('planning.mrp.table.approve') }}
                     </button>
                     <button formaction="{{ route('planning.mrp.reject') }}"
                         class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-sm transition-colors">
-                        Reject Selected
+                        {{ __('planning.mrp.table.reject') }}
                     </button>
                 @endcan
                 <button class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm transition-colors">
-                    Generate PO from Selection
+                    {{ __('planning.mrp.table.generate_po') }}
                 </button>
             </div>
     @endif
@@ -54,15 +54,15 @@
                         <tr>
                             <th scope="col" class="sticky left-0 z-20 bg-indigo-900 px-3 py-2 text-left text-xs font-bold uppercase w-10">No.</th>
                             <th scope="col" class="sticky left-10 z-20 bg-indigo-900 px-3 py-2 text-left text-xs font-bold uppercase w-36 border-l border-indigo-700">Part No</th>
-                            <th scope="col" class="sticky left-46 z-20 bg-indigo-900 px-3 py-2 text-left text-xs font-bold uppercase w-64 border-l border-indigo-700">Name / Spec</th>
-                            <th scope="col" class="sticky left-[26rem] z-20 bg-indigo-900 px-3 py-2 text-right text-xs font-bold uppercase w-24 border-l border-indigo-700 border-r-2 border-r-indigo-400">Stock</th>
+                            <th scope="col" class="sticky left-46 z-20 bg-indigo-900 px-3 py-2 text-left text-xs font-bold uppercase w-64 border-l border-indigo-700">{{ __('planning.mrp.table_month_columns.th_name') }}</th>
+                            <th scope="col" class="sticky left-[26rem] z-20 bg-indigo-900 px-3 py-2 text-right text-xs font-bold uppercase w-24 border-l border-indigo-700 border-r-2 border-r-indigo-400">{{ __('planning.mrp.table_month_columns.th_stock') }}</th>
                             @foreach ($months as $ym)
                                 <th scope="col" class="px-2 py-2 text-center text-xs font-bold uppercase w-24 border-l border-indigo-800">
                                     <div class="whitespace-nowrap">{{ $monthLabels[$ym] ?? $ym }}</div>
                                     <div class="text-[10px] font-normal opacity-70">{{ substr($ym, 0, 4) }}</div>
                                 </th>
                             @endforeach
-                            <th scope="col" class="px-2 py-2 text-right text-xs font-bold uppercase w-28 border-l border-indigo-700">Total</th>
+                            <th scope="col" class="px-2 py-2 text-right text-xs font-bold uppercase w-28 border-l border-indigo-700">{{ __('planning.mrp.table_month_columns.th_total') }}</th>
                             @if($showPoAction)
                                 <th scope="col" class="px-2 py-2 text-center text-xs font-bold uppercase w-16 border-l border-indigo-700">PO</th>
                             @endif
@@ -114,7 +114,7 @@
                                 @if($showPoAction)
                                     <td class="px-2 py-2 text-center border-l border-slate-200">
                                         @if($planned > 0 && !empty($row['plan_id']))
-                                            <input type="checkbox" name="plan_ids[]" value="{{ $row['plan_id'] }}" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" title="Select plan for PO / approval">
+                                            <input type="checkbox" name="plan_ids[]" value="{{ $row['plan_id'] }}" class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" title="{{ __('planning.mrp.table.select_title') }}">
                                         @else
                                             <span class="text-slate-300 text-xs">-</span>
                                         @endif

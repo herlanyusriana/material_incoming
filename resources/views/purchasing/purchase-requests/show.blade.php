@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Purchasing • PR Detail
+        {{ __('purchasing.requests.show.header') }}
     </x-slot>
 
     <div class="py-6">
@@ -10,7 +10,7 @@
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
-                    Back to List
+                    {{ __('purchasing.requests.show.back') }}
                 </a>
 
                 <div class="flex items-center gap-3">
@@ -21,7 +21,7 @@
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                                 </svg>
-                                Approve PR
+                                {{ __('purchasing.requests.show.approve') }}
                             </button>
                         </form>
                     @endif
@@ -31,7 +31,7 @@
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
                             </svg>
-                            Convert to PO
+                            {{ __('purchasing.requests.show.convert') }}
                         </a>
                     @endif
                 </div>
@@ -57,10 +57,10 @@
                                     {{ $purchaseRequest->status }}
                                 </span>
                             </div>
-                            <p class="text-slate-500 font-medium">Requested on {{ $purchaseRequest->created_at->format('l, M d, Y') }} by <span class="text-slate-900 font-bold border-b border-slate-200">{{ $purchaseRequest->requester?->name }}</span></p>
+                            <p class="text-slate-500 font-medium">{{ __('purchasing.requests.show.requested_on') }} {{ $purchaseRequest->created_at->format('l, M d, Y') }} {{ __('purchasing.requests.show.requested_by') }} <span class="text-slate-900 font-bold border-b border-slate-200">{{ $purchaseRequest->requester?->name }}</span></p>
                         </div>
                         <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center justify-center min-w-[180px]">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total PR Value</span>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{{ __('purchasing.requests.show.total_label') }}</span>
                             <span class="text-2xl font-black text-indigo-600 tabular-nums">{{ number_format($purchaseRequest->total_amount, 2) }}</span>
                         </div>
                     </div>
@@ -71,18 +71,18 @@
                         <div>
                             <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                                 <span class="h-px w-8 bg-slate-200"></span>
-                                Line Items
+                                {{ __('purchasing.requests.show.lines_title') }}
                             </h3>
                             <div class="overflow-hidden border border-slate-200 rounded-2xl">
                                 <table class="min-w-full divide-y divide-slate-200">
                                     <thead class="bg-slate-50">
                                         <tr>
-                                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">Part Number</th>
-                                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">Description</th>
-                                            <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">Qty</th>
-                                            <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">Unit Price</th>
-                                            <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">Subtotal</th>
-                                            <th class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-widest">Required Date</th>
+                                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">{{ __('purchasing.requests.show.th_part_no') }}</th>
+                                            <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">{{ __('purchasing.requests.show.th_desc') }}</th>
+                                            <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">{{ __('purchasing.requests.show.th_qty') }}</th>
+                                            <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">{{ __('purchasing.requests.show.th_price') }}</th>
+                                            <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">{{ __('purchasing.requests.show.th_subtotal') }}</th>
+                                            <th class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-widest">{{ __('purchasing.requests.show.th_date') }}</th>
                                         </tr>
                                     </thead>
                                     <tbody class="bg-white divide-y divide-slate-100">
@@ -117,7 +117,7 @@
                             <div>
                                 <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                                     <span class="h-px w-8 bg-slate-200"></span>
-                                    Notes
+                                    {{ __('purchasing.requests.show.notes_title') }}
                                 </h3>
                                 <div class="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 text-slate-700 text-sm italic leading-relaxed">
                                     {{ $purchaseRequest->notes }}

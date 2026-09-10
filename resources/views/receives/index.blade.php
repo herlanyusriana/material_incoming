@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Process Receives
+        {{ __('incoming.receives.index.header') }}
     </x-slot>
 
     <div class="py-6">
@@ -13,11 +13,11 @@
 
             <div class="flex items-center justify-between">
                 <div>
-                    <h3 class="text-lg font-bold text-slate-900">Pending Items to Receive</h3>
-                    <p class="text-sm text-slate-600">Select items to process receives</p>
+                    <h3 class="text-lg font-bold text-slate-900">{{ __('incoming.receives.index.title') }}</h3>
+                    <p class="text-sm text-slate-600">{{ __('incoming.receives.index.subtitle') }}</p>
                 </div>
                 <a href="{{ route('receives.completed') }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">
-                    View Completed Receives
+                    {{ __('incoming.receives.index.completed_link') }}
                 </a>
             </div>
 
@@ -26,10 +26,10 @@
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Vendor</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Invoice / Local PO</th>
-                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">ETD</th>
-                                <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Action</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.index.vendor') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.index.invoice') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.index.etd') }}</th>
+                                <th class="px-4 py-3 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.index.action') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
@@ -50,7 +50,7 @@
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z"/>
                                             </svg>
-                                            Receive
+                                            {{ __('incoming.receives.index.receive') }}
                                         </a>
                                     </td>
                                 </tr>
@@ -62,10 +62,10 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z"/>
                                             </svg>
                                         </div>
-                                        <h3 class="text-lg font-semibold text-slate-900 mb-2">No Pending Items</h3>
-                                        <p class="text-sm text-slate-600 mb-4">All departure items have been fully received.</p>
+                                        <h3 class="text-lg font-semibold text-slate-900 mb-2">{{ __('incoming.receives.index.empty_title') }}</h3>
+                                        <p class="text-sm text-slate-600 mb-4">{{ __('incoming.receives.index.empty_text') }}</p>
                                         <a href="{{ route('departures.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors">
-                                            Create New Departure
+                                            {{ __('incoming.receives.index.empty_cta') }}
                                         </a>
                                     </td>
                                 </tr>

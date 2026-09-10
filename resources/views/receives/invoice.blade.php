@@ -3,7 +3,7 @@
         $isLocal = strtolower((string) ($arrival->vendor?->vendor_type ?? '')) === 'local';
     @endphp
     <x-slot name="header">
-        {{ $isLocal ? 'Receive Local PO' : 'Receive Invoice' }} {{ $arrival->invoice_no }}
+        {{ ($isLocal ? __('incoming.receives.invoice.header_local') : __('incoming.receives.invoice.header')) }} {{ $arrival->invoice_no }}
     </x-slot>
 
     <div class="py-8">
@@ -13,7 +13,7 @@
 
                 @if ($errors->any())
                     <div class="bg-red-50 text-red-700 p-4 rounded-xl border border-red-200">
-                        <div class="font-semibold mb-1">Terjadi Kesalahan:</div>
+                        <div class="font-semibold mb-1">{{ __('incoming.receives.invoice.error_title') }}</div>
                         <ul class="list-disc ml-5 text-sm">
                             @foreach ($errors->all() as $error)
                                 <li>{{ $error }}</li>
@@ -24,52 +24,52 @@
 
                 <div class="flex items-center justify-between pb-6 border-b border-slate-200">
                     <div>
-                        <h3 class="text-xl font-bold text-slate-900">Receive Multiple Items</h3>
-                        <p class="text-sm text-slate-600 mt-1">Proses semua item pending dalam satu invoice</p>
+                        <h3 class="text-xl font-bold text-slate-900">{{ __('incoming.receives.invoice.title') }}</h3>
+                        <p class="text-sm text-slate-600 mt-1">{{ __('incoming.receives.invoice.subtitle') }}</p>
                     </div>
                     <div class="flex items-center gap-2">
                         @php
                             $hasContainerInspection = ($arrival->containers ?? collect())->contains(fn ($c) => (bool) $c->inspection);
                         @endphp
                         @if (!$isLocal && $hasContainerInspection)
-                            <a href="{{ route('departures.inspection-report', $arrival) }}" target="_blank" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-colors">Print Inspection</a>
+                            <a href="{{ route('departures.inspection-report', $arrival) }}" target="_blank" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-colors">{{ __('incoming.receives.invoice.print_inspection') }}</a>
                         @endif
-                        <a href="{{ route('receives.index') }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">Kembali</a>
+                        <a href="{{ route('receives.index') }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">{{ __('incoming.receives.invoice.back') }}</a>
                     </div>
                 </div>
 
                 <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">{{ $isLocal ? 'Info Local PO' : 'Info Invoice' }}</h4>
+                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">{{ $isLocal ? __('incoming.receives.invoice.local_info') : __('incoming.receives.invoice.invoice_info') }}</h4>
                     <div class="grid md:grid-cols-2 gap-x-12 gap-y-4 text-sm">
                         <div class="flex items-center">
-                            <span class="font-semibold text-slate-700 w-32">Supplier</span>
+                            <span class="font-semibold text-slate-700 w-32">{{ __('incoming.receives.invoice.supplier') }}</span>
                             <span class="text-slate-900">= {{ $arrival->vendor->vendor_name ?? 'N/A' }}</span>
                         </div>
                         <div class="flex items-center">
-                            <span class="font-semibold text-slate-700 w-32">{{ $isLocal ? 'Local PO No.' : 'Invoice No.' }}</span>
+                            <span class="font-semibold text-slate-700 w-32">{{ $isLocal ? __('incoming.receives.invoice.local_no') : __('incoming.receives.invoice.invoice_no') }}</span>
                             <span class="text-slate-900">= {{ $arrival->invoice_no }}</span>
                         </div>
                         @if ($isLocal)
                             <div class="flex items-center">
-                                <span class="font-semibold text-slate-700 w-32">PO Date</span>
+                                <span class="font-semibold text-slate-700 w-32">{{ __('incoming.receives.invoice.po_date') }}</span>
                                 <span class="text-slate-900">= {{ $arrival->invoice_date ? $arrival->invoice_date->format('d M Y') : '-' }}</span>
                             </div>
                             <div class="flex items-center">
-                                <span class="font-semibold text-slate-700 w-32">Currency</span>
+                                <span class="font-semibold text-slate-700 w-32">{{ __('incoming.receives.invoice.currency') }}</span>
                                 <span class="text-slate-900">= {{ $arrival->currency ?? 'IDR' }}</span>
                             </div>
                         @else
                             <div class="flex items-center">
-                                <span class="font-semibold text-slate-700 w-32">ETD</span>
+                                <span class="font-semibold text-slate-700 w-32">{{ __('incoming.receives.invoice.etd') }}</span>
                                 <span class="text-slate-900">= {{ $arrival->ETD ? $arrival->ETD->format('d M Y') : '-' }}</span>
                             </div>
                             <div class="flex items-center">
-                                <span class="font-semibold text-slate-700 w-32">ETA</span>
+                                <span class="font-semibold text-slate-700 w-32">{{ __('incoming.receives.invoice.eta') }}</span>
                                 <span class="text-slate-900">= {{ $arrival->ETA ? $arrival->ETA->format('d M Y') : '-' }}</span>
                             </div>
                         @endif
                         <div class="flex items-center">
-                            <span class="font-semibold text-slate-700 w-32">Total Bundle</span>
+                            <span class="font-semibold text-slate-700 w-32">{{ __('incoming.receives.invoice.total_bundle') }}</span>
                             <span class="text-slate-900">= {{ number_format($pendingItems->sum('qty_bundle') ?? 0) }}</span>
                         </div>
                     </div>
@@ -77,10 +77,10 @@
 
                 @if ($isLocal)
                     <div class="bg-white rounded-xl p-6 border border-slate-200">
-                        <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Upload Documents</h4>
+                        <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">{{ __('incoming.receives.invoice.docs_title') }}</h4>
                          <div class="grid md:grid-cols-3 gap-6">
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Surat Jalan</label>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">{{ __('incoming.receives.invoice.sj') }}</label>
                                 <input type="file" name="delivery_note_file"
                                     class="block w-full text-sm text-slate-500
                                     file:mr-4 file:py-2 file:px-4
@@ -91,7 +91,7 @@
                                 @error('delivery_note_file') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Invoice</label>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">{{ __('incoming.receives.invoice.invoice_file') }}</label>
                                 <input type="file" name="invoice_file"
                                     class="block w-full text-sm text-slate-500
                                     file:mr-4 file:py-2 file:px-4
@@ -102,7 +102,7 @@
                                 @error('invoice_file') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                             </div>
                              <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1">Packing List</label>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">{{ __('incoming.receives.invoice.packing_list') }}</label>
                                 <input type="file" name="packing_list_file"
                                     class="block w-full text-sm text-slate-500
                                     file:mr-4 file:py-2 file:px-4
@@ -116,18 +116,18 @@
                     </div>
 
                     <div class="bg-white rounded-xl p-6 border border-slate-200">
-                        <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Input Mode</h4>
+                        <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">{{ __('incoming.receives.invoice.mode_title') }}</h4>
                         <div class="flex flex-wrap items-center gap-6 text-sm">
                             <label class="inline-flex items-center gap-2">
                                 <input type="radio" name="tag_mode" value="no_tag" class="rounded border-slate-300" @checked(old('tag_mode', 'no_tag') === 'no_tag')>
-                                <span class="font-semibold text-slate-800">No TAG (1 form / item)</span>
+                                <span class="font-semibold text-slate-800">{{ __('incoming.receives.invoice.mode_no_tag') }}</span>
                             </label>
                             <label class="inline-flex items-center gap-2">
                                 <input type="radio" name="tag_mode" value="with_tag" class="rounded border-slate-300" @checked(old('tag_mode') === 'with_tag')>
-                                <span class="font-semibold text-slate-800">With TAG (auto generate per package)</span>
+                                <span class="font-semibold text-slate-800">{{ __('incoming.receives.invoice.mode_with_tag') }}</span>
                             </label>
                             <div class="text-xs text-slate-500">
-                                No TAG: input sekali total package + total qty. With TAG: TAG otomatis dibuat sesuai jumlah package.
+                                {{ __('incoming.receives.invoice.mode_desc') }}
                             </div>
                         </div>
                         @error('tag_mode') <p class="text-xs text-red-600 mt-2">{{ $message }}</p> @enderror
@@ -135,29 +135,29 @@
                 @endif
 
                 <div class="bg-white rounded-xl p-6 border border-slate-200">
-                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Receiving Info</h4>
+                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">{{ __('incoming.receives.invoice.receiving_info') }}</h4>
                     <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 text-sm">
                         <div class="space-y-1">
-                            <label for="receive_date" class="text-sm font-medium text-slate-700">Tanggal Receive</label>
+                            <label for="receive_date" class="text-sm font-medium text-slate-700">{{ __('incoming.receives.invoice.receive_date') }}</label>
                             <input type="date" id="receive_date" name="receive_date" value="{{ old('receive_date', now()->toDateString()) }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" required>
                             @error('receive_date') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
 
                         <div class="space-y-1">
-                            <label for="invoice_no" class="text-sm font-medium text-slate-700">Invoice No.</label>
+                            <label for="invoice_no" class="text-sm font-medium text-slate-700">{{ __('incoming.receives.invoice.invoice_no') }}</label>
                             <input type="text" id="invoice_no" name="invoice_no" value="{{ old('invoice_no', $arrival->invoice_no) }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm uppercase" placeholder="INV/2024/001">
                             @error('invoice_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
 
                         <div class="space-y-1">
-                            <label for="delivery_note_no" class="text-sm font-medium text-slate-700">No. Surat Jalan</label>
+                            <label for="delivery_note_no" class="text-sm font-medium text-slate-700">{{ __('incoming.receives.invoice.sj_no') }}</label>
                             <input type="text" id="delivery_note_no" name="delivery_note_no" value="{{ old('delivery_note_no') }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm uppercase" placeholder="SJ/2024/001">
                             @error('delivery_note_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
 
                         @if ($isLocal)
                             <div class="space-y-1">
-                                <label for="truck_no" class="text-sm font-medium text-slate-700">No. Truck</label>
+                                <label for="truck_no" class="text-sm font-medium text-slate-700">{{ __('incoming.receives.invoice.truck_no') }}</label>
                                 <input type="text" id="truck_no" name="truck_no" value="{{ old('truck_no') }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm uppercase" placeholder="B 1234 CD" required>
                                 @error('truck_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
@@ -170,14 +170,14 @@
                 @endphp
                 @if (!$isLocal && $containers->count())
                     <div class="bg-white rounded-xl p-6 border border-slate-200">
-                        <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Container Inspection (per Container)</h4>
+                        <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">{{ __('incoming.receives.invoice.inspection_title') }}</h4>
                         <div class="overflow-x-auto border border-slate-200 rounded-xl">
                             <table class="min-w-full divide-y divide-slate-200 text-sm">
                                 <thead class="bg-slate-50">
                                     <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                        <th class="px-4 py-3 text-left font-semibold">Container No</th>
-                                        <th class="px-4 py-3 text-left font-semibold">Seal Code</th>
-                                        <th class="px-4 py-3 text-left font-semibold">Status</th>
+                                        <th class="px-4 py-3 text-left font-semibold">{{ __('incoming.receives.invoice.container_no') }}</th>
+                                        <th class="px-4 py-3 text-left font-semibold">{{ __('incoming.receives.invoice.seal_code') }}</th>
+                                        <th class="px-4 py-3 text-left font-semibold">{{ __('incoming.receives.invoice.status') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-100 bg-white">
@@ -192,7 +192,7 @@
                                                     </span>
                                                 @else
                                                     <span class="inline-flex items-center rounded-xl px-2 py-0.5 text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200">
-                                                        NOT INSPECTED
+                                                        {{ __('incoming.receives.invoice.not_inspected') }}
                                                     </span>
                                                 @endif
                                             </td>
@@ -202,7 +202,7 @@
                             </table>
                         </div>
                         <div class="mt-3 text-xs text-slate-500">
-                            Input inspection dilakukan dari aplikasi mobile (per container). Halaman receive hanya menampilkan status + print report.
+                            {{ __('incoming.receives.invoice.inspection_note') }}
                         </div>
                     </div>
                 @endif
@@ -211,34 +211,34 @@
                     <div class="border border-slate-200 rounded-xl shadow-sm">
                         <div class="px-6 py-4 bg-gradient-to-r from-slate-50 to-slate-100 flex items-center justify-between">
                             <div class="space-y-1 text-sm">
-                                <div class="text-xs uppercase text-slate-500">Item</div>
+                                <div class="text-xs uppercase text-slate-500">{{ __('incoming.receives.invoice.item') }}</div>
                                 <div class="font-semibold text-slate-900">{{ $item->part?->part_no ?? '-' }} — {{ $item->part?->part_name_gci ?? $item->part?->part_name_vendor ?? '-' }}</div>
                                 <div class="text-slate-600 font-mono text-xs">{{ $item->size ?? '-' }}</div>
                             </div>
                             <div class="flex items-center gap-4 text-sm">
                                 <div class="flex items-center gap-2">
-                                    <span class="font-semibold text-slate-700">Planned</span>
+                                    <span class="font-semibold text-slate-700">{{ __('incoming.receives.invoice.planned') }}</span>
                                     <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-800">{{ number_format($item->qty_goods) }}</span>
                                     <span class="text-xs font-semibold text-slate-500">{{ strtoupper($item->unit_goods ?? 'KGM') }}</span>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <span class="font-semibold text-slate-700">Remaining</span>
+                                    <span class="font-semibold text-slate-700">{{ __('incoming.receives.invoice.remaining') }}</span>
                                     <span class="px-2 py-1 rounded-lg bg-green-50 text-green-800" id="remaining-{{ $item->id }}">{{ number_format($item->remaining_qty) }}</span>
                                     <span class="text-xs font-semibold text-slate-500">{{ strtoupper($item->unit_goods ?? 'KGM') }}</span>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <span class="font-semibold text-slate-700">Input Total</span>
+                                    <span class="font-semibold text-slate-700">{{ __('incoming.receives.invoice.input_total') }}</span>
                                     <span class="px-2 py-1 rounded-lg bg-blue-50 text-blue-800" id="input-total-{{ $item->id }}">0</span>
                                     <span class="text-xs font-semibold text-slate-500">{{ strtoupper($item->unit_goods ?? 'KGM') }}</span>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <span class="font-semibold text-slate-700">Total Bundle</span>
+                                    <span class="font-semibold text-slate-700">{{ __('incoming.receives.invoice.total_bundle_label') }}</span>
                                     <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-800">{{ number_format($item->qty_bundle ?? 0) }}</span>
                                     <span class="text-xs font-semibold text-slate-500">{{ strtoupper($item->unit_bundle ?? 'PALLET') }}</span>
                                 </div>
                                 @if($item->weight_nett > 0 || $item->weight_gross > 0)
                                     <div class="flex items-center gap-2">
-                                        <span class="font-semibold text-slate-700">Planned Weight</span>
+                                        <span class="font-semibold text-slate-700">{{ __('incoming.receives.invoice.planned_weight') }}</span>
                                         <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-800 text-xs">
                                             N: {{ number_format($item->weight_nett, 1) }} / G: {{ number_format($item->weight_gross, 1) }}
                                         </span>
@@ -253,15 +253,15 @@
                                 <thead class="bg-white">
                                     <tr>
                                         <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                            Tag
-                                            <button type="button" class="ml-2 px-3 py-1 bg-blue-500 hover:bg-indigo-600 text-white text-xs font-medium rounded-lg transition-colors shadow-sm add-tag-btn" data-item="{{ $item->id }}">+ Add TAG</button>
+                                            {{ __('incoming.receives.invoice.tag') }}
+                                            <button type="button" class="ml-2 px-3 py-1 bg-blue-500 hover:bg-indigo-600 text-white text-xs font-medium rounded-lg transition-colors shadow-sm add-tag-btn" data-item="{{ $item->id }}">{{ __('incoming.receives.invoice.add_tag') }}</button>
                                         </th>
-	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Location</th>
-	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Bundle</th>
-	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Qty Goods</th>
-	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Net Weight (KGM)</th>
-	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Gross Weight (KGM)</th>
-	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">QC</th>
+	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.invoice.location') }}</th>
+	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.invoice.bundle') }}</th>
+	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.invoice.qty_goods') }}</th>
+	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.invoice.net_weight') }}</th>
+	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.invoice.gross_weight') }}</th>
+	                                        <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.invoice.qc') }}</th>
 	                                    </tr>
 	                                </thead>
                                 <tbody
@@ -340,12 +340,12 @@
                                 <table class="min-w-full divide-y divide-slate-200">
                                     <thead class="bg-white">
                                         <tr>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Location</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Bundle</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Qty Goods</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Net Weight (KGM)</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Gross Weight (KGM)</th>
-                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">QC</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.invoice.location') }}</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.invoice.bundle') }}</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.invoice.qty_goods') }}</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.invoice.net_weight') }}</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.invoice.gross_weight') }}</th>
+                                            <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.invoice.qc') }}</th>
                                         </tr>
                                     </thead>
                                     <tbody class="divide-y divide-slate-100 bg-white">
@@ -398,9 +398,9 @@
                 @endforeach
 
                 <div class="flex items-center justify-end gap-4 pt-6 border-t border-slate-200">
-                    <a href="{{ route('receives.index') }}" class="px-5 py-2.5 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors text-sm font-medium">Cancel</a>
+                    <a href="{{ route('receives.index') }}" class="px-5 py-2.5 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors text-sm font-medium">{{ __('incoming.receives.invoice.cancel') }}</a>
                     <button type="submit" class="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors shadow-sm">
-                        Simpan Receive
+                        {{ __('incoming.receives.invoice.save') }}
                     </button>
                 </div>
             </form>

@@ -3,7 +3,7 @@
         $isLocal = strtolower((string) ($arrival?->vendor?->vendor_type ?? '')) === 'local';
     @endphp
     <x-slot name="header">
-        Edit {{ $isLocal ? 'Local PO Receive' : 'Receive' }} — {{ $arrival->invoice_no ?? '-' }}
+        {{ __('incoming.receives.edit.header', ['type' => ($isLocal ? __('incoming.receives.edit.type_local') : __('incoming.receives.edit.type_receive')), 'invoice' => ($arrival->invoice_no ?? '-')]) }}
     </x-slot>
 
     <div class="py-8">
@@ -27,8 +27,8 @@
                         <div class="text-xs font-mono text-slate-500">{{ $arrivalItem->size ?? '-' }}</div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <a href="{{ route('receives.label', $receive) }}" target="_blank" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-lg">Print Label</a>
-                        <a href="{{ route('receives.completed.invoice', $arrival) }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg">Back</a>
+                        <a href="{{ route('receives.label', $receive) }}" target="_blank" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold rounded-lg">{{ __('incoming.receives.edit.print_label') }}</a>
+                        <a href="{{ route('receives.completed.invoice', $arrival) }}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg">{{ __('incoming.receives.edit.back') }}</a>
                     </div>
                 </div>
             </div>
@@ -39,15 +39,15 @@
 
                 <div class="grid md:grid-cols-2 gap-4">
                     <div>
-                        <label class="text-xs font-semibold text-slate-600">Tanggal Receive</label>
+                        <label class="text-xs font-semibold text-slate-600">{{ __('incoming.receives.edit.receive_date') }}</label>
                         <input type="date" name="receive_date" value="{{ old('receive_date', optional($receive->ata_date)->toDateString() ?? now()->toDateString()) }}" class="mt-1 w-full rounded-xl border-slate-200" required>
                         @error('receive_date') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="text-xs font-semibold text-slate-600">QC Status</label>
+                        <label class="text-xs font-semibold text-slate-600">{{ __('incoming.receives.edit.qc_status') }}</label>
                         <select name="qc_status" class="mt-1 w-full rounded-xl border-slate-200" required>
-                            <option value="pass" @selected(old('qc_status', $receive->qc_status) === 'pass')>Good (Pass)</option>
-                            <option value="reject" @selected(old('qc_status', $receive->qc_status) === 'reject')>No Good (Reject)</option>
+                            <option value="pass" @selected(old('qc_status', $receive->qc_status) === 'pass')>{{ __('incoming.receives.edit.good') }}</option>
+                            <option value="reject" @selected(old('qc_status', $receive->qc_status) === 'reject')>{{ __('incoming.receives.edit.nogood') }}</option>
                         </select>
                         @error('qc_status') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
@@ -55,12 +55,12 @@
 
                 <div class="grid md:grid-cols-2 gap-4">
                     <div>
-                        <label class="text-xs font-semibold text-slate-600">TAG (fisik)</label>
+                        <label class="text-xs font-semibold text-slate-600">{{ __('incoming.receives.edit.tag') }}</label>
                         <input type="text" name="tag" value="{{ old('tag', $receive->tag) }}" class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="TAG-001">
                         @error('tag') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="text-xs font-semibold text-slate-600">Storage Location</label>
+                        <label class="text-xs font-semibold text-slate-600">{{ __('incoming.receives.edit.location') }}</label>
                         <input type="text" name="location_code" value="{{ old('location_code', $receive->location_code) }}" class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="RACK-A1" data-qr-location-input>
                         @error('location_code') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
@@ -68,12 +68,12 @@
 
                 <div class="grid md:grid-cols-2 gap-4">
                     <div>
-                        <label class="text-xs font-semibold text-slate-600">{{ $isLocal ? 'Local PO No.' : 'Invoice No.' }}</label>
+                        <label class="text-xs font-semibold text-slate-600">{{ $isLocal ? __('incoming.receives.edit.local_no') : __('incoming.receives.edit.invoice_no') }}</label>
                         <input type="text" name="invoice_no" value="{{ old('invoice_no', $receive->invoice_no) }}" class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="INV/2024/001">
                         @error('invoice_no') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="text-xs font-semibold text-slate-600">No. Surat Jalan</label>
+                        <label class="text-xs font-semibold text-slate-600">{{ __('incoming.receives.edit.sj_no') }}</label>
                         <input type="text" name="delivery_note_no" value="{{ old('delivery_note_no', $receive->delivery_note_no) }}" class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="SJ/2024/001">
                         @error('delivery_note_no') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
@@ -82,7 +82,7 @@
                 @if ($isLocal)
                     <div class="grid md:grid-cols-2 gap-4">
                         <div>
-                            <label class="text-xs font-semibold text-slate-600">No. Truck</label>
+                            <label class="text-xs font-semibold text-slate-600">{{ __('incoming.receives.edit.truck_no') }}</label>
                             <input type="text" name="truck_no" value="{{ old('truck_no', $receive->truck_no) }}" class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="B 1234 CD" required>
                             @error('truck_no') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                         </div>
@@ -91,12 +91,12 @@
 
                 <div class="grid md:grid-cols-3 gap-4">
                     <div>
-                        <label class="text-xs font-semibold text-slate-600">Package Qty</label>
+                        <label class="text-xs font-semibold text-slate-600">{{ __('incoming.receives.edit.package_qty') }}</label>
                         <input type="number" name="bundle_qty" min="0" value="{{ old('bundle_qty', $receive->bundle_qty ?? 0) }}" class="mt-1 w-full rounded-xl border-slate-200" required>
                         @error('bundle_qty') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="text-xs font-semibold text-slate-600">Package Unit</label>
+                        <label class="text-xs font-semibold text-slate-600">{{ __('incoming.receives.edit.package_unit') }}</label>
                         <select name="bundle_unit" class="mt-1 w-full rounded-xl border-slate-200" required>
                             <option value="PALLET" @selected(old('bundle_unit', $receive->bundle_unit) === 'PALLET')>PALLET</option>
                             <option value="BUNDLE" @selected(old('bundle_unit', $receive->bundle_unit) === 'BUNDLE')>BUNDLE</option>
@@ -108,7 +108,7 @@
                         @error('bundle_unit') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="text-xs font-semibold text-slate-600">Qty Goods ({{ strtoupper($arrivalItem->unit_goods ?? 'KGM') }})</label>
+                        <label class="text-xs font-semibold text-slate-600">{{ __('incoming.receives.edit.qty_goods', ['unit' => strtoupper($arrivalItem->unit_goods ?? 'KGM')]) }}</label>
                         <input type="number" name="qty" min="1" value="{{ old('qty', $receive->qty) }}" class="mt-1 w-full rounded-xl border-slate-200" required>
                         @error('qty') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
@@ -116,21 +116,21 @@
 
                 <div class="grid md:grid-cols-2 gap-4">
                     <div>
-                        <label class="text-xs font-semibold text-slate-600">Net Weight (KGM)</label>
+                        <label class="text-xs font-semibold text-slate-600">{{ __('incoming.receives.edit.net_weight') }}</label>
                         <input type="number" step="0.01" name="net_weight" value="{{ old('net_weight', $receive->net_weight ?? $receive->weight) }}" class="mt-1 w-full rounded-xl border-slate-200" placeholder="0.00">
                         @error('net_weight') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                     <div>
-                        <label class="text-xs font-semibold text-slate-600">Gross Weight (KGM)</label>
+                        <label class="text-xs font-semibold text-slate-600">{{ __('incoming.receives.edit.gross_weight') }}</label>
                         <input type="number" step="0.01" name="gross_weight" value="{{ old('gross_weight', $receive->gross_weight) }}" class="mt-1 w-full rounded-xl border-slate-200" placeholder="0.00">
                         @error('gross_weight') <p class="text-xs text-red-600 mt-1">{{ $message }}</p> @enderror
                     </div>
                 </div>
 
                 <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-200">
-                    <a href="{{ route('receives.completed.invoice', $arrival) }}" class="px-5 py-2.5 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors text-sm font-medium">Cancel</a>
+                    <a href="{{ route('receives.completed.invoice', $arrival) }}" class="px-5 py-2.5 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors text-sm font-medium">{{ __('incoming.receives.edit.cancel') }}</a>
                     <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors shadow-sm">
-                        Update Receive
+                        {{ __('incoming.receives.edit.update') }}
                     </button>
                 </div>
             </form>

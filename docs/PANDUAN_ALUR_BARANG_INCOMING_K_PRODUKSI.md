@@ -11,15 +11,15 @@
 Dokumen ini menjelaskan **4 langkah** untuk memproses barang material dari supplier sampai barang itu keluar dari gudang dan masuk ke produksi:
 
 ```
-[1] CATAT BARANG MASUK   →   [2] TERIMA BARANG (RECEIVING)   →   [3] CETAK LABEL   →   [4] KELUARKAN KE PRODUKSI
-     (Input Manual)              (buat tag + simpan ke rak)        (label + QR)          (Post WH Supply)
+[1] CATAT BARANG MASUK   →   [2] TERIMA BARANG (RECEIVING)   →   [3] PUTAWAY (opsional)   →   [4] CETAK LABEL   →   [5] KELUARKAN KE PRODUKSI
+     (Input Manual)              (tag + QC + simpan ke Inventory)  (pindah ke rak)         (label + QR)       (Post WH Supply)
 ```
 
 Setelah langkah 2, barang sudah **tersimpan di stok gudang**. Langkah 3 membuat label fisik untuk ditempel. Langkah 4 mengeluarkan barang dari gudang ke produksi saat ada Work Order (WO) yang membutuhkan.
 
 > **Istilah singkat**
 > - **Arrival / Departure** = dokumen "barang datang dari supplier" (di menu disebut *Departure*).
-> - **Receive / Receiving** = proses menimbang & menaruh barang ke rak, membuat **tag** (nomor identitas tiap tumpukan).
+> - **Receive / Receiving** = proses menimbang, membuat **tag**, melakukan QC, dan menyimpan stok awal di `RECEIVING`.
 > - **Tag** = kode unik (mis. `TAG-001`) yang menempel di satu tumpukan barang di satu rak.
 > - **WO (Work Order)** = perintah produksi. Produksi "meminjam" material dari gudang lewat WO.
 
@@ -89,7 +89,7 @@ Klik **Save Departure**. Kalau sukses, Anda diarahkan ke halaman daftar/detail a
 **Menu**: buka detail Arrival → item → **Receive**
 **Alamat halaman**: `/departure-items/{id-item}/receive`
 
-Di sini Anda **menimbang, memberi tag, dan menaruh barang ke rak**. Setelah langkah ini, barang **resmi masuk stok gudang**.
+Di sini Anda **menimbang, memberi tag, dan mencatat hasil QC**. Setelah QC **Pass**, barang langsung masuk stok Inventory di lokasi virtual `RECEIVING`. Penempatan ke rak dilakukan belakangan melalui Putaway.
 
 ### Isi form receiving
 
@@ -103,7 +103,7 @@ Setiap **TAG** = satu tumpukan barang di satu rak. Ada 1 baris tag secara defaul
 | Kolom (per TAG) | Isi apa | Contoh | Wajib? |
 |---|---|---|---|
 | **Tag** | Kode unik tumpukan | `TAG-001` | Ya |
-| **Location / Rak** | Kode rak tujuan (harus rak yang sudah ada di sistem) | `K-BULK` | Disarankan |
+| **Location / Rak** | Opsional untuk kompatibilitas form. Saat Receive, lokasi ini belum dipakai untuk memindahkan stok | `K-BULK` | Tidak |
 | **Qty** | Jumlah barang pada tag ini (min. 1) | `100` | Ya |
 | **Qty Unit** | Satuan (harus sama dengan satuan barang) | `SHEET` | Ya |
 | **Bundle Qty / Unit** | Jumlah & satuan tumpukan | `2` / `PALLET` | Disarankan |
@@ -111,16 +111,16 @@ Setiap **TAG** = satu tumpukan barang di satu rak. Ada 1 baris tag secara defaul
 | **Gross Weight** | Berat kotor tag ini (kg) | `520` | Tidak |
 | **QC Status** | Hasil cek kualitas: **Pass** atau **Reject** | `Pass` | Ya |
 
-> **Rak (Location)**: pilih rak yang sudah terdaftar. Untuk material mentah (RM) biasanya rak berawalan `K-`, `N-`, `P-`, `Q-` (mis. `K-BULK`). Rak FG (produk jadi) berawalan huruf lain (mis. `A-001`).
+> **Rak (Location)**: boleh dikosongkan saat Receive. Stok Pass akan tersimpan di `RECEIVING` terlebih dahulu. Rak fisik dipilih pada menu Putaway setelah barang siap dipindahkan.
 
 ### Simpan
 
 Klik **Save Receive**. Sistem akan:
 - Membuat record receive + tag
-- **Menambah stok** barang di rak yang dipilih (batch = nama tag)
+- **Menambah stok** barang di `RECEIVING` (batch = nama tag)
 - Menampilkan halaman invoice yang sudah selesai di-receive
 
-✅ **Selesai Langkah 2** — barang sudah **ada di stok gudang** (bisa dilihat di menu Inventory/Stock).
+✅ **Selesai Langkah 2** — barang sudah **ada di Inventory** dan menunggu Putaway (bisa dilihat di menu Inventory/Stock).
 
 ---
 

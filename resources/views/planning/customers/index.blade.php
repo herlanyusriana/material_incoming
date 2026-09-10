@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Planning • Customers
+        {{ __('planning.customers.index.header') }}
     </x-slot>
 
     <div class="py-6" x-data="planningCustomers()">
@@ -27,9 +27,9 @@
 
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
                 <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div class="text-sm text-slate-600">Manage customer master list for planning.</div>
+                    <div class="text-sm text-slate-600">{{ __('planning.customers.index.subtitle') }}</div>
                     <button class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold" @click="openCreate()">
-                        Add Customer
+                        {{ __('planning.customers.index.add') }}
                     </button>
                 </div>
 
@@ -37,10 +37,10 @@
                     <table class="min-w-full text-sm divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                <th class="px-4 py-3 text-left font-semibold">Code</th>
-                                <th class="px-4 py-3 text-left font-semibold">Name</th>
-                                <th class="px-4 py-3 text-left font-semibold">Status</th>
-                                <th class="px-4 py-3 text-right font-semibold">Actions</th>
+                                <th class="px-4 py-3 text-left font-semibold">{{ __('planning.customers.index.th_code') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold">{{ __('planning.customers.index.th_name') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold">{{ __('planning.customers.index.th_status') }}</th>
+                                <th class="px-4 py-3 text-right font-semibold">{{ __('planning.customers.index.th_actions') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -54,17 +54,17 @@
                                         </span>
                                     </td>
                                     <td class="px-4 py-3 text-right">
-                                        <button type="button" class="text-indigo-600 hover:text-indigo-800 font-semibold" @click="openEdit(@js($c))">Edit</button>
-                                        <form action="{{ route('planning.customers.destroy', $c) }}" method="POST" class="inline" onsubmit="return confirm('Delete customer?')">
+                                        <button type="button" class="text-indigo-600 hover:text-indigo-800 font-semibold" @click="openEdit(@js($c))">{{ __('planning.customers.index.edit') }}</button>
+                                        <form action="{{ route('planning.customers.destroy', $c) }}" method="POST" class="inline" onsubmit='return confirm(@js(__("planning.customers.index.confirm_delete")));'>
                                             @csrf
                                             @method('DELETE')
-                                            <button class="ml-3 text-red-600 hover:text-red-800 font-semibold" type="submit">Delete</button>
+                                            <button class="ml-3 text-red-600 hover:text-red-800 font-semibold" type="submit">{{ __('planning.customers.index.delete') }}</button>
                                         </form>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="px-4 py-8 text-center text-slate-500">No customers</td>
+                                    <td colspan="4" class="px-4 py-8 text-center text-slate-500">{{ __('planning.customers.index.empty') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -80,7 +80,7 @@
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4" x-show="modalOpen" x-cloak @keydown.escape.window="close()">
             <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
                 <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
-                    <div class="text-sm font-semibold text-slate-900" x-text="mode === 'create' ? 'Add Customer' : 'Edit Customer'"></div>
+                    <div class="text-sm font-semibold text-slate-900" x-text="mode === 'create' ? '{{ __('planning.customers.index.modal_add') }}' : '{{ __('planning.customers.index.modal_edit') }}'"></div>
                     <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50" @click="close()">✕</button>
                 </div>
 
@@ -91,24 +91,24 @@
                     </template>
 
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">Code</label>
+                        <label class="text-sm font-semibold text-slate-700">{{ __('planning.customers.index.form_code') }}</label>
                         <input name="code" class="mt-1 w-full rounded-xl border-slate-200" placeholder="LG" required x-model="form.code">
                     </div>
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">Name</label>
+                        <label class="text-sm font-semibold text-slate-700">{{ __('planning.customers.index.form_name') }}</label>
                         <input name="name" class="mt-1 w-full rounded-xl border-slate-200" placeholder="LG Electronics" required x-model="form.name">
                     </div>
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">Status</label>
+                        <label class="text-sm font-semibold text-slate-700">{{ __('planning.customers.index.form_status') }}</label>
                         <select name="status" class="mt-1 w-full rounded-xl border-slate-200" required x-model="form.status">
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
+                            <option value="active">{{ __('planning.customers.index.active') }}</option>
+                            <option value="inactive">{{ __('planning.customers.index.inactive') }}</option>
                         </select>
                     </div>
 
                     <div class="flex justify-end gap-2 pt-2">
-                        <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50" @click="close()">Cancel</button>
-                        <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Save</button>
+                        <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50" @click="close()">{{ __('planning.customers.index.cancel') }}</button>
+                        <button type="submit" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">{{ __('planning.customers.index.save') }}</button>
                     </div>
                 </form>
             </div>

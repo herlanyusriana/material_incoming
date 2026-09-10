@@ -5,11 +5,11 @@
                 <tr>
                     <th class="px-3 py-3 w-10"><input type="checkbox" class="rounded border-slate-300 text-indigo-600" :checked="allVisibleSelected()" @click.stop="toggleSelectAll($event.target.checked)"></th>
                     <th class="px-3 py-3 w-8"></th>
-                    <th class="px-3 py-3 text-left font-semibold">Part</th>
-                    <th class="px-3 py-3 text-left font-semibold">Part Vendor</th>
-                    <th class="px-3 py-3 text-left font-semibold">Policy</th>
-                    <th class="px-3 py-3 text-left font-semibold">Vendor</th>
-                    <th class="px-3 py-3 text-left font-semibold">Status</th>
+                    <th class="px-3 py-3 text-left font-semibold">{{ __('master.parts.table_rm.th_part') }}</th>
+                    <th class="px-3 py-3 text-left font-semibold">{{ __('master.parts.table_rm.th_part_vendor') }}</th>
+                    <th class="px-3 py-3 text-left font-semibold">{{ __('master.parts.table_rm.th_policy') }}</th>
+                    <th class="px-3 py-3 text-left font-semibold">{{ __('master.parts.table_rm.th_vendor') }}</th>
+                    <th class="px-3 py-3 text-left font-semibold">{{ __('master.parts.table_rm.th_status') }}</th>
                     <th class="px-3 py-3"></th>
                 </tr>
             </thead>
@@ -49,10 +49,10 @@
                         </td>
                         <td class="px-3 py-2.5 text-right whitespace-nowrap" @click.stop>
                             <div class="inline-flex items-center gap-1">
-                                <button type="button" class="px-2 py-1.5 rounded-md text-sm font-semibold text-indigo-600 hover:bg-indigo-50 hover:text-indigo-800" @click="openEditPart(@js($p))">Edit</button>
-                                <form action="{{ route('parts.destroy', $p) }}" method="POST" class="inline" onsubmit="return confirm('Hapus part {{ $p->part_no }}?')">
+                                <button type="button" class="px-2 py-1.5 rounded-md text-sm font-semibold text-indigo-600 hover:bg-indigo-50 hover:text-indigo-800" @click="openEditPart(@js($p))">{{ __('master.parts.table_rm.edit') }}</button>
+                                <form action="{{ route('parts.destroy', $p) }}" method="POST" class="inline" onsubmit="return confirm(@js(__('master.parts.table_rm.delete_confirm', ['no' => $p->part_no])))">
                                     @csrf @method('DELETE')
-                                    <button type="submit" class="px-2 py-1.5 rounded-md text-sm font-semibold text-red-600 hover:bg-red-50 hover:text-red-800">Hapus</button>
+                                    <button type="submit" class="px-2 py-1.5 rounded-md text-sm font-semibold text-red-600 hover:bg-red-50 hover:text-red-800">{{ __('master.parts.table_rm.delete') }}</button>
                                 </form>
                             </div>
                         </td>
@@ -65,12 +65,12 @@
                                         <table class="min-w-full text-xs divide-y divide-slate-200 rounded-lg overflow-hidden border border-slate-200 bg-white">
                                             <thead class="bg-slate-50 text-slate-400 uppercase tracking-wider">
                                                 <tr>
-                                                    <th class="px-3 py-2 text-left font-semibold">Vendor</th>
-                                                    <th class="px-3 py-2 text-left font-semibold">Part No</th>
-                                                    <th class="px-3 py-2 text-left font-semibold">Part Name</th>
-                                                    <th class="px-3 py-2 text-left font-semibold">Register</th>
-                                                    <th class="px-3 py-2 text-left font-semibold">UOM</th>
-                                                    <th class="px-3 py-2 text-left font-semibold">Status</th>
+                                                    <th class="px-3 py-2 text-left font-semibold">{{ __('master.parts.table_rm.th_sub_vendor') }}</th>
+                                                    <th class="px-3 py-2 text-left font-semibold">{{ __('master.parts.table_rm.th_sub_part_no') }}</th>
+                                                    <th class="px-3 py-2 text-left font-semibold">{{ __('master.parts.table_rm.th_sub_part_name') }}</th>
+                                                    <th class="px-3 py-2 text-left font-semibold">{{ __('master.parts.table_rm.th_sub_register') }}</th>
+                                                    <th class="px-3 py-2 text-left font-semibold">{{ __('master.parts.table_rm.th_sub_uom') }}</th>
+                                                    <th class="px-3 py-2 text-left font-semibold">{{ __('master.parts.table_rm.th_sub_status') }}</th>
                                                 </tr>
                                             </thead>
                                             <tbody class="divide-y divide-slate-100">
@@ -89,7 +89,7 @@
                                                 @endforeach
                                             </tbody>
                                         </table>
-                                        <p class="mt-1.5 text-[11px] text-slate-400">Harga diatur di <a href="{{ route('pricing.index') }}" class="font-semibold text-indigo-600 hover:underline">Pricing Master</a>.</p>
+                                        <p class="mt-1.5 text-[11px] text-slate-400">{{ __('master.parts.table_rm.pricing_note_before') }} <a href="{{ route('pricing.index') }}" class="font-semibold text-indigo-600 hover:underline">{{ __('master.parts.table_rm.pricing_note_link') }}</a>.</p>
                                     </div>
                                 </td>
                             </tr>
@@ -100,9 +100,9 @@
                         <div class="mx-auto w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0-8-4-8 4m0 0v10l8 4m0-10 8-4m-8 4v10m8-14v10l-8 4"/></svg>
                         </div>
-                        <p class="mt-3 text-sm font-semibold text-slate-600">Tidak ada Raw Material.</p>
-                        <p class="mt-1 text-xs text-slate-400">Coba ubah filter atau tambah part baru.</p>
-                        <button type="button" @click="openCreatePart()" class="mt-4 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold">+ Add Part</button>
+                        <p class="mt-3 text-sm font-semibold text-slate-600">{{ __('master.parts.table_rm.empty_title') }}</p>
+                        <p class="mt-1 text-xs text-slate-400">{{ __('master.parts.table_rm.empty_hint') }}</p>
+                        <button type="button" @click="openCreatePart()" class="mt-4 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold">{{ __('master.parts.table_rm.add_part') }}</button>
                     </td></tr>
                 @endforelse
             </tbody>

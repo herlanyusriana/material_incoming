@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Purchasing • PO Detail
+        {{ __('purchasing.orders.show.header') }}
     </x-slot>
 
     <div class="py-6">
@@ -10,7 +10,7 @@
                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
-                    Back to List
+                    {{ __('purchasing.orders.show.back') }}
                 </a>
 
                 <div class="flex items-center gap-3">
@@ -18,7 +18,7 @@
                         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                         </svg>
-                        Print PO
+                        {{ __('purchasing.orders.show.print') }}
                     </a>
 
                     @if ($purchaseOrder->status === 'Pending')
@@ -28,7 +28,7 @@
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                Approve PO
+                                {{ __('purchasing.orders.show.approve') }}
                             </button>
                         </form>
                     @endif
@@ -40,7 +40,7 @@
                                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                                 </svg>
-                                Release to Vendor
+                                {{ __('purchasing.orders.show.release') }}
                             </button>
                         </form>
                     @endif
@@ -70,17 +70,17 @@
                             
                             <div class="flex flex-wrap gap-8 pt-2">
                                 <div>
-                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Vendor</span>
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">{{ __('purchasing.orders.show.vendor_label') }}</span>
                                     <div class="text-sm font-bold text-slate-900 italic underline decoration-indigo-200">{{ $purchaseOrder->vendor?->vendor_name }}</div>
                                     <div class="text-[10px] text-slate-500 font-mono">{{ $purchaseOrder->vendor?->vendor_code }}</div>
                                 </div>
                                 <div>
-                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Created At</span>
+                                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">{{ __('purchasing.orders.show.created_label') }}</span>
                                     <div class="text-sm font-bold text-slate-700">{{ $purchaseOrder->created_at->format('M d, Y') }}</div>
                                 </div>
                                 @if ($purchaseOrder->released_at)
                                     <div>
-                                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Released At</span>
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">{{ __('purchasing.orders.show.released_label') }}</span>
                                         <div class="text-sm font-bold text-emerald-600">{{ $purchaseOrder->released_at->format('M d, Y H:i') }}</div>
                                     </div>
                                 @endif
@@ -88,9 +88,9 @@
                         </div>
 
                         <div class="bg-slate-900 p-6 rounded-2xl shadow-xl flex flex-col items-center justify-center text-center">
-                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total PO Value</span>
+                            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{{ __('purchasing.orders.show.total_label') }}</span>
                             <span class="text-3xl font-black text-white font-mono tabular-nums">{{ number_format($purchaseOrder->total_amount, 2) }}</span>
-                            <span class="text-[10px] text-slate-500 mt-2 font-medium italic">Incl. all items & taxes if any</span>
+                            <span class="text-[10px] text-slate-500 mt-2 font-medium italic">{{ __('purchasing.orders.show.total_hint') }}</span>
                         </div>
                     </div>
                 </div>
@@ -100,16 +100,16 @@
                         <div>
                             <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
                                 <span class="h-px w-8 bg-slate-200"></span>
-                                Order Particulars
+                                {{ __('purchasing.orders.show.lines_title') }}
                             </h3>
                             <div class="overflow-hidden border border-slate-200 rounded-2xl">
                                 <table class="min-w-full divide-y divide-slate-200 font-mono">
                                     <thead class="bg-slate-50">
                                         <tr>
-                                            <th class="px-6 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-widest">Item Description</th>
-                                            <th class="px-6 py-4 text-right text-xs font-black text-slate-500 uppercase tracking-widest">Qty</th>
-                                            <th class="px-6 py-4 text-right text-xs font-black text-slate-500 uppercase tracking-widest">Unit Price</th>
-                                            <th class="px-6 py-4 text-right text-xs font-black text-slate-500 uppercase tracking-widest">Line Total</th>
+                                            <th class="px-6 py-4 text-left text-xs font-black text-slate-500 uppercase tracking-widest">{{ __('purchasing.orders.show.th_item') }}</th>
+                                            <th class="px-6 py-4 text-right text-xs font-black text-slate-500 uppercase tracking-widest">{{ __('purchasing.orders.show.th_qty') }}</th>
+                                            <th class="px-6 py-4 text-right text-xs font-black text-slate-500 uppercase tracking-widest">{{ __('purchasing.orders.show.th_price') }}</th>
+                                            <th class="px-6 py-4 text-right text-xs font-black text-slate-500 uppercase tracking-widest">{{ __('purchasing.orders.show.th_total') }}</th>
                                         </tr>
                                     </thead>
                                     <tbody class="bg-white divide-y divide-slate-100">
@@ -119,7 +119,7 @@
                                                     <div class="font-bold text-slate-900">{{ $item->part?->part_no }}</div>
                                                     <div class="text-[10px] text-slate-500 font-sans tracking-tight">{{ $item->part?->part_name }}</div>
                                                     @if ($item->vendorPart)
-                                                        <div class="text-[10px] text-indigo-600 font-mono mt-1">Vendor Part: {{ $item->vendorPart->part_no }}</div>
+                                                        <div class="text-[10px] text-indigo-600 font-mono mt-1">{{ __('purchasing.orders.show.vendor_part') }}: {{ $item->vendorPart->part_no }}</div>
                                                     @endif
                                                 </td>
                                                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-bold text-indigo-600">
@@ -136,7 +136,7 @@
                                     </tbody>
                                     <tfoot class="bg-slate-50 text-sm font-black">
                                         <tr>
-                                            <td colspan="3" class="px-6 py-4 text-right text-slate-500 uppercase tracking-widest text-xs">Grand Total</td>
+                                            <td colspan="3" class="px-6 py-4 text-right text-slate-500 uppercase tracking-widest text-xs">{{ __('purchasing.orders.show.grand_total') }}</td>
                                             <td class="px-6 py-4 text-right text-slate-900 text-lg">{{ number_format($purchaseOrder->total_amount, 2) }}</td>
                                         </tr>
                                     </tfoot>
@@ -148,20 +148,20 @@
                             <div>
                                 <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                                     <span class="h-px w-8 bg-slate-200"></span>
-                                    Administrative Info
+                                    {{ __('purchasing.orders.show.admin_title') }}
                                 </h3>
                                 <div class="bg-slate-50 p-6 rounded-2xl border border-slate-200 space-y-3">
                                     <div class="flex justify-between text-xs">
-                                        <span class="text-slate-500 font-bold uppercase tracking-wider">Approved By</span>
+                                        <span class="text-slate-500 font-bold uppercase tracking-wider">{{ __('purchasing.orders.show.approved_by') }}</span>
                                         <span class="text-slate-900 font-black">{{ $purchaseOrder->approvedBy?->name ?? '—' }}</span>
                                     </div>
                                     <div class="flex justify-between text-xs">
-                                        <span class="text-slate-500 font-bold uppercase tracking-wider">Approval Date</span>
+                                        <span class="text-slate-500 font-bold uppercase tracking-wider">{{ __('purchasing.orders.show.approval_date') }}</span>
                                         <span class="text-slate-900 font-black">{{ $purchaseOrder->approved_at ? $purchaseOrder->approved_at->format('M d, Y H:i') : '—' }}</span>
                                     </div>
                                     <div class="h-px bg-slate-200 my-2"></div>
                                     <div class="flex justify-between text-xs">
-                                        <span class="text-slate-500 font-bold uppercase tracking-wider">Released By</span>
+                                        <span class="text-slate-500 font-bold uppercase tracking-wider">{{ __('purchasing.orders.show.released_by') }}</span>
                                         <span class="text-slate-900 font-black">{{ $purchaseOrder->releasedBy?->name ?? '—' }}</span>
                                     </div>
                                 </div>
@@ -170,7 +170,7 @@
                                 <div>
                                     <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                                         <span class="h-px w-8 bg-slate-200"></span>
-                                        Order Notes
+                                        {{ __('purchasing.orders.show.notes_title') }}
                                     </h3>
                                     <div class="bg-indigo-50/50 p-6 rounded-2xl border border-indigo-100 text-slate-700 text-sm italic leading-relaxed">
                                         {{ $purchaseOrder->notes }}

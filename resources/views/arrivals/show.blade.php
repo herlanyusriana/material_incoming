@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Departure {{ $arrival->invoice_no ?? 'Detail' }}
+        {{ __('incoming.arrivals.show.header', ['invoice' => ($arrival->invoice_no ?? 'Detail')]) }}
     </x-slot>
 
     <div class="py-6">
@@ -22,39 +22,39 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                     </svg>
-                    <span>Back to Departures</span>
+                    <span>{{ __('incoming.arrivals.show.back') }}</span>
                 </a>
                 <div class="flex items-center gap-2">
                     <a href="{{ route('receives.completed.invoice', $arrival) }}" class="inline-flex items-center gap-2 px-4 py-2 {{ ($isReceiveComplete ?? false) ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800' : 'bg-slate-100 hover:bg-slate-200 text-slate-800' }} font-medium rounded-lg transition-colors">
-                        Receive Summary
+                        {{ __('incoming.arrivals.show.receive_summary') }}
                     </a>
                     @if (!($isReceiveComplete ?? false))
                         <a href="{{ route('receives.invoice.create', $arrival) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium rounded-lg transition-colors">
-                            Receive Invoice
+                            {{ __('incoming.arrivals.show.receive_invoice') }}
                         </a>
                     @endif
                     <a href="{{ route('departures.edit', $arrival) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 font-medium rounded-lg transition-colors">
-                        Edit Departure
+                        {{ __('incoming.arrivals.show.edit_departure') }}
                     </a>
                     @php
                         $hasContainerInspection = ($arrival->containers ?? collect())->contains(fn ($c) => (bool) $c->inspection);
                     @endphp
                     @if ($arrival->inspection || $hasContainerInspection)
                         <a href="{{ route('departures.inspection-report', $arrival) }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors shadow-sm">
-                            Print Inspection
+                            {{ __('incoming.arrivals.show.print_inspection') }}
                         </a>
                     @endif
                     <a href="{{ route('departures.export-detail', $arrival) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M7.5 12 12 16.5m0 0L16.5 12M12 16.5V3" />
                         </svg>
-                        Export Excel
+                        {{ __('incoming.arrivals.show.export_excel') }}
                     </a>
                     <a href="{{ route('departures.invoice', $arrival) }}" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h2m2 4h6a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2Zm8-12V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v4h10Z" />
                         </svg>
-                        Print Invoice
+                        {{ __('incoming.arrivals.show.print_invoice') }}
                     </a>
                 </div>
             </div>
@@ -62,7 +62,7 @@
             <!-- Departure Information -->
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
                 <div class="pb-3 border-b border-slate-200">
-                    <h3 class="text-lg font-bold text-slate-900">Shipment Information</h3>
+                    <h3 class="text-lg font-bold text-slate-900">{{ __('incoming.arrivals.show.shipment_info') }}</h3>
                     <p class="text-sm text-slate-600 mt-1">Vendor {{ $arrival->vendor->vendor_name ?? '-' }} • Invoice {{ $arrival->invoice_no }}</p>
                 </div>
 	                @php
@@ -142,7 +142,7 @@
 	                    @endphp
 	                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-3 text-sm">
                     <div class="flex items-start gap-2">
-                        <span class="font-semibold text-slate-700 min-w-[100px]">Invoice:</span>
+                        <span class="font-semibold text-slate-700 min-w-[100px]">{{ __('incoming.arrivals.show.invoice_label') }}</span>
                         <div class="flex items-center gap-2">
                             <span class="text-slate-900">{{ $arrival->invoice_no }} ({{ $arrival->invoice_date ? $arrival->invoice_date->format('Y-m-d') : '-' }})</span>
                             @if ($arrival->purchaseOrder)
@@ -153,35 +153,35 @@
                         </div>
                     </div>
                     <div class="flex items-start gap-2">
-                        <span class="font-semibold text-slate-700 min-w-[100px]">Vendor:</span>
+                        <span class="font-semibold text-slate-700 min-w-[100px]">{{ __('incoming.arrivals.show.vendor') }}</span>
                         <span class="text-slate-900">{{ $arrival->vendor->vendor_name ?? '-' }}</span>
                     </div>
                     <div class="flex items-start gap-2">
-                        <span class="font-semibold text-slate-700 min-w-[100px]">Created by:</span>
+                        <span class="font-semibold text-slate-700 min-w-[100px]">{{ __('incoming.arrivals.show.created_by') }}</span>
                         <span class="text-slate-900">{{ $arrival->creator->name ?? '-' }}</span>
                     </div>
                     <div class="flex items-start gap-2">
-                        <span class="font-semibold text-slate-700 min-w-[100px]">Vessel:</span>
+                        <span class="font-semibold text-slate-700 min-w-[100px]">{{ __('incoming.arrivals.show.vessel') }}</span>
                         <span class="text-slate-900">{{ $arrival->vessel ?: '-' }}</span>
                     </div>
 	                    <div class="flex items-start gap-2">
-	                        <span class="font-semibold text-slate-700 min-w-[100px]">Trucking:</span>
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">{{ __('incoming.arrivals.show.trucking') }}</span>
 	                        <span class="text-slate-900">{{ $truckingName ?: '-' }}</span>
 	                    </div>
 	                    <div class="flex items-start gap-2">
-	                        <span class="font-semibold text-slate-700 min-w-[100px]">No. Container:</span>
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">{{ __('incoming.arrivals.show.no_container') }}</span>
 	                        <span class="text-slate-900">{{ $containerSummary ?: '-' }}</span>
 	                    </div>
 	                    <div class="flex items-start gap-2">
-	                        <span class="font-semibold text-slate-700 min-w-[100px]">ETD:</span>
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">{{ __('incoming.arrivals.show.etd') }}</span>
 	                        <span class="text-slate-900">{{ $arrival->ETD ? $arrival->ETD->format('Y-m-d') : '-' }}</span>
 	                    </div>
 	                    <div class="flex items-start gap-2">
-	                        <span class="font-semibold text-slate-700 min-w-[100px]">Seal Code:</span>
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">{{ __('incoming.arrivals.show.seal_code') }}</span>
 	                        <span class="text-slate-900 font-semibold">{{ $arrival->seal_code ?: '-' }}</span>
 	                    </div>
 		                    <div class="flex items-start gap-2">
-		                        <span class="font-semibold text-slate-700 min-w-[100px]">Bill of Lading:</span>
+		                        <span class="font-semibold text-slate-700 min-w-[100px]">{{ __('incoming.arrivals.show.bl') }}</span>
 		                        <span class="text-slate-900">
                                     {{ $arrival->bill_of_lading ?: '-' }}
                                     @if ($arrival->bill_of_lading_status)
@@ -191,29 +191,29 @@
                                     @endif
                                     @if ($arrival->bill_of_lading_file_url)
                                         <a class="ml-2 text-xs font-semibold text-indigo-600 hover:underline" href="{{ $arrival->bill_of_lading_file_url }}" target="_blank" rel="noopener">
-                                            View File
+                                            {{ __('incoming.arrivals.show.view_file') }}
                                         </a>
                                     @endif
                                 </span>
 		                    </div>
 	                    <div class="flex items-start gap-2">
-	                        <span class="font-semibold text-slate-700 min-w-[100px]">Nomor PEN:</span>
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">{{ __('incoming.arrivals.show.pen_no') }}</span>
 	                        <span class="text-slate-900">{{ $arrival->pen_no ?: '-' }}</span>
 	                    </div>
 	                    <div class="flex items-start gap-2">
-	                        <span class="font-semibold text-slate-700 min-w-[100px]">Tanggal No PEN:</span>
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">{{ __('incoming.arrivals.show.pen_date') }}</span>
 	                        <span class="text-slate-900">{{ $arrival->pen_date ? $arrival->pen_date->format('Y-m-d') : '-' }}</span>
 	                    </div>
 	                    <div class="flex items-start gap-2">
-	                        <span class="font-semibold text-slate-700 min-w-[100px]">Nomor AJU:</span>
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">{{ __('incoming.arrivals.show.aju_no') }}</span>
 	                        <span class="text-slate-900">{{ $arrival->aju_no ?: '-' }}</span>
 	                    </div>
 	                    <div class="flex items-start gap-2">
-	                        <span class="font-semibold text-slate-700 min-w-[100px]">Price Term:</span>
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">{{ __('incoming.arrivals.show.price_term') }}</span>
 	                        <span class="text-slate-900">{{ $arrival->price_term ?: '-' }}</span>
 	                    </div>
 	                    <div class="flex items-start gap-2">
-	                        <span class="font-semibold text-slate-700 min-w-[100px]">HS Code:</span>
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">{{ __('incoming.arrivals.show.hs_code') }}</span>
 	                        <span class="text-slate-900">
 	                            @if ($hsCodes->count())
 	                                <div class="flex flex-wrap gap-1">
@@ -229,11 +229,11 @@
 	                        </span>
 	                    </div>
                     <div class="flex items-start gap-2">
-                        <span class="font-semibold text-slate-700 min-w-[100px]">Port of Loading:</span>
+                        <span class="font-semibold text-slate-700 min-w-[100px]">{{ __('incoming.arrivals.show.port_loading') }}</span>
                         <span class="text-slate-900">{{ $arrival->port_of_loading ?: '-' }}</span>
                     </div>
 	                    <div class="flex items-start gap-2 sm:col-span-2">
-	                        <span class="font-semibold text-slate-700 min-w-[100px]">Containers:</span>
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">{{ __('incoming.arrivals.show.containers') }}</span>
 	                        <span class="text-slate-900">
 	                            @if ($containerDetails->count())
 	                                <div class="space-y-1">
@@ -249,13 +249,13 @@
 	                        </span>
 	                    </div>
 	                    <div class="flex items-start gap-2">
-	                        <span class="font-semibold text-slate-700 min-w-[100px]">Currency:</span>
+	                        <span class="font-semibold text-slate-700 min-w-[100px]">{{ __('incoming.arrivals.show.currency') }}</span>
 	                        <span class="text-slate-900">{{ $arrival->currency }}</span>
 	                    </div>
 	                </div>
                 @if ($arrival->notes)
                     <div class="flex items-start gap-2 pt-2 border-t border-slate-200 text-sm">
-                        <span class="font-semibold text-slate-700 min-w-[100px]">Notes:</span>
+                        <span class="font-semibold text-slate-700 min-w-[100px]">{{ __('incoming.arrivals.show.notes') }}</span>
                         <span class="text-slate-900">{{ $arrival->notes }}</span>
                     </div>
                 @endif
@@ -264,8 +264,8 @@
             <!-- Inspection Summary (read-only) -->
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
                 <div class="pb-3 border-b border-slate-200">
-                    <h3 class="text-lg font-bold text-slate-900">Container Inspection</h3>
-                    <p class="text-sm text-slate-600 mt-1">Diinput dari aplikasi Android (read-only di web).</p>
+                    <h3 class="text-lg font-bold text-slate-900">{{ __('incoming.arrivals.show.inspection_title') }}</h3>
+                    <p class="text-sm text-slate-600 mt-1">{{ __('incoming.arrivals.show.inspection_desc') }}</p>
                 </div>
 
                 @php
@@ -317,7 +317,7 @@
                                         </span>
                                         @if ($inspection)
                                             <div class="text-xs text-slate-500">
-                                                Updated: {{ $inspection->updated_at?->format('Y-m-d H:i') ?? '-' }}
+                                                {{ __('incoming.arrivals.show.updated') }} {{ $inspection->updated_at?->format('Y-m-d H:i') ?? '-' }}
                                             </div>
                                         @endif
                                     </div>
@@ -325,7 +325,7 @@
 
                                 @if ($inspection?->notes)
                                     <div class="text-sm text-slate-800">
-                                        <span class="font-semibold text-slate-700">Notes:</span> {{ $inspection->notes }}
+                                        <span class="font-semibold text-slate-700">{{ __('incoming.arrivals.show.notes') }}</span> {{ $inspection->notes }}
                                     </div>
                                 @endif
 
@@ -354,7 +354,7 @@
                                                 @if ($path)
                                                     <img src="{{ Storage::url($path) }}" alt="{{ $label }}" class="w-full h-36 object-cover">
                                                 @else
-                                                    <div class="h-36 flex items-center justify-center text-sm text-slate-400">No photo</div>
+                                                    <div class="h-36 flex items-center justify-center text-sm text-slate-400">{{ __('incoming.arrivals.show.no_photo') }}</div>
                                                 @endif
                                             </div>
                                         @endforeach
@@ -387,13 +387,13 @@
                             {{ strtoupper($arrival->inspection->status) }}
                         </span>
                         <div class="text-sm text-slate-600">
-                            Updated: {{ $arrival->inspection->updated_at?->format('Y-m-d H:i') ?? '-' }}
+                            {{ __('incoming.arrivals.show.updated') }} {{ $arrival->inspection->updated_at?->format('Y-m-d H:i') ?? '-' }}
                         </div>
                     </div>
 
                     @if ($arrival->inspection->notes)
                         <div class="text-sm text-slate-800">
-                            <span class="font-semibold text-slate-700">Notes:</span> {{ $arrival->inspection->notes }}
+                            <span class="font-semibold text-slate-700">{{ __('incoming.arrivals.show.notes') }}</span> {{ $arrival->inspection->notes }}
                         </div>
                     @endif
 
@@ -421,14 +421,14 @@
                                 @if ($path)
                                     <img src="{{ Storage::url($path) }}" alt="{{ $label }}" class="w-full h-40 object-cover">
                                 @else
-                                    <div class="h-40 flex items-center justify-center text-sm text-slate-400">No photo</div>
+                                    <div class="h-40 flex items-center justify-center text-sm text-slate-400">{{ __('incoming.arrivals.show.no_photo') }}</div>
                                 @endif
                             </div>
                         @endforeach
                     </div>
                 @else
                     <div class="text-sm text-slate-600">
-                        Belum ada data inspeksi untuk invoice ini.
+                        {{ __('incoming.arrivals.show.no_inspection') }}
                     </div>
                 @endif
             </div>
@@ -437,14 +437,14 @@
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4">
                 <div class="pb-3 border-b border-slate-200 flex items-start justify-between gap-4">
                     <div>
-                        <h3 class="text-lg font-bold text-slate-900">Departure Items</h3>
-                        <p class="text-sm text-slate-600 mt-1">Parts and receiving details</p>
+                        <h3 class="text-lg font-bold text-slate-900">{{ __('incoming.arrivals.show.items_title') }}</h3>
+                        <p class="text-sm text-slate-600 mt-1">{{ __('incoming.arrivals.show.items_desc') }}</p>
                     </div>
                     <a href="{{ route('departure-items.create', $arrival) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-lg transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                         </svg>
-                        Add Item
+                        {{ __('incoming.arrivals.show.add_item') }}
                     </a>
                 </div>
                 
@@ -452,16 +452,16 @@
                     <table class="min-w-max w-full text-sm divide-y divide-slate-200">
                         <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
                             <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Part Name (GCI)</th>
-                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Size</th>
-                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Qty Bundle</th>
-                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Qty Goods</th>
-                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Nett (kg)</th>
-                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Gross (kg)</th>
-                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Price /KG</th>
-                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Total</th>
-                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">Received</th>
-                                <th class="px-4 py-3 text-center font-semibold whitespace-nowrap">Actions</th>
+                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">{{ __('incoming.arrivals.show.part_name') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">{{ __('incoming.arrivals.show.size') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">{{ __('incoming.arrivals.show.qty_bundle') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">{{ __('incoming.arrivals.show.qty_goods') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">{{ __('incoming.arrivals.show.nett') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">{{ __('incoming.arrivals.show.gross') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">{{ __('incoming.arrivals.show.price_kg') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">{{ __('incoming.arrivals.show.total') }}</th>
+                                <th class="px-4 py-3 text-left font-semibold whitespace-nowrap">{{ __('incoming.arrivals.show.received') }}</th>
+                                <th class="px-4 py-3 text-center font-semibold whitespace-nowrap">{{ __('incoming.arrivals.show.actions') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100 bg-white">
@@ -499,12 +499,12 @@
                                     <td class="px-4 py-4 text-slate-800 font-semibold whitespace-nowrap">{{ number_format($item->total_price, 2) }}</td>
                                     <td class="px-4 py-4">
                                         <div class="text-slate-800 font-semibold">{{ number_format($receivedQty) }}</div>
-                                        <div class="text-xs text-slate-500">{{ $item->receives->count() }} receive{{ $item->receives->count() != 1 ? 's' : '' }}</div>
+                                        <div class="text-xs text-slate-500">{{ $item->receives->count() }} {{ $item->receives->count() != 1 ? __('incoming.arrivals.show.receives_suffix') : __('incoming.arrivals.show.receive_suffix') }}</div>
                                     </td>
 		                                    <td class="px-4 py-4">
 		                                        <div class="flex justify-center">
 		                                            <a href="{{ route('departure-items.edit', $item) }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors">
-		                                                Edit Item
+		                                                {{ __('incoming.arrivals.show.edit_item') }}
 		                                            </a>
 		                                        </div>
 		                                    </td>

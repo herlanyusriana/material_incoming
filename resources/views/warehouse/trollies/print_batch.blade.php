@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Trolly QR - Batch Print</title>
+    <title>{{ __('warehouse.trollies.print_batch.title') }}</title>
     <style>
         @page {
             size: 100mm 75mm;
@@ -167,11 +167,11 @@
                     <!-- Footer -->
                     <div class="footer">
                         <div class="info-box">
-                            <p>Type / Kind</p>
+                            <p>{{ __('warehouse.trollies.print_batch.type_kind') }}</p>
                             <h2>{{ $trolly->type ?: 'GEN' }} / {{ $trolly->kind ?: 'MAT' }}</h2>
                         </div>
                         <div class="trolly-badge">
-                            TROLLY
+                            {{ __('warehouse.trollies.print_batch.badge') }}
                         </div>
                     </div>
                 </div>

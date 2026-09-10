@@ -21,7 +21,7 @@
 
 @if(empty($mrpRows))
     <div class="rounded-xl border border-dashed border-slate-200 p-10 text-center text-slate-500">
-        No data for this section.
+        {{ __('planning.mrp.table.empty') }}
     </div>
 @else
     @if($showPoAction)
@@ -31,15 +31,15 @@
                 @can('approve_mrp')
                     <button formaction="{{ route('planning.mrp.approve') }}"
                         class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg shadow-sm transition-colors">
-                        Approve Selected
+                        {{ __('planning.mrp.table.approve') }}
                     </button>
                     <button formaction="{{ route('planning.mrp.reject') }}"
                         class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg shadow-sm transition-colors">
-                        Reject Selected
+                        {{ __('planning.mrp.table.reject') }}
                     </button>
                 @endcan
                 <button class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-sm transition-colors">
-                    Generate PO from Selection
+                    {{ __('planning.mrp.table.generate_po') }}
                 </button>
             </div>
     @endif
@@ -52,9 +52,9 @@
                         <tr>
                             <th scope="col" class="sticky left-0 z-20 bg-indigo-900 px-3 py-2 text-left text-xs font-bold uppercase w-8">No.</th>
                             <th scope="col" class="sticky left-8 z-20 bg-indigo-900 px-3 py-2 text-left text-xs font-bold uppercase w-32 border-l border-indigo-700">Part No</th>
-                            <th scope="col" class="sticky left-40 z-20 bg-indigo-900 px-3 py-2 text-left text-xs font-bold uppercase w-48 border-l border-indigo-700">Name / Spec</th>
-                            <th scope="col" class="sticky left-80 z-20 bg-indigo-900 px-3 py-2 text-left text-xs font-bold uppercase w-24 border-l border-indigo-700">Item</th>
-                            <th scope="col" class="sticky left-[26rem] z-20 bg-indigo-900 px-3 py-2 text-right text-xs font-bold uppercase w-24 border-l border-indigo-700 border-r-2 border-r-indigo-400">Stock</th>
+                            <th scope="col" class="sticky left-40 z-20 bg-indigo-900 px-3 py-2 text-left text-xs font-bold uppercase w-48 border-l border-indigo-700">{{ __('planning.mrp.table.th_name') }}</th>
+                            <th scope="col" class="sticky left-80 z-20 bg-indigo-900 px-3 py-2 text-left text-xs font-bold uppercase w-24 border-l border-indigo-700">{{ __('planning.mrp.table.th_item') }}</th>
+                            <th scope="col" class="sticky left-[26rem] z-20 bg-indigo-900 px-3 py-2 text-right text-xs font-bold uppercase w-24 border-l border-indigo-700 border-r-2 border-r-indigo-400">{{ __('planning.mrp.table.th_stock') }}</th>
 
                             @foreach ($dates as $date)
                                 <th scope="col" class="px-1 py-1 text-center text-[10px] font-semibold w-12 border-l border-indigo-800">
@@ -78,7 +78,7 @@
                                         <span>{{ $part->part_no }}</span>
                                         <a href="{{ route('production.orders.index', array_filter(['gci_part_id' => $part->id, 'month' => $month])) }}"
                                            class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-bold hover:bg-slate-200"
-                                           title="Open Production Orders for this part">
+                                           title="{{ __('planning.mrp.table.mo_title') }}">
                                             MO
                                         </a>
                                         @if(!empty($row['has_purchase']) && empty($row['has_production']))
@@ -103,18 +103,18 @@
                                     @if($mappedLine !== '' || $mappedCase !== '')
                                         <div class="mt-1 text-[10px] text-slate-600">
                                             @if($mappedLine !== '')
-                                                <span class="font-semibold text-slate-500">LINE:</span>
+                                                <span class="font-semibold text-slate-500">{{ __('planning.mrp.table.line_label') }}</span>
                                                 <span class="font-bold text-slate-700">{{ $mappedLine }}</span>
                                             @endif
                                             @if($mappedCase !== '')
                                                 <span class="text-slate-300 mx-1">•</span>
-                                                <span class="font-semibold text-slate-500">CASE:</span>
+                                                <span class="font-semibold text-slate-500">{{ __('planning.mrp.table.case_label') }}</span>
                                                 <span class="font-bold text-slate-700">{{ $mappedCase }}</span>
                                             @endif
                                         </div>
                                     @endif
                                 </td>
-                                <td class="sticky left-80 z-10 {{ $bgClass }} px-2 py-1 text-[10px] font-semibold text-rose-800 border-r border-slate-200">Outgoing</td>
+                                <td class="sticky left-80 z-10 {{ $bgClass }} px-2 py-1 text-[10px] font-semibold text-rose-800 border-r border-slate-200">{{ __('planning.mrp.table.row_outgoing') }}</td>
                                 <td class="sticky left-[26rem] z-10 {{ $bgClass }} px-2 py-1 text-right text-xs text-slate-400 border-r-2 border-slate-300">-</td>
 
                                 @foreach ($dates as $date)
@@ -127,7 +127,7 @@
 
                             @if($showIncoming)
                             <tr class="{{ $bgClass }}">
-                                <td class="sticky left-80 z-10 {{ $bgClass }} px-2 py-1 text-[10px] font-semibold text-slate-900 border-r border-slate-200">Incoming</td>
+                                <td class="sticky left-80 z-10 {{ $bgClass }} px-2 py-1 text-[10px] font-semibold text-slate-900 border-r border-slate-200">{{ __('planning.mrp.table.row_incoming') }}</td>
                                 <td class="sticky left-[26rem] z-10 {{ $bgClass }} px-2 py-1 text-right text-xs text-slate-400 border-r-2 border-slate-300">-</td>
 
                                 @foreach ($dates as $date)
@@ -140,7 +140,7 @@
                             @endif
 
                             <tr class="{{ $bgClass }}">
-                                <td class="sticky left-80 z-10 {{ $bgClass }} px-2 py-1 text-[10px] font-semibold text-slate-900 border-r border-slate-200">Stock</td>
+                                <td class="sticky left-80 z-10 {{ $bgClass }} px-2 py-1 text-[10px] font-semibold text-slate-900 border-r border-slate-200">{{ __('planning.mrp.table.row_stock') }}</td>
                                 <td class="sticky left-[26rem] z-10 {{ $bgClass }} px-2 py-1 text-right text-xs font-bold text-slate-800 border-r-2 border-slate-300 bg-yellow-50">
                                     {{ formatNumber($row['initial_stock']) }}
                                 </td>
@@ -157,7 +157,7 @@
                             </tr>
 
                             <tr class="{{ $bgClass }} border-b-2 border-slate-300">
-                                <td class="sticky left-80 z-10 {{ $bgClass }} px-2 py-1 text-[10px] font-bold text-red-700 border-r border-slate-200">Planned</td>
+                                <td class="sticky left-80 z-10 {{ $bgClass }} px-2 py-1 text-[10px] font-bold text-red-700 border-r border-slate-200">{{ __('planning.mrp.table.row_planned') }}</td>
                                 <td class="sticky left-[26rem] z-10 {{ $bgClass }} px-2 py-1 text-right text-xs text-slate-400 border-r-2 border-slate-300">-</td>
 
                                 @foreach ($dates as $date)
@@ -167,7 +167,7 @@
                                             <div class="flex flex-col items-center justify-center gap-1">
                                                 <span class="text-xs font-bold text-red-600">{{ formatNumber($val) }}</span>
                                                 @if($showPoAction && !empty($row['plan_id']))
-                                                    <input type="checkbox" name="plan_ids[]" value="{{ $row['plan_id'] }}" class="h-3 w-3 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" title="Select plan for PO / approval">
+                                                    <input type="checkbox" name="plan_ids[]" value="{{ $row['plan_id'] }}" class="h-3 w-3 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer" title="{{ __('planning.mrp.table.select_title') }}">
                                                 @endif
                                             </div>
                                         @else

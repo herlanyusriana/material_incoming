@@ -1,8 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
         <div>
-            <h2 class="font-semibold text-xl text-slate-800 leading-tight">Edit Trucking Company</h2>
-            <p class="text-sm text-slate-500">Update company details.</p>
+            <h2 class="font-semibold text-xl text-slate-800 leading-tight">{{ __('master.truckings.edit.title') }}</h2>
+            <p class="text-sm text-slate-500">{{ __('master.truckings.edit.subtitle') }}</p>
         </div>
     </x-slot>
 
@@ -14,50 +14,50 @@
                     @method('PUT')
                     
                     <div>
-                        <x-input-label for="company_name" value="Company Name" />
+                        <x-input-label for="company_name" :value="__('master.truckings.edit.company_name')" />
                         <x-text-input id="company_name" name="company_name" type="text" class="mt-1 block w-full" :value="old('company_name', $trucking->company_name)" required />
                         <x-input-error :messages="$errors->get('company_name')" class="mt-2" />
                     </div>
 
                     <div>
-                        <x-input-label for="address" value="Address" />
+                        <x-input-label for="address" :value="__('master.truckings.edit.address')" />
                         <textarea id="address" name="address" rows="3" class="mt-1 block w-full rounded-xl border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>{{ old('address', $trucking->address) }}</textarea>
                         <x-input-error :messages="$errors->get('address')" class="mt-2" />
                     </div>
 
                     <div>
-                        <x-input-label for="phone" value="Phone" />
+                        <x-input-label for="phone" :value="__('master.truckings.edit.phone')" />
                         <x-text-input id="phone" name="phone" type="text" class="mt-1 block w-full" :value="old('phone', $trucking->phone)" />
                         <x-input-error :messages="$errors->get('phone')" class="mt-2" />
                     </div>
 
                     <div>
-                        <x-input-label for="email" value="Email" />
+                        <x-input-label for="email" :value="__('master.truckings.edit.email')" />
                         <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" :value="old('email', $trucking->email)" />
                         <x-input-error :messages="$errors->get('email')" class="mt-2" />
                     </div>
 
                     <div>
-                        <x-input-label for="contact_person" value="Contact Person" />
+                        <x-input-label for="contact_person" :value="__('master.truckings.edit.contact_person')" />
                         <x-text-input id="contact_person" name="contact_person" type="text" class="mt-1 block w-full" :value="old('contact_person', $trucking->contact_person)" />
                         <x-input-error :messages="$errors->get('contact_person')" class="mt-2" />
                     </div>
 
                     <div>
-                        <x-input-label for="status" value="Status" />
+                        <x-input-label for="status" :value="__('master.truckings.edit.status')" />
                         <select id="status" name="status" class="mt-1 block w-full rounded-xl border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
-                            <option value="active" {{ old('status', $trucking->status) === 'active' ? 'selected' : '' }}>Active</option>
-                            <option value="inactive" {{ old('status', $trucking->status) === 'inactive' ? 'selected' : '' }}>Inactive</option>
+                            <option value="active" {{ old('status', $trucking->status) === 'active' ? 'selected' : '' }}>{{ __('master.truckings.edit.status_active') }}</option>
+                            <option value="inactive" {{ old('status', $trucking->status) === 'inactive' ? 'selected' : '' }}>{{ __('master.truckings.edit.status_inactive') }}</option>
                         </select>
                         <x-input-error :messages="$errors->get('status')" class="mt-2" />
                     </div>
 
                     <div class="flex items-center gap-4">
                         <button type="submit" class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-colors">
-                            Update Trucking Company
+                            {{ __('master.truckings.edit.update') }}
                         </button>
                         <a href="{{ route('truckings.index') }}" class="px-6 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold rounded-xl transition-colors">
-                            Cancel
+                            {{ __('master.truckings.edit.cancel') }}
                         </a>
                     </div>
                 </form>

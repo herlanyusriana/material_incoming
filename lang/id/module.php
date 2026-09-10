@@ -14,6 +14,7 @@ return [
     'kpi_overview' => 'Metrik kunci sekilas',
     'analytics' => 'Analitik & tren',
     'quick_nav' => 'Navigasi cepat',
+    'tools' => 'Alat lintas kategori',
     'po_trend' => 'Order per bulan',
     'forecast_trend' => 'Forecast per bulan',
     'receiving_trend' => 'Receive per hari (14 hari)',

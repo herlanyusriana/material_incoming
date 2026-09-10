@@ -1,13 +1,13 @@
 <x-app-layout>
     <x-slot name="header">
-        Forecast History
+        {{ __('planning.forecasts.history.header') }}
     </x-slot>
 
     <div class="space-y-6">
         <div class="flex justify-between items-center">
-            <h2 class="text-xl font-semibold text-slate-800">Generation & Clear History</h2>
+            <h2 class="text-xl font-semibold text-slate-800">{{ __('planning.forecasts.history.title') }}</h2>
             <a href="{{ route('planning.forecasts.index') }}" class="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700">
-                Back to Forecasts
+                {{ __('planning.forecasts.history.back') }}
             </a>
         </div>
 
@@ -15,12 +15,12 @@
             <table class="w-full text-sm">
                 <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b">
                     <tr>
-                        <th class="px-6 py-4 text-left font-semibold">Date & Time</th>
-                        <th class="px-6 py-4 text-left font-semibold">User</th>
-                        <th class="px-6 py-4 text-left font-semibold">Action</th>
-                        <th class="px-6 py-4 text-left font-semibold">Parts Count</th>
-                        <th class="px-6 py-4 text-left font-semibold">Weeks</th>
-                        <th class="px-6 py-4 text-left font-semibold">Notes</th>
+                        <th class="px-6 py-4 text-left font-semibold">{{ __('planning.forecasts.history.th_date') }}</th>
+                        <th class="px-6 py-4 text-left font-semibold">{{ __('planning.forecasts.history.th_user') }}</th>
+                        <th class="px-6 py-4 text-left font-semibold">{{ __('planning.forecasts.history.th_action') }}</th>
+                        <th class="px-6 py-4 text-left font-semibold">{{ __('planning.forecasts.history.th_parts') }}</th>
+                        <th class="px-6 py-4 text-left font-semibold">{{ __('planning.forecasts.history.th_weeks') }}</th>
+                        <th class="px-6 py-4 text-left font-semibold">{{ __('planning.forecasts.history.th_notes') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -56,7 +56,7 @@
                     @empty
                         <tr>
                             <td colspan="6" class="px-6 py-12 text-center text-slate-500 italic">
-                                No history records found.
+                                {{ __('planning.forecasts.history.empty') }}
                             </td>
                         </tr>
                     @endforelse

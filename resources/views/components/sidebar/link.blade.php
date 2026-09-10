@@ -7,9 +7,9 @@
 ])
 
 @php
-    $navLinkBase = 'group flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200';
-    $navActive = 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-sm shadow-indigo-600/20';
-    $navInactive = 'text-slate-600 hover:bg-gradient-to-r hover:from-indigo-50 hover:to-violet-50 hover:text-slate-900';
+    $navLinkBase = 'group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150';
+    $navActive = 'bg-indigo-600 text-white shadow-sm shadow-indigo-600/20';
+    $navInactive = 'text-slate-600 hover:bg-indigo-50 hover:text-slate-950';
 @endphp
 
 <a href="{{ $href }}"

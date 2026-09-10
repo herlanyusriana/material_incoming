@@ -3,13 +3,13 @@
         <table class="min-w-full text-sm divide-y divide-slate-200">
             <thead class="bg-slate-50 text-slate-600 text-xs font-semibold uppercase tracking-wider">
                 <tr>
-                    <th class="px-3 py-3 text-left font-semibold">Substitute</th>
-                    <th class="px-3 py-3 text-left font-semibold">Component RM</th>
-                    <th class="px-3 py-3 text-left font-semibold">FG</th>
-                    <th class="px-3 py-3 text-center font-semibold">Ratio</th>
-                    <th class="px-3 py-3 text-center font-semibold">Prio</th>
-                    <th class="px-3 py-3 text-left font-semibold">Status</th>
-                    <th class="px-3 py-3 text-left font-semibold">Notes</th>
+                    <th class="px-3 py-3 text-left font-semibold">{{ __('master.parts.table_sub.th_substitute') }}</th>
+                    <th class="px-3 py-3 text-left font-semibold">{{ __('master.parts.table_sub.th_component') }}</th>
+                    <th class="px-3 py-3 text-left font-semibold">{{ __('master.parts.table_sub.th_fg') }}</th>
+                    <th class="px-3 py-3 text-center font-semibold">{{ __('master.parts.table_sub.th_ratio') }}</th>
+                    <th class="px-3 py-3 text-center font-semibold">{{ __('master.parts.table_sub.th_prio') }}</th>
+                    <th class="px-3 py-3 text-left font-semibold">{{ __('master.parts.table_sub.th_status') }}</th>
+                    <th class="px-3 py-3 text-left font-semibold">{{ __('master.parts.table_sub.th_notes') }}</th>
                     <th class="px-3 py-3"></th>
                 </tr>
             </thead>
@@ -45,10 +45,10 @@
                                 'notes' => $sub->notes,
                                 'fg_part_no' => $sub->bomItem->bom->part->part_no ?? '',
                                 'component_part_no' => $sub->bomItem->componentPart->part_no ?? $sub->bomItem->component_part_no,
-                            ]))">Edit</button>
-                            <form action="{{ route('planning.gci-part-substitutes.destroy', $sub) }}" method="POST" class="inline ml-2" onsubmit="return confirm('Hapus substitute ini?')">
+                            ]))">{{ __('master.parts.table_sub.edit') }}</button>
+                            <form action="{{ route('planning.gci-part-substitutes.destroy', $sub) }}" method="POST" class="inline ml-2" onsubmit="return confirm(@js(__('master.parts.table_sub.delete_confirm')))">
                                 @csrf @method('DELETE')
-                                <button type="submit" class="font-semibold text-red-600 hover:text-red-800 text-sm">Hapus</button>
+                                <button type="submit" class="font-semibold text-red-600 hover:text-red-800 text-sm">{{ __('master.parts.table_sub.delete') }}</button>
                             </form>
                         </td>
                     </tr>
@@ -57,8 +57,8 @@
                         <div class="mx-auto w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0-8-4-8 4m0 0v10l8 4m0-10 8-4m-8 4v10m8-14v10l-8 4"/></svg>
                         </div>
-                        <p class="mt-3 text-sm font-semibold text-slate-600">Tidak ada substitute.</p>
-                        <p class="mt-1 text-xs text-slate-400">Coba ubah filter atau tutup &amp; buka kembali tab ini.</p>
+                        <p class="mt-3 text-sm font-semibold text-slate-600">{{ __('master.parts.table_sub.empty_title') }}</p>
+                        <p class="mt-1 text-xs text-slate-400">{{ __('master.parts.table_sub.empty_hint') }}</p>
                     </td></tr>
                 @endforelse
             </tbody>

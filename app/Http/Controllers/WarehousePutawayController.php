@@ -46,7 +46,10 @@ class WarehousePutawayController extends Controller
             ->with(['arrivalItem.vendorPart', 'arrivalItem.gciPart', 'arrivalItem.arrival.vendor'])
             ->where('qc_status', 'pass')
             ->where(function ($q) {
-                $q->whereNull('location_code')->orWhere('location_code', '');
+                // Antrean putaway = belum pindah rak: kosong atau masih di RECEIVING.
+                $q->whereNull('location_code')
+                    ->orWhere('location_code', '')
+                    ->orWhere('location_code', 'RECEIVING');
             })
             ->when($search !== '', function ($q) use ($search) {
                 $s = strtoupper($search);
@@ -87,6 +90,18 @@ class WarehousePutawayController extends Controller
 
         if ($receive->qc_status !== 'pass') {
             return back()->with('error', 'Putaway hanya untuk QC status PASS.');
+        }
+
+        // Guard UOM: COIL = kemasan, bukan satuan stok. Yang masuk stok harus
+        // net_weight dan part wajib ber-UOM KGM.
+        $gciPartForGuard = GciPart::find($this->resolveGciPartId($receive) ?? 0);
+        $receiveQtyUnit = \App\Support\Uom::canonical($receive->qty_unit);
+        $putawayUom = \App\Support\Uom::canonical($gciPartForGuard?->uom);
+        if ($receiveQtyUnit === 'COIL' && $putawayUom !== 'KGM') {
+            return back()->with('error',
+                "Putaway ditolak: receive dalam COIL hanya boleh untuk part ber-UOM KGM "
+                . ($gciPartForGuard ? "(part ini: {$putawayUom}). Set UOM stok part di Master Part dulu." : '(part belum ter-link ke GCI Part Master).')
+            );
         }
 
         $gciPartId = $this->resolveGciPartId($receive);
@@ -199,8 +214,10 @@ class WarehousePutawayController extends Controller
                     continue;
                 }
 
+                // Baris yang masih di lokasi RECEIVING (auto-post QC) boleh
+                // diputaway ulang; baris yang sudah pindah rak dilewati.
                 $existingLoc = strtoupper(trim((string) ($receive->location_code ?? '')));
-                if ($existingLoc !== '') {
+                if ($existingLoc !== '' && $existingLoc !== 'RECEIVING') {
                     $skipped++;
                     continue;
                 }
@@ -216,6 +233,11 @@ class WarehousePutawayController extends Controller
                     ? (float) ($receive->net_weight ?? 0)
                     : (float) ($receive->qty ?? 0);
                 if ($qtyContribution <= 0) {
+                    $skipped++;
+                    continue;
+                }
+
+                if ($qtyUnit === 'COIL' && \App\Support\Uom::canonical(GciPart::query()->whereKey($gciPartId)->value('uom')) !== 'KGM') {
                     $skipped++;
                     continue;
                 }
@@ -256,8 +278,11 @@ class WarehousePutawayController extends Controller
 
     public function destroy(Receive $receive)
     {
-        if (!empty($receive->location_code)) {
-            return back()->with('error', 'Receive ini sudah di-putaway (punya lokasi), tidak bisa dihapus dari antrean.');
+        // RECEIVING = lokasi virtual menunggu putaway, boleh dihapus dari
+        // antrean (stok di-void). Lokasi rak sungguhan tetap diblokir.
+        $currentLocation = strtoupper(trim((string) ($receive->location_code ?? '')));
+        if ($currentLocation !== '' && $currentLocation !== 'RECEIVING') {
+            return back()->with('error', 'Receive ini sudah di-putaway ke rak, tidak bisa dihapus dari antrean. Gunakan Stock Adjustment.');
         }
 
         $gciPartId = $this->resolveGciPartId($receive);

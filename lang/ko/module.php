@@ -14,6 +14,7 @@ return [
     'kpi_overview' => '핵심 지표 한눈에',
     'analytics' => '분석 및 추세',
     'quick_nav' => '빠른 탐색',
+    'tools' => '전체 카테고리 도구',
     'po_trend' => '월별 주문',
     'forecast_trend' => '월별 Forecast',
     'receiving_trend' => '일별 입고 (14일)',

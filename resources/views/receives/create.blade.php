@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Receive Item
+        {{ __('incoming.receives.create.header') }}
     </x-slot>
 
     <div class="py-8">
@@ -10,8 +10,8 @@
 
                 <div class="flex items-center justify-between pb-6 border-b border-slate-200">
                     <div>
-                        <h3 class="text-xl font-bold text-slate-900">Receive Details</h3>
-                        <p class="text-sm text-slate-600 mt-1">Enter receive information and tag details</p>
+                        <h3 class="text-xl font-bold text-slate-900">{{ __('incoming.receives.create.title') }}</h3>
+                        <p class="text-sm text-slate-600 mt-1">{{ __('incoming.receives.create.subtitle') }}</p>
                     </div>
                     <div class="flex items-center gap-2">
                         @php
@@ -19,46 +19,46 @@
                             $hasContainerInspection = ($arrivalItem->arrival->containers ?? collect())->contains(fn ($c) => (bool) $c->inspection);
                         @endphp
                         @if (!$isLocal && $hasContainerInspection)
-                            <a href="{{ route('departures.inspection-report', $arrivalItem->arrival) }}" target="_blank" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-colors">Print Inspection</a>
+                            <a href="{{ route('departures.inspection-report', $arrivalItem->arrival) }}" target="_blank" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-colors">{{ __('incoming.receives.create.print_inspection') }}</a>
                         @endif
-                        <a href="{{ route('receives.index') }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">Back to List</a>
+                        <a href="{{ route('receives.index') }}" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-lg transition-colors">{{ __('incoming.receives.create.back') }}</a>
                     </div>
                 </div>
 
                 <!-- Information Section -->
                 <div class="bg-slate-50 rounded-xl p-6 border border-slate-200">
-                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">{{ $isLocal ? 'Local PO Information' : 'Departure Information' }}</h4>
+                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">{{ $isLocal ? __('incoming.receives.create.local_info') : __('incoming.receives.create.departure_info') }}</h4>
                     <div class="grid md:grid-cols-2 gap-x-12 gap-y-4 text-sm">
                         <div class="flex items-center">
-                            <span class="font-semibold text-slate-700 w-32">Supplier</span>
+                            <span class="font-semibold text-slate-700 w-32">{{ __('incoming.receives.create.supplier') }}</span>
                             <span class="text-slate-900">= {{ $arrivalItem->arrival->vendor->vendor_name ?? 'N/A' }}</span>
                         </div>
                         <div class="flex items-center">
-                            <span class="font-semibold text-slate-700 w-32">Invoice No.</span>
+                            <span class="font-semibold text-slate-700 w-32">{{ __('incoming.receives.create.invoice_no') }}</span>
                             <span class="text-slate-900">= {{ $arrivalItem->arrival->invoice_no }}</span>
                         </div>
                         <div class="flex items-center">
-                            <span class="font-semibold text-slate-700 w-32">ETD</span>
+                            <span class="font-semibold text-slate-700 w-32">{{ __('incoming.receives.create.etd') }}</span>
                             <span class="text-slate-900">= {{ $arrivalItem->arrival->ETD ? $arrivalItem->arrival->ETD->format('d M Y') : '-' }}</span>
                         </div>
                         <div class="flex items-center">
-                            <span class="font-semibold text-slate-700 w-32">ETA</span>
+                            <span class="font-semibold text-slate-700 w-32">{{ __('incoming.receives.create.eta') }}</span>
                             <span class="text-slate-900">= {{ $arrivalItem->arrival->ETA ? $arrivalItem->arrival->ETA->format('d M Y') : '-' }}</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="bg-white rounded-xl p-6 border border-slate-200">
-                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Receiving Date</h4>
+                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">{{ __('incoming.receives.create.receiving_date') }}</h4>
                     <div class="grid md:grid-cols-2 gap-x-12 gap-y-4 text-sm">
                         <div class="space-y-1">
-                            <label for="receive_date" class="text-sm font-medium text-slate-700">Tanggal Receive</label>
+                            <label for="receive_date" class="text-sm font-medium text-slate-700">{{ __('incoming.receives.create.receive_date') }}</label>
                             <input type="date" id="receive_date" name="receive_date" value="{{ old('receive_date', now()->toDateString()) }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm" required>
                             @error('receive_date') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                         @if ($isLocal)
                             <div class="space-y-1">
-                                <label for="truck_no" class="text-sm font-medium text-slate-700">No. Truck</label>
+                                <label for="truck_no" class="text-sm font-medium text-slate-700">{{ __('incoming.receives.create.truck_no') }}</label>
                                 <input type="text" id="truck_no" name="truck_no" value="{{ old('truck_no') }}" class="mt-1 w-full rounded-lg border-slate-300 focus:ring-indigo-500 focus:border-indigo-500 text-sm uppercase" placeholder="B 1234 CD" required>
                                 @error('truck_no') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
                             </div>
@@ -71,14 +71,14 @@
                 @endphp
                 @if (!$isLocal && $containers->count())
                     <div class="bg-white rounded-xl p-6 border border-slate-200">
-                        <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Container Inspection (per Container)</h4>
+                        <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">{{ __('incoming.receives.create.inspection_title') }}</h4>
                         <div class="overflow-x-auto border border-slate-200 rounded-xl">
                             <table class="min-w-full divide-y divide-slate-200 text-sm">
                                 <thead class="bg-slate-50">
                                     <tr class="text-slate-600 text-xs uppercase tracking-wider">
-                                        <th class="px-4 py-3 text-left font-semibold">Container No</th>
-                                        <th class="px-4 py-3 text-left font-semibold">Seal Code</th>
-                                        <th class="px-4 py-3 text-left font-semibold">Status</th>
+                                        <th class="px-4 py-3 text-left font-semibold">{{ __('incoming.receives.create.container_no') }}</th>
+                                        <th class="px-4 py-3 text-left font-semibold">{{ __('incoming.receives.create.seal_code') }}</th>
+                                        <th class="px-4 py-3 text-left font-semibold">{{ __('incoming.receives.create.status') }}</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-slate-100 bg-white">
@@ -93,7 +93,7 @@
                                                     </span>
                                                 @else
                                                     <span class="inline-flex items-center rounded-xl px-2 py-0.5 text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200">
-                                                        NOT INSPECTED
+                                                        {{ __('incoming.receives.create.not_inspected') }}
                                                     </span>
                                                 @endif
                                             </td>
@@ -103,23 +103,23 @@
                             </table>
                         </div>
                         <div class="mt-3 text-xs text-slate-500">
-                            Input inspection dilakukan dari aplikasi mobile (per container). Halaman receive hanya menampilkan status + print report.
+                            {{ __('incoming.receives.create.inspection_note') }}
                         </div>
                     </div>
                 @endif
 
                 <!-- Table Section -->
                 <div>
-                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">Tag Details</h4>
+                    <h4 class="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">{{ __('incoming.receives.create.tag_details') }}</h4>
                     <div class="flex flex-wrap items-center gap-3 mb-3 text-sm text-slate-700">
-                        <span class="font-semibold">Total Qty Planned:</span>
+                        <span class="font-semibold">{{ __('incoming.receives.create.planned') }}</span>
                         <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-800">{{ number_format($totalPlanned) }}</span>
-                        <span class="font-semibold">Remaining:</span>
+                        <span class="font-semibold">{{ __('incoming.receives.create.remaining') }}</span>
                         <span class="px-2 py-1 rounded-lg bg-green-50 text-green-800">{{ number_format($remainingQty) }}</span>
-                        <span class="font-semibold">Input Total:</span>
+                        <span class="font-semibold">{{ __('incoming.receives.create.input_total') }}</span>
                         <span class="px-2 py-1 rounded-lg bg-blue-50 text-blue-800" id="input-total">0</span>
                         @if($arrivalItem->weight_nett > 0 || $arrivalItem->weight_gross > 0)
-                            <span class="font-semibold ml-2">Planned Weight:</span>
+                            <span class="font-semibold ml-2">{{ __('incoming.receives.create.planned_weight') }}</span>
                             <span class="px-2 py-1 rounded-lg bg-slate-100 text-slate-800">
                                 N: {{ number_format($arrivalItem->weight_nett, 1) }} / G: {{ number_format($arrivalItem->weight_gross, 1) }} KGM
                             </span>
@@ -129,21 +129,21 @@
                         <table class="min-w-full divide-y divide-slate-200">
                             <thead class="bg-gradient-to-r from-slate-50 to-slate-100">
                                 <tr>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Ukuran</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Part Number</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.create.size') }}</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.create.part_no') }}</th>
                                     <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                                        Tag
+                                        {{ __('incoming.receives.create.tag') }}
                                         <button type="button" id="add-tag-btn" class="ml-3 px-3 py-1.5 bg-blue-500 hover:bg-indigo-600 text-white text-xs font-medium rounded-lg transition-colors shadow-sm">
-                                            + Add TAG
+                                            {{ __('incoming.receives.create.add_tag') }}
                                         </button>
                                     </th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Location</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Package</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Qty Goods</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Net Weight (KGM)</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Gross Weight (KGM)</th>
-                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">QC</th>
-                                    <th class="px-6 py-4 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">Action</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.create.location') }}</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.create.package') }}</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.create.qty_goods') }}</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.create.net_weight') }}</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.create.gross_weight') }}</th>
+                                    <th class="px-6 py-4 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.create.qc') }}</th>
+                                    <th class="px-6 py-4 text-center text-xs font-semibold text-slate-600 uppercase tracking-wider">{{ __('incoming.receives.create.action') }}</th>
                                 </tr>
                             </thead>
                             <tbody id="tag-rows" class="divide-y divide-slate-100 bg-white">
@@ -215,9 +215,9 @@
                 </div>
 
                 <div class="flex items-center justify-end gap-4 pt-6 border-t border-slate-200">
-                    <a href="{{ route('receives.index') }}" class="px-5 py-2.5 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors text-sm font-medium">Cancel</a>
+                    <a href="{{ route('receives.index') }}" class="px-5 py-2.5 text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors text-sm font-medium">{{ __('incoming.receives.create.cancel') }}</a>
                     <button type="submit" class="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors shadow-sm">
-                        Save Receive
+                        {{ __('incoming.receives.create.save') }}
                     </button>
                 </div>
             </form>
@@ -314,7 +314,7 @@
                     </select>
                 </td>
                 <td class="px-6 py-4 text-center">
-                    <button type="button" class="remove-tag px-3 py-1.5 text-red-600 hover:bg-red-50 hover:text-red-700 text-sm font-medium rounded-lg transition-colors">Remove</button>
+                    <button type="button" class="remove-tag px-3 py-1.5 text-red-600 hover:bg-red-50 hover:text-red-700 text-sm font-medium rounded-lg transition-colors">{{ __('incoming.receives.create.remove') }}</button>
                 </td>
             `;
             

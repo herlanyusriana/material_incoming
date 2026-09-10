@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Outgoing • Delivery Orders
+        {{ __('outgoing.delivery_orders.index.header') }}
     </x-slot>
 
     <div class="py-6">
@@ -26,20 +26,20 @@
             <div class="bg-white shadow-xl border border-slate-200 rounded-3xl overflow-hidden">
                 <div class="p-6 border-b border-slate-100 flex flex-wrap items-center justify-between gap-4 bg-slate-50/50">
                     <div>
-                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Delivery Order List</h2>
-                        <p class="text-sm text-slate-500 mt-1">Manage outgoing delivery orders.</p>
+                        <h2 class="text-xl font-bold text-slate-900 tracking-tight">{{ __('outgoing.delivery_orders.index.title') }}</h2>
+                        <p class="text-sm text-slate-500 mt-1">{{ __('outgoing.delivery_orders.index.subtitle') }}</p>
                     </div>
                     <div class="flex items-center gap-3">
                         <form action="{{ route('outgoing.delivery-orders.index') }}" method="GET" class="flex items-center gap-2">
-                            <label for="q" class="sr-only">Search DO No</label>
-                            <input type="text" name="q" id="q" value="{{ $q }}" placeholder="Search DO No..." class="rounded-xl border-slate-200 text-sm focus:ring-indigo-500 focus:border-indigo-500">
-                            <select name="customer_id" aria-label="Filter by customer" class="rounded-xl border-slate-200 text-sm focus:ring-indigo-500 focus:border-indigo-500">
-                                <option value="">All Customers</option>
+                            <label for="q" class="sr-only">{{ __('outgoing.delivery_orders.index.search_label') }}</label>
+                            <input type="text" name="q" id="q" value="{{ $q }}" placeholder="{{ __('outgoing.delivery_orders.index.search_placeholder') }}" class="rounded-xl border-slate-200 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                            <select name="customer_id" aria-label="{{ __('outgoing.delivery_orders.index.filter_customer') }}" class="rounded-xl border-slate-200 text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="">{{ __('outgoing.delivery_orders.index.all_customers') }}</option>
                                 @foreach($customers as $c)
                                     <option value="{{ $c->id }}" @selected($customerId == $c->id)>{{ $c->name }}</option>
                                 @endforeach
                             </select>
-                            <button type="submit" aria-label="Search" class="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all">
+                            <button type="submit" aria-label="{{ __('outgoing.delivery_orders.index.search_btn') }}" class="p-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all">
                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
@@ -49,7 +49,7 @@
                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                             </svg>
-                            New Delivery Order
+                            {{ __('outgoing.delivery_orders.index.create') }}
                         </a>
                     </div>
                 </div>
@@ -58,12 +58,12 @@
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">DO Number</th>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">Customer</th>
-                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">DO Date</th>
-                                <th class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-widest">Status</th>
-                                <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">Items</th>
-                                <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">Actions</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">{{ __('outgoing.delivery_orders.index.th_do_number') }}</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">{{ __('outgoing.delivery_orders.index.th_customer') }}</th>
+                                <th class="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-widest">{{ __('outgoing.delivery_orders.index.th_do_date') }}</th>
+                                <th class="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-widest">{{ __('outgoing.delivery_orders.index.th_status') }}</th>
+                                <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">{{ __('outgoing.delivery_orders.index.th_items') }}</th>
+                                <th class="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-widest">{{ __('outgoing.delivery_orders.index.th_actions') }}</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-slate-100">
@@ -89,7 +89,7 @@
                                             $currentClass = $statusClasses[$order->status] ?? 'bg-slate-100 text-slate-700 border-slate-200';
                                         @endphp
                                         <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border {{ $currentClass }}">
-                                            {{ str_replace('_', ' ', $order->status) }}
+                                            {{ __('outgoing.delivery_orders.index.status.'.$order->status) }}
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right">
@@ -97,22 +97,22 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <div class="flex items-center justify-end gap-2">
-                                            <a href="{{ route('outgoing.delivery-orders.show', $order) }}" class="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all" title="View Detail" aria-label="View detail">
+                                            <a href="{{ route('outgoing.delivery-orders.show', $order) }}" class="p-2 rounded-xl text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all" title="{{ __('outgoing.delivery_orders.index.view_detail') }}" aria-label="{{ __('outgoing.delivery_orders.index.view_detail_aria') }}">
                                                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                 </svg>
                                             </a>
                                             @if($order->status === 'draft')
-                                                <a href="{{ route('outgoing.delivery-orders.edit', $order) }}" class="p-2 rounded-xl text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all" title="Edit" aria-label="Edit delivery order">
+                                                <a href="{{ route('outgoing.delivery-orders.edit', $order) }}" class="p-2 rounded-xl text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-all" title="{{ __('outgoing.delivery_orders.index.edit_title') }}" aria-label="{{ __('outgoing.delivery_orders.index.edit_aria') }}">
                                                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                     </svg>
                                                 </a>
-                                                <form action="{{ route('outgoing.delivery-orders.destroy', $order) }}" method="POST" class="inline" onsubmit="return confirm('Confirm delete?')">
+                                                <form action="{{ route('outgoing.delivery-orders.destroy', $order) }}" method="POST" class="inline" onsubmit="return confirm(@js(__('outgoing.delivery_orders.index.confirm_delete')))">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all" title="Delete" aria-label="Delete delivery order">
+                                                    <button type="submit" class="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-all" title="{{ __('outgoing.delivery_orders.index.delete_title') }}" aria-label="{{ __('outgoing.delivery_orders.index.delete_aria') }}">
                                                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                         </svg>
@@ -129,7 +129,7 @@
                                             <svg class="h-12 w-12 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                             </svg>
-                                            <span class="font-semibold">No delivery orders found.</span>
+                                            <span class="font-semibold">{{ __('outgoing.delivery_orders.index.empty') }}</span>
                                         </div>
                                     </td>
                                 </tr>

@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Warehouse • Stock by Location
+        {{ __('warehouse.stock.index.header') }}
     </x-slot>
 
     <div class="py-6">
@@ -19,21 +19,21 @@
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl overflow-hidden">
                 <div class="px-6 py-4 border-b border-slate-200 flex flex-wrap gap-3 items-center justify-between">
                     <div>
-                        <div class="text-xl font-bold text-slate-900">Stock per Location</div>
-                        <div class="text-sm text-slate-500">Source: <span class="font-mono">inventory_location_stock</span></div>
+                        <div class="text-xl font-bold text-slate-900">{{ __('warehouse.stock.index.title') }}</div>
+                        <div class="text-sm text-slate-500">{{ __('warehouse.stock.index.source') }}: <span class="font-mono">inventory_location_stock</span></div>
                     </div>
                     <div class="flex items-center gap-2">
                         <a href="{{ route('warehouse.stock.export', request()->query()) }}" class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-semibold hover:bg-indigo-700 text-sm">
-                            Export Excel
+                            {{ __('warehouse.stock.index.export') }}
                         </a>
                         <button onclick="document.getElementById('importModal').classList.remove('hidden')" class="px-4 py-2 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700 text-sm">
-                            Import Stock
+                            {{ __('warehouse.stock.index.import_stock') }}
                         </button>
                         <a href="{{ route('warehouse.stock.reconcile') }}" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50">
-                            Reconcile
+                            {{ __('warehouse.stock.index.reconcile') }}
                         </a>
                         <a href="{{ route('warehouse.stock-adjustments.index') }}" class="px-4 py-2 rounded-lg border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50">
-                            Adjustments
+                            {{ __('warehouse.stock.index.adjustments') }}
                         </a>
                     </div>
                 </div>
@@ -41,15 +41,15 @@
                 <form method="GET" class="px-6 py-4 bg-slate-50 border-b border-slate-200">
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Search part / location</label>
-                            <input name="search" value="{{ $search }}" class="w-full rounded-lg border-slate-300 text-sm" placeholder="PART NO / name / RACK-A1">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.stock.index.search_label') }}</label>
+                            <input name="search" value="{{ $search }}" class="w-full rounded-lg border-slate-300 text-sm" placeholder="{{ __('warehouse.stock.index.search_ph') }}">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Location</label>
-                            <input name="location" value="{{ $location }}" class="w-full rounded-lg border-slate-300 text-sm uppercase" placeholder="RACK-A1">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.stock.index.location_label') }}</label>
+                            <input name="location" value="{{ $location }}" class="w-full rounded-lg border-slate-300 text-sm uppercase" placeholder="{{ __('warehouse.stock.index.location_ph') }}">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Rows</label>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.stock.index.rows_label') }}</label>
                             <select name="per_page" class="w-full rounded-lg border-slate-300 text-sm">
                                 @foreach([25,50,100,200] as $n)
                                     <option value="{{ $n }}" @selected((int) $perPage === $n)>{{ $n }}</option>
@@ -57,9 +57,9 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Classification</label>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">{{ __('warehouse.stock.index.classification') }}</label>
                             <select name="classification" class="w-full rounded-lg border-slate-300 text-sm">
-                                <option value="">All</option>
+                                <option value="">{{ __('warehouse.stock.index.all') }}</option>
                                 @foreach(['RM','WIP','FG'] as $c)
                                     <option value="{{ $c }}" @selected(($classification ?? '') === $c)>{{ $c }}</option>
                                 @endforeach
@@ -69,23 +69,23 @@
                             <label class="inline-flex items-center gap-2 text-sm text-slate-700">
                                 <input type="hidden" name="only_positive" value="0">
                                 <input type="checkbox" name="only_positive" value="1" class="rounded border-slate-300" @checked($onlyPositive)>
-                                Only qty &gt; 0
+                                {{ __('warehouse.stock.index.only_positive') }}
                             </label>
                         </div>
                     </div>
                     <div class="mt-3 flex gap-2">
-                        <button class="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold">Apply</button>
-                        <a href="{{ route('warehouse.stock.index') }}" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700">Clear</a>
+                        <button class="px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-semibold">{{ __('warehouse.stock.index.apply') }}</button>
+                        <a href="{{ route('warehouse.stock.index') }}" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700">{{ __('warehouse.stock.index.clear') }}</a>
                     </div>
                 </form>
 
                 <div class="px-6 py-4 border-b border-slate-200 bg-white">
                     <div class="flex flex-wrap items-center justify-between gap-3 text-sm">
                         <div class="text-slate-600">
-                            Total rows: <span class="font-semibold text-slate-900">{{ $records->total() }}</span>
+                            {{ __('warehouse.stock.index.total_rows') }} <span class="font-semibold text-slate-900">{{ $records->total() }}</span>
                         </div>
                         <div class="text-slate-600">
-                            Grand total qty: <span class="font-semibold text-slate-900">{{ formatNumber($grandTotal) }}</span>
+                            {{ __('warehouse.stock.index.grand_total') }} <span class="font-semibold text-slate-900">{{ formatNumber($grandTotal) }}</span>
                         </div>
                     </div>
                     @if(!empty($totalsByLocation))
@@ -105,16 +105,16 @@
                     <table class="min-w-full divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Location</th>
-                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-700 uppercase">Class</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Part</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Name</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Batch</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Prod Date</th>
-                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">Qty</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">UOM</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Source</th>
-                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">Updated</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.stock.index.th_location') }}</th>
+                                <th class="px-4 py-3 text-center text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.stock.index.th_class') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.stock.index.th_part') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.stock.index.th_name') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.stock.index.th_batch') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.stock.index.th_prod_date') }}</th>
+                                <th class="px-4 py-3 text-right text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.stock.index.th_qty') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.stock.index.th_uom') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.stock.index.th_source') }}</th>
+                                <th class="px-4 py-3 text-left text-xs font-bold text-slate-700 uppercase">{{ __('warehouse.stock.index.th_updated') }}</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-slate-200">
@@ -126,8 +126,8 @@
                                             <div class="text-xs text-slate-500">
                                                 @php
                                                     $meta = [];
-                                                    if ($rec->location->class) $meta[] = 'Class ' . $rec->location->class;
-                                                    if ($rec->location->zone) $meta[] = 'Zone ' . $rec->location->zone;
+                                                    if ($rec->location->class) $meta[] = __('warehouse.stock.index.meta_class') . ' ' . $rec->location->class;
+                                                    if ($rec->location->zone) $meta[] = __('warehouse.stock.index.meta_zone') . ' ' . $rec->location->zone;
                                                 @endphp
                                                 {{ implode(' • ', $meta) }}
                                             </div>
@@ -174,7 +174,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="10" class="px-6 py-12 text-center text-slate-500">No records.</td>
+                                    <td colspan="10" class="px-6 py-12 text-center text-slate-500">{{ __('warehouse.stock.index.empty') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -193,25 +193,25 @@
     <div id="importModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4">
             <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-                <h3 class="text-lg font-bold text-slate-900">Import Location Stock</h3>
+                <h3 class="text-lg font-bold text-slate-900">{{ __('warehouse.stock.index.import_title') }}</h3>
                 <button onclick="document.getElementById('importModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-xl">&times;</button>
             </div>
             <form action="{{ route('warehouse.stock.import') }}" method="POST" enctype="multipart/form-data" class="px-6 py-4 space-y-4">
                 @csrf
                 <div>
-                    <label class="block text-sm font-semibold text-slate-700 mb-1">Excel File (.xlsx / .csv)</label>
+                    <label class="block text-sm font-semibold text-slate-700 mb-1">{{ __('warehouse.stock.index.file_label') }}</label>
                     <input type="file" name="file" accept=".xlsx,.xls,.csv" required class="w-full text-sm border border-slate-300 rounded-lg px-3 py-2">
                 </div>
                 <div class="bg-slate-50 rounded-lg p-3 text-xs text-slate-600 space-y-1">
-                    <p class="font-semibold text-slate-700">Format kolom:</p>
-                    <p><span class="font-mono font-bold">part_no</span> — Part number (GCI Parts)</p>
-                    <p><span class="font-mono font-bold">location_code</span> — Kode lokasi warehouse (atau <span class="font-mono">location</span>)</p>
-                    <p><span class="font-mono font-bold">qty</span> — Jumlah (ditambahkan ke stock existing)</p>
-                    <p><span class="font-mono font-bold">batch_no</span> — Batch/tag (opsional)</p>
+                    <p class="font-semibold text-slate-700">{{ __('warehouse.stock.index.format_title') }}</p>
+                    <p><span class="font-mono font-bold">part_no</span> — {{ __('warehouse.stock.index.format_part') }}</p>
+                    <p><span class="font-mono font-bold">location_code</span> — {{ __('warehouse.stock.index.format_location') }}</p>
+                    <p><span class="font-mono font-bold">qty</span> — {{ __('warehouse.stock.index.format_qty') }}</p>
+                    <p><span class="font-mono font-bold">batch_no</span> — {{ __('warehouse.stock.index.format_batch') }}</p>
                 </div>
                 <div class="flex justify-end gap-2">
-                    <button type="button" onclick="document.getElementById('importModal').classList.add('hidden')" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700">Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700">Import</button>
+                    <button type="button" onclick="document.getElementById('importModal').classList.add('hidden')" class="px-4 py-2 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700">{{ __('warehouse.stock.index.cancel') }}</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-semibold hover:bg-emerald-700">{{ __('warehouse.stock.index.import_btn') }}</button>
                 </div>
             </form>
         </div>

@@ -1,13 +1,13 @@
 <x-app-layout>
     <x-slot name="header">
-        MRP History
+        {{ __('planning.mrp.history.header') }}
     </x-slot>
 
     <div class="space-y-6">
         <div class="flex justify-between items-center">
-            <h2 class="text-xl font-semibold text-slate-800">Generation & Clear History</h2>
+            <h2 class="text-xl font-semibold text-slate-800">{{ __('planning.mrp.history.title') }}</h2>
             <a href="{{ route('planning.mrp.index') }}" class="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700">
-                Back to MRP
+                {{ __('planning.mrp.history.back') }}
             </a>
         </div>
 
@@ -15,12 +15,12 @@
             <table class="w-full text-sm">
                 <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b">
                     <tr>
-                        <th class="px-6 py-4 text-left font-semibold">Date & Time</th>
-                        <th class="px-6 py-4 text-left font-semibold">User</th>
-                        <th class="px-6 py-4 text-left font-semibold">Action</th>
-                        <th class="px-6 py-4 text-left font-semibold">Parts Count</th>
-                        <th class="px-6 py-4 text-left font-semibold">MRP Run</th>
-                        <th class="px-6 py-4 text-left font-semibold">Notes</th>
+                        <th class="px-6 py-4 text-left font-semibold">{{ __('planning.mrp.history.th_date') }}</th>
+                        <th class="px-6 py-4 text-left font-semibold">{{ __('planning.mrp.history.th_user') }}</th>
+                        <th class="px-6 py-4 text-left font-semibold">{{ __('planning.mrp.history.th_action') }}</th>
+                        <th class="px-6 py-4 text-left font-semibold">{{ __('planning.mrp.history.th_parts') }}</th>
+                        <th class="px-6 py-4 text-left font-semibold">{{ __('planning.mrp.history.th_run') }}</th>
+                        <th class="px-6 py-4 text-left font-semibold">{{ __('planning.mrp.history.th_notes') }}</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
@@ -30,7 +30,7 @@
                                 {{ $history->created_at->format('d M Y H:i') }}
                             </td>
                             <td class="px-6 py-4 text-slate-600">
-                                {{ $history->user->name ?? 'Unknown' }}
+                                {{ $history->user->name ?? __('planning.mrp.history.unknown') }}
                             </td>
                             <td class="px-6 py-4">
                                 @if($history->action === 'generate')
@@ -56,7 +56,7 @@
                     @empty
                         <tr>
                             <td colspan="6" class="px-6 py-12 text-center text-slate-500 italic">
-                                No history records found.
+                                {{ __('planning.mrp.history.empty') }}
                             </td>
                         </tr>
                     @endforelse

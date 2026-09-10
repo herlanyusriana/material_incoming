@@ -12,7 +12,7 @@
             'no' => 1,
             'part_no' => $subconOrderReceive->subconOrder->gciPart->part_no ?? '-',
             'part_name' => $subconOrderReceive->subconOrder->gciPart->part_name ?? '-',
-            'description' => 'Received from Subcon. Order: ' . $subconOrderReceive->subconOrder->order_no,
+            'description' => __('subcon.prints.subcon_reference') . ': ' . $subconOrderReceive->subconOrder->order_no,
             'uom' => $subconUom,
             'qty' => $subconOrderReceive->qty_good,
             'unit_price' => 0,
@@ -24,7 +24,7 @@
             'no' => 2,
             'part_no' => $subconOrderReceive->subconOrder->gciPart->part_no ?? '-',
             'part_name' => ($subconOrderReceive->subconOrder->gciPart->part_name ?? '-') . ' (REJECTED)',
-            'description' => 'Rejected parts from Subcon.',
+            'description' => __('subcon.orders.show.reject_history'),
             'uom' => $subconUom,
             'qty' => $subconOrderReceive->qty_rejected,
             'unit_price' => 0,
@@ -32,7 +32,7 @@
         ];
     }
 
-    $docTitle = 'Packing List (Receive)';
+    $docTitle = __('subcon.prints.packing_list') . ' (Receive)';
     $docShort = 'PL';
     $docNo = 'RCV-' . str_pad($subconOrderReceive->id, 5, '0', STR_PAD_LEFT);
     $showPricing = false;

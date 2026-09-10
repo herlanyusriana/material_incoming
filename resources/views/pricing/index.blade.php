@@ -4,20 +4,20 @@
 <div class="space-y-6" x-data="{ openEditId: null, openImport: false }">
     <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-            <h1 class="text-2xl font-black text-slate-900 tracking-tight">Pricing Master</h1>
-            <p class="mt-1 text-sm text-slate-500">Pusat pengelolaan harga untuk vendor, material cost, processing cost, selling price, dan harga khusus per effective date.</p>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">{{ __('master.pricing.index.title') }}</h1>
+            <p class="mt-1 text-sm text-slate-500">{{ __('master.pricing.index.subtitle') }}</p>
         </div>
         <div class="grid gap-3 sm:grid-cols-3">
             <div class="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                <div class="text-xs font-bold uppercase tracking-widest text-slate-400">Total Records</div>
+                <div class="text-xs font-bold uppercase tracking-widest text-slate-400">{{ __('master.pricing.index.total') }}</div>
                 <div class="mt-1 text-2xl font-black text-slate-900 tabular-nums">{{ number_format($prices->total()) }}</div>
             </div>
             <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 shadow-sm">
-                <div class="text-xs font-bold uppercase tracking-widest text-emerald-600">Active</div>
+                <div class="text-xs font-bold uppercase tracking-widest text-emerald-600">{{ __('master.pricing.index.active') }}</div>
                 <div class="mt-1 text-2xl font-black text-emerald-700 tabular-nums">{{ number_format($prices->getCollection()->where('status', 'active')->count()) }}</div>
             </div>
             <div class="rounded-2xl border border-indigo-200 bg-indigo-50 px-4 py-3 shadow-sm">
-                <div class="text-xs font-bold uppercase tracking-widest text-indigo-600">Visible Types</div>
+                <div class="text-xs font-bold uppercase tracking-widest text-indigo-600">{{ __('master.pricing.index.visible_types') }}</div>
                 <div class="mt-1 text-2xl font-black text-indigo-700 tabular-nums">{{ number_format($prices->getCollection()->pluck('price_type')->unique()->count()) }}</div>
             </div>
         </div>
@@ -34,12 +34,12 @@
     <div class="rounded-3xl border border-slate-200 bg-white shadow-sm">
                 <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
                     <div>
-                        <h2 class="text-lg font-bold text-slate-900">Pricing Master List</h2>
+                        <h2 class="text-lg font-bold text-slate-900">{{ __('master.pricing.index.list_title') }}</h2>
                     </div>
                     <div class="flex items-center gap-2">
-                        <a href="{{ route('pricing.export') }}" class="inline-flex items-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">Export</a>
-                        <button type="button" @click="openImport = !openImport" class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Import</button>
-                        <a href="{{ route('pricing.create') }}" class="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Add New Pricing</a>
+                        <a href="{{ route('pricing.export') }}" class="inline-flex items-center rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">{{ __('master.pricing.index.export') }}</a>
+                        <button type="button" @click="openImport = !openImport" class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">{{ __('master.pricing.index.import') }}</button>
+                        <a href="{{ route('pricing.create') }}" class="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">{{ __('master.pricing.index.add') }}</a>
                     </div>
                 </div>
                 <div x-show="openImport" x-cloak class="border-b border-slate-100 bg-slate-50 px-6 py-4">
@@ -47,60 +47,60 @@
                         @csrf
                         <input type="file" name="file" accept=".xlsx,.xls,.csv" required class="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm lg:max-w-md">
                         <div class="flex items-center gap-2">
-                            <button class="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Upload Import</button>
-                            <button type="button" @click="openImport = false" class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">Cancel</button>
+                            <button class="inline-flex items-center rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">{{ __('master.pricing.index.upload') }}</button>
+                            <button type="button" @click="openImport = false" class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">{{ __('master.pricing.index.cancel') }}</button>
                         </div>
                     </form>
                     <div class="mt-2 text-xs text-slate-500">
-                        Format import mengikuti file export: <span class="font-semibold">part_no, price_type, vendor_name, customer_name, currency, uom, min_qty, price, effective_from, effective_to, status, notes</span>.
+                        {{ __('master.pricing.index.import_format') }} <span class="font-semibold">part_no, price_type, vendor_name, customer_name, currency, uom, min_qty, price, effective_from, effective_to, status, notes</span>.
                     </div>
                 </div>
         <div class="rounded-3xl bg-white shadow-sm">
             <div class="border-b border-slate-100 px-6 py-4">
                 <form method="GET" class="grid gap-3 lg:grid-cols-6">
-                    <label for="search" class="sr-only">Search</label>
-                    <input id="search" name="search" value="{{ $filters['search'] }}" class="rounded-xl border-slate-200 text-sm lg:col-span-2" placeholder="Search part, vendor, customer">
+                    <label for="search" class="sr-only">{{ __('master.pricing.index.search_sr') }}</label>
+                    <input id="search" name="search" value="{{ $filters['search'] }}" class="rounded-xl border-slate-200 text-sm lg:col-span-2" placeholder="{{ __('master.pricing.index.search_placeholder') }}">
                     <select name="classification" class="rounded-xl border-slate-200 text-sm">
-                        <option value="">All Class</option>
+                        <option value="">{{ __('master.pricing.index.class_all') }}</option>
                         <option value="RM" @selected($filters['classification'] === 'RM')>RM</option>
                         <option value="WIP" @selected($filters['classification'] === 'WIP')>WIP</option>
                         <option value="FG" @selected($filters['classification'] === 'FG')>FG</option>
                     </select>
                     <select name="price_type" class="rounded-xl border-slate-200 text-sm">
-                        <option value="">All Types</option>
+                        <option value="">{{ __('master.pricing.index.type_all') }}</option>
                         @foreach($priceTypes as $value => $label)
                             <option value="{{ $value }}" @selected($filters['priceType'] === $value)>{{ $label }}</option>
                         @endforeach
                     </select>
                     <select name="status" class="rounded-xl border-slate-200 text-sm">
-                        <option value="">All Status</option>
-                        <option value="active" @selected($filters['status'] === 'active')>Active</option>
-                        <option value="inactive" @selected($filters['status'] === 'inactive')>Inactive</option>
+                        <option value="">{{ __('master.pricing.index.status_all') }}</option>
+                        <option value="active" @selected($filters['status'] === 'active')>{{ __('master.pricing.index.status_active') }}</option>
+                        <option value="inactive" @selected($filters['status'] === 'inactive')>{{ __('master.pricing.index.status_inactive') }}</option>
                     </select>
                     <div class="flex items-center gap-2">
                         <button type="submit" class="inline-flex h-10 flex-1 items-center justify-center rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">
-                            Search
+                            {{ __('master.pricing.index.search') }}
                         </button>
                         <a href="{{ route('pricing.index') }}" class="inline-flex h-10 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                            Reset
+                            {{ __('master.pricing.index.reset') }}
                         </a>
                     </div>
                 </form>
                 <div class="mt-3 text-xs text-slate-500">
-                    Harga yang tampil adalah master pricing. Dokumen transaksi tetap menyimpan snapshot harga masing-masing.
+                    {{ __('master.pricing.index.hint') }}
                 </div>
             </div>
             <div class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-slate-200 text-sm">
                     <thead class="bg-slate-50 text-left text-slate-500">
                         <tr>
-                            <th class="px-4 py-3 font-semibold">Part</th>
-                            <th class="px-4 py-3 font-semibold">Type</th>
-                            <th class="px-4 py-3 font-semibold">Counterparty</th>
-                            <th class="px-4 py-3 font-semibold">Price</th>
-                            <th class="px-4 py-3 font-semibold">Effective</th>
-                            <th class="px-4 py-3 font-semibold">Status</th>
-                            <th class="px-4 py-3 font-semibold text-right">Actions</th>
+                            <th class="px-4 py-3 font-semibold">{{ __('master.pricing.index.th_part') }}</th>
+                            <th class="px-4 py-3 font-semibold">{{ __('master.pricing.index.th_type') }}</th>
+                            <th class="px-4 py-3 font-semibold">{{ __('master.pricing.index.th_counterparty') }}</th>
+                            <th class="px-4 py-3 font-semibold">{{ __('master.pricing.index.th_price') }}</th>
+                            <th class="px-4 py-3 font-semibold">{{ __('master.pricing.index.th_effective') }}</th>
+                            <th class="px-4 py-3 font-semibold">{{ __('master.pricing.index.th_status') }}</th>
+                            <th class="px-4 py-3 font-semibold text-right">{{ __('master.pricing.index.th_actions') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -113,31 +113,31 @@
                                 <td class="px-4 py-3 text-slate-700">{{ $priceTypes[$price->price_type] ?? $price->price_type }}</td>
                                 <td class="px-4 py-3">
                                     <div class="text-slate-700">{{ $price->vendor?->vendor_name ?: '-' }}</div>
-                                    <div class="text-xs text-slate-500">{{ $price->customer?->name ?: 'General' }}</div>
+                                    <div class="text-xs text-slate-500">{{ $price->customer?->name ?: __('master.pricing.index.general') }}</div>
                                 </td>
                                 <td class="px-4 py-3 tabular-nums">
                                     <div class="font-semibold text-slate-900">{{ $price->currency }} {{ number_format((float) $price->price, 3) }}</div>
-                                    <div class="text-xs text-slate-500">{{ $price->uom ?: '-' }} @if($price->min_qty) | min {{ number_format((float) $price->min_qty, 3) }} @endif</div>
+                                    <div class="text-xs text-slate-500">{{ $price->uom ?: '-' }} @if($price->min_qty) | {{ __('master.pricing.index.min') }} {{ number_format((float) $price->min_qty, 3) }} @endif</div>
                                 </td>
                                 <td class="px-4 py-3 text-slate-700">
                                     <div>{{ $price->effective_from?->format('d M Y') ?: '-' }}</div>
-                                    <div class="text-xs text-slate-500">to {{ $price->effective_to?->format('d M Y') ?: 'open' }}</div>
+                                    <div class="text-xs text-slate-500">{{ __('master.pricing.index.to') }} {{ $price->effective_to?->format('d M Y') ?: __('master.pricing.index.open') }}</div>
                                 </td>
                                 <td class="px-4 py-3">
                                     <span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {{ $price->status === 'active' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600' }}">
-                                        {{ ucfirst($price->status) }}
+                                        {{ $price->status === 'active' ? __('master.pricing.index.status_active') : __('master.pricing.index.status_inactive') }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-right">
                                     <div class="flex items-center justify-end gap-2">
                                         <button type="button" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                                             @click="openEditId = openEditId === {{ $price->id }} ? null : {{ $price->id }}">
-                                            Edit
+                                            {{ __('master.pricing.index.edit') }}
                                         </button>
-                                        <form action="{{ route('pricing.destroy', $price) }}" method="POST" onsubmit="return confirm('Delete pricing master ini?')">
+                                        <form action="{{ route('pricing.destroy', $price) }}" method="POST" onsubmit="return confirm(@js(__('master.pricing.index.delete_confirm')))">
                                             @csrf
                                             @method('DELETE')
-                                            <button class="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50">Delete</button>
+                                            <button class="rounded-lg border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50">{{ __('master.pricing.index.delete') }}</button>
                                         </form>
                                     </div>
                                 </td>
@@ -149,7 +149,7 @@
                                         @method('PUT')
                                         <input type="hidden" name="gci_part_id" value="{{ $price->gci_part_id }}">
                                         <div class="lg:col-span-2">
-                                            <label for="edit_price_type_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">Price Type</label>
+                                            <label for="edit_price_type_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('master.pricing.index.price_type') }}</label>
                                             <select id="edit_price_type_{{ $price->id }}" name="price_type" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
                                                 @foreach($priceTypes as $value => $label)
                                                     <option value="{{ $value }}" @selected($price->price_type === $value)>{{ $label }}</option>
@@ -157,65 +157,65 @@
                                             </select>
                                         </div>
                                         <div>
-                                            <label for="edit_currency_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">Currency</label>
+                                            <label for="edit_currency_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('master.pricing.index.currency') }}</label>
                                             <input id="edit_currency_{{ $price->id }}" type="text" name="currency" value="{{ $price->currency }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
                                         </div>
                                         <div>
-                                            <label for="edit_price_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">Price</label>
+                                            <label for="edit_price_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('master.pricing.index.price') }}</label>
                                             <input id="edit_price_{{ $price->id }}" type="number" name="price" step="0.001" min="0" value="{{ $price->price }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm tabular-nums" required>
                                         </div>
                                         <div>
-                                            <label for="edit_uom_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">UOM</label>
+                                            <label for="edit_uom_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('master.pricing.index.uom') }}</label>
                                             <input id="edit_uom_{{ $price->id }}" type="text" name="uom" value="{{ $price->uom }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
                                         </div>
                                         <div>
-                                            <label for="edit_min_qty_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">Min Qty</label>
+                                            <label for="edit_min_qty_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('master.pricing.index.min_qty') }}</label>
                                             <input id="edit_min_qty_{{ $price->id }}" type="number" name="min_qty" step="0.001" min="0" value="{{ $price->min_qty }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm tabular-nums">
                                         </div>
                                         <div>
-                                            <label for="edit_vendor_id_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">Vendor</label>
+                                            <label for="edit_vendor_id_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('master.pricing.index.vendor') }}</label>
                                             <select id="edit_vendor_id_{{ $price->id }}" name="vendor_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
-                                                <option value="">General / no vendor</option>
+                                                <option value="">{{ __('master.pricing.index.vendor_general') }}</option>
                                                 @foreach($vendors as $vendor)
                                                     <option value="{{ $vendor->id }}" @selected($price->vendor_id === $vendor->id)>{{ $vendor->vendor_name }}</option>
                                                 @endforeach
                                             </select>
                                         </div>
                                         <div>
-                                            <label for="edit_customer_id_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">Customer</label>
+                                            <label for="edit_customer_id_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('master.pricing.index.customer') }}</label>
                                             <select id="edit_customer_id_{{ $price->id }}" name="customer_id" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
-                                                <option value="">General / no customer</option>
+                                                <option value="">{{ __('master.pricing.index.customer_general') }}</option>
                                                 @foreach($customers as $customer)
                                                     <option value="{{ $customer->id }}" @selected($price->customer_id === $customer->id)>{{ $customer->name }}</option>
                                                 @endforeach
                                             </select>
                                         </div>
                                         <div>
-                                            <label for="edit_effective_from_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">Effective From</label>
+                                            <label for="edit_effective_from_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('master.pricing.index.effective_from') }}</label>
                                             <input id="edit_effective_from_{{ $price->id }}" type="date" name="effective_from" value="{{ $price->effective_from?->toDateString() }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
                                         </div>
                                         <div>
-                                            <label for="edit_effective_to_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">Effective To</label>
+                                            <label for="edit_effective_to_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('master.pricing.index.effective_to') }}</label>
                                             <input id="edit_effective_to_{{ $price->id }}" type="date" name="effective_to" value="{{ $price->effective_to?->toDateString() }}" class="mt-1 w-full rounded-xl border-slate-200 text-sm">
                                         </div>
                                         <div>
-                                            <label for="edit_status_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">Status</label>
+                                            <label for="edit_status_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('master.pricing.index.status') }}</label>
                                             <select id="edit_status_{{ $price->id }}" name="status" class="mt-1 w-full rounded-xl border-slate-200 text-sm" required>
-                                                <option value="active" @selected($price->status === 'active')>Active</option>
-                                                <option value="inactive" @selected($price->status === 'inactive')>Inactive</option>
+                                                <option value="active" @selected($price->status === 'active')>{{ __('master.pricing.index.status_active') }}</option>
+                                                <option value="inactive" @selected($price->status === 'inactive')>{{ __('master.pricing.index.status_inactive') }}</option>
                                             </select>
                                         </div>
                                         <div class="lg:col-span-6">
-                                            <label for="edit_notes_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">Notes</label>
+                                            <label for="edit_notes_{{ $price->id }}" class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('master.pricing.index.notes') }}</label>
                                             <textarea id="edit_notes_{{ $price->id }}" name="notes" rows="2" class="mt-1 w-full rounded-xl border-slate-200 text-sm">{{ $price->notes }}</textarea>
                                         </div>
                                         <div class="lg:col-span-6 flex items-center justify-end gap-2">
                                             <button type="button" class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-white"
                                                 @click="openEditId = null">
-                                                Cancel
+                                                {{ __('master.pricing.index.cancel') }}
                                             </button>
                                             <button class="rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700">
-                                                Update Pricing
+                                                {{ __('master.pricing.index.update') }}
                                             </button>
                                         </div>
                                     </form>
@@ -223,7 +223,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-4 py-8 text-center text-slate-500">Belum ada pricing master.</td>
+                                <td colspan="7" class="px-4 py-8 text-center text-slate-500">{{ __('master.pricing.index.empty') }}</td>
                             </tr>
                         @endforelse
                     </tbody>

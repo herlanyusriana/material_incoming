@@ -30,11 +30,11 @@
     @endphp
 
     <x-page-header
-        title="Role Management"
-        subtitle="Atur akses berdasarkan pekerjaan. Fokusnya: siapa boleh buka modul apa."
+        :title="__('admin.roles.index.title')"
+        :subtitle="__('admin.roles.index.subtitle')"
         :breadcrumbs="[
-            ['label' => 'Admin', 'url' => '#'],
-            ['label' => 'Role Management']
+            ['label' => __('admin.roles.index.crumb_parent'), 'url' => '#'],
+            ['label' => __('admin.roles.index.crumb_current')]
         ]"
     >
         <x-slot name="actions">
@@ -42,13 +42,13 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
-                <span>Tambah Role</span>
+                <span>{{ __('admin.roles.index.add') }}</span>
             </button>
             <a href="{{ route('admin.users.index') }}" class="gci-btn-secondary">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
                 </svg>
-                <span>Kelola User</span>
+                <span>{{ __('admin.roles.index.users') }}</span>
             </a>
         </x-slot>
     </x-page-header>
@@ -66,7 +66,7 @@
     @endif
     @if (isset($errors) && $errors->any())
         <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 animate-fade-in-up">
-            <div class="font-bold">Cek lagi inputnya:</div>
+            <div class="font-bold">{{ __('admin.roles.index.error_title') }}</div>
             <ul class="mt-1 list-disc space-y-0.5 pl-5">
                 @foreach ($errors->all() as $error)
                     <li>{{ $error }}</li>
@@ -78,19 +78,19 @@
     {{-- Stats summary --}}
     <div class="grid gap-4 sm:grid-cols-3 mb-6">
         <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Total Role</div>
+            <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">{{ __('admin.roles.index.total_roles') }}</div>
             <div class="mt-2 text-3xl font-black text-slate-900">{{ count($roles) }}</div>
-            <div class="text-xs text-slate-400 mt-1">Role terdaftar</div>
+            <div class="text-xs text-slate-400 mt-1">{{ __('admin.roles.index.registered') }}</div>
         </div>
         <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">System Role</div>
+            <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">{{ __('admin.roles.index.system_roles') }}</div>
             <div class="mt-2 text-3xl font-black text-slate-900">{{ collect($roles)->where('is_system', true)->count() }}</div>
-            <div class="text-xs text-slate-400 mt-1">Bawaan aplikasi</div>
+            <div class="text-xs text-slate-400 mt-1">{{ __('admin.roles.index.builtin') }}</div>
         </div>
         <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">Custom Role</div>
+            <div <div class="text-xs uppercase tracking-wider text-slate-500 font-semibold">{{ __('admin.roles.index.custom_roles') }}</div>
             <div class="mt-2 text-3xl font-black text-slate-900">{{ collect($roles)->where('is_system', false)->count() }}</div>
-            <div class="text-xs text-slate-400 mt-1">Dibuat pengguna</div>
+            <div class="text-xs text-slate-400 mt-1">{{ __('admin.roles.index.created_by_users') }}</div>
         </div>
     </div>
 
@@ -130,20 +130,20 @@
                             </div>
                         </div>
                         @if ($isAdmin)
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold {{ $c['badge'] }} shrink-0">FULL ACCESS</span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold {{ $c['badge'] }} shrink-0">{{ __('admin.roles.index.full_access') }}</span>
                         @endif
                     </div>
                 </div>
 
                 {{-- Card body --}}
                 <div class="p-5 flex-1">
-                    <p class="text-sm text-slate-600 min-h-[2.5rem]">{{ $role['description'] ?: 'Tidak ada catatan untuk role ini.' }}</p>
+                    <p class="text-sm text-slate-600 min-h-[2.5rem]">{{ $role['description'] ?: __('admin.roles.index.no_desc') }}</p>
                     <div class="mt-4 flex items-center justify-between">
                         <div class="flex items-center gap-2 text-xs text-slate-500">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
                             </svg>
-                            <span class="font-semibold">{{ $role['user_count'] }} user</span>
+                            <span class="font-semibold">{{ $role['user_count'] }} {{ __('admin.roles.index.users_suffix') }}</span>
                         </div>
                         <div class="text-xs font-bold text-slate-500">
                             @if ($isFullAccess)
@@ -151,10 +151,10 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                     </svg>
-                                    Full Access
+                                    {{ __('admin.roles.index.full_access') }}
                                 </span>
                             @else
-                                {{ $count }}/{{ count($definedPermissions) }} permission
+                                {{ $count }}/{{ count($definedPermissions) }} {{ __('admin.roles.index.permission') }}
                             @endif
                         </div>
                     </div>
@@ -163,7 +163,7 @@
                 {{-- Card footer --}}
                 <div class="px-5 py-3 border-t border-slate-100 bg-slate-50/50">
                     @if ($isAdmin)
-                        <div class="text-xs text-slate-400 text-center py-1">Admin selalu punya semua akses</div>
+                        <div class="text-xs text-slate-400 text-center py-1">{{ __('admin.roles.index.admin_note') }}</div>
                     @else
                         <button
                             type="button"
@@ -173,7 +173,7 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75" />
                             </svg>
-                            Edit Permission
+                            {{ __('admin.roles.index.edit_permission') }}
                         </button>
                     @endif
                 </div>
@@ -188,8 +188,8 @@
             <div class="p-6">
                 <div class="flex items-start justify-between">
                     <div>
-                        <h2 class="text-lg font-black text-slate-900">Tambah Role Baru</h2>
-                        <p class="mt-1 text-sm text-slate-500">Buat role baru, lalu atur aksesnya di panel permission.</p>
+                        <h2 class="text-lg font-black text-slate-900">{{ __('admin.roles.index.create_title') }}</h2>
+                        <p class="mt-1 text-sm text-slate-500">{{ __('admin.roles.index.create_desc') }}</p>
                     </div>
                     <button type="button" @click="$dispatch('close-modal', 'create-role')" class="text-slate-400 hover:text-slate-600">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -201,23 +201,23 @@
 
             <div class="px-6 pb-6 space-y-4">
                 <div>
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Role Key</label>
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('admin.roles.index.key') }}</label>
                     <input type="text" name="name" value="{{ old('name') }}" placeholder="quality" required class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
-                    <p class="mt-1 text-xs text-slate-400">Huruf kecil, tanpa spasi. Contoh: quality, supervisor, checker.</p>
+                    <p class="mt-1 text-xs text-slate-400">{{ __('admin.roles.index.key_hint') }}</p>
                 </div>
                 <div>
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Nama Tampilan</label>
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('admin.roles.index.display_name') }}</label>
                     <input type="text" name="display_name" value="{{ old('display_name') }}" placeholder="Quality" class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
                 </div>
                 <div>
-                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">Deskripsi</label>
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('admin.roles.index.description') }}</label>
                     <input type="text" name="description" value="{{ old('description') }}" placeholder="Akses inspection dan laporan QC" class="mt-1 w-full rounded-xl border-slate-200 text-sm shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20">
                 </div>
             </div>
 
             <div class="flex justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-lg">
-                <button type="button" @click="$dispatch('close-modal', 'create-role')" class="gci-btn-secondary gci-btn-sm">Batal</button>
-                <button type="submit" class="gci-btn-primary gci-btn-sm">Tambah Role</button>
+                <button type="button" @click="$dispatch('close-modal', 'create-role')" class="gci-btn-secondary gci-btn-sm">{{ __('admin.roles.index.cancel') }}</button>
+                <button type="submit" class="gci-btn-primary gci-btn-sm">{{ __('admin.roles.index.submit_create') }}</button>
             </div>
         </form>
     </x-modal>
@@ -232,8 +232,8 @@
                     <div class="p-6">
                         <div class="flex items-start justify-between">
                             <div>
-                                <h2 class="text-lg font-black text-slate-900">Edit Permission — {{ $role['display_name'] ?? strtoupper($role['name']) }}</h2>
-                                <p class="mt-1 text-sm text-slate-500">Centang modul yang boleh diakses role ini.</p>
+                                <h2 class="text-lg font-black text-slate-900">{{ __('admin.roles.index.edit_title', ['role' => ($role['display_name'] ?? strtoupper($role['name']))]) }}</h2>
+                                <p class="mt-1 text-sm text-slate-500">{{ __('admin.roles.index.edit_desc') }}</p>
                             </div>
                             <button type="button" @click="$dispatch('close-modal', 'edit-role-{{ $role['name'] }}')" class="text-slate-400 hover:text-slate-600">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -268,8 +268,8 @@
                     </div>
 
                     <div class="flex justify-end gap-2 px-6 py-4 border-t border-slate-100 bg-slate-50/50 rounded-b-lg">
-                        <button type="button" @click="$dispatch('close-modal', 'edit-role-{{ $role['name'] }}')" class="gci-btn-secondary gci-btn-sm">Batal</button>
-                        <button type="submit" class="gci-btn-primary gci-btn-sm">Simpan Permission</button>
+                        <button type="button" @click="$dispatch('close-modal', 'edit-role-{{ $role['name'] }}')" class="gci-btn-secondary gci-btn-sm">{{ __('admin.roles.index.cancel') }}</button>
+                        <button type="submit" class="gci-btn-primary gci-btn-sm">{{ __('admin.roles.index.save') }}</button>
                     </div>
                 </form>
             </x-modal>

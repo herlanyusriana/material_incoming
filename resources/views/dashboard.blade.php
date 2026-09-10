@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Dashboard
+        {{ __('dashboard.header_title') }}
     </x-slot>
 
     <style>
@@ -15,23 +15,23 @@
              HEADER + DATE FILTER
              ══════════════════════════════════════════════════════ --}}
         <x-page-header 
-            title="GCI Smart Dashboard" 
-            subtitle="Overview Incoming Material dan Plant Performance KPI dalam satu tampilan."
-            badge="Dashboard"
+            :title="__('dashboard.header_title')" 
+            :subtitle="__('dashboard.header_subtitle')"
+            :badge="'Dashboard'"
             badgeColor="indigo"
         >
             <x-slot name="actions">
                 <form method="GET" class="flex flex-wrap items-end gap-3">
                     <div class="gci-form-group">
-                        <label class="gci-label">Date From</label>
+                        <label class="gci-label">{{ __('dashboard.date_from') }}</label>
                         <input type="date" name="date_from" value="{{ $dateFrom }}" class="gci-input !w-auto">
                     </div>
                     <div class="gci-form-group">
-                        <label class="gci-label">Date To</label>
+                        <label class="gci-label">{{ __('dashboard.date_to') }}</label>
                         <input type="date" name="date_to" value="{{ $dateTo }}" class="gci-input !w-auto">
                     </div>
                     <button type="submit" class="gci-btn-primary h-[38px]">
-                        Refresh
+                        {{ __('dashboard.refresh') }}
                     </button>
                 </form>
             </x-slot>
@@ -42,30 +42,30 @@
              ══════════════════════════════════════════════════════ --}}
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <x-stat-card class="animate-fade-in-up delay-1"
-                label="Total Departures" 
+                :label="__('dashboard.total_departures')" 
                 value="{{ number_format($incomingSummary['total_departures']) }}" 
-                subtitle="All shipments" 
+                :subtitle="__('dashboard.all_shipments')" 
                 color="indigo" 
                 icon="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12" />
             
             <x-stat-card class="animate-fade-in-up delay-2"
-                label="Total Receives" 
+                :label="__('dashboard.total_receives')" 
                 value="{{ number_format($incomingSummary['total_receives']) }}" 
-                subtitle="Processed items" 
+                :subtitle="__('dashboard.processed_items')" 
                 color="emerald" 
                 icon="M9 12.75 11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 0 1-1.043 3.296 3.745 3.745 0 0 1-3.296 1.043A3.745 3.745 0 0 1 12 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 0 1-3.296-1.043 3.745 3.745 0 0 1-1.043-3.296A3.745 3.745 0 0 1 3 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 0 1 1.043-3.296 3.746 3.746 0 0 1 3.296-1.043A3.746 3.746 0 0 1 12 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 0 1 3.296 1.043 3.746 3.746 0 0 1 1.043 3.296A3.745 3.745 0 0 1 21 12Z" />
 
             <x-stat-card class="animate-fade-in-up delay-3"
-                label="Pending Items" 
+                :label="__('dashboard.pending_items')" 
                 value="{{ number_format($incomingSummary['pending_items']) }}" 
-                subtitle="Need processing" 
+                :subtitle="__('dashboard.need_processing')" 
                 color="amber" 
                 icon="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
 
             <x-stat-card class="animate-fade-in-up delay-4"
-                label="Today Receives" 
+                :label="__('dashboard.today_receives')" 
                 value="{{ number_format($incomingSummary['today_receives']) }}" 
-                subtitle="Processed today" 
+                :subtitle="__('dashboard.processed_today')" 
                 color="sky" 
                 icon="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
         </div>
@@ -104,7 +104,7 @@
         <div class="grid gap-4 lg:grid-cols-3">
             {{-- OEE Gauge --}}
             <div class="card-hover rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col items-center justify-center">
-                <div class="text-xs uppercase tracking-wider text-slate-400 font-bold mb-3">Overall Equipment Effectiveness</div>
+                <div class="text-xs uppercase tracking-wider text-slate-400 font-bold mb-3">{{ __('dashboard.oee') }}</div>
                 <div class="relative w-36 h-36">
                     <svg viewBox="0 0 120 120" class="w-full h-full -rotate-90">
                         <circle cx="60" cy="60" r="52" fill="none" stroke="#e2e8f0" stroke-width="10"/>
@@ -143,15 +143,15 @@
                 <div class="gci-card-hover p-5">
                     <div class="flex items-center gap-2 mb-1">
                         <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
-                        <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">Planned Qty</div>
+                        <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">{{ __('dashboard.planned_qty') }}</div>
                     </div>
                     <div class="text-3xl font-black text-slate-900">{{ number_format($plantSummary['planned_qty'], 0) }}</div>
-                    <div class="mt-1 text-sm text-slate-500">{{ number_format($plantSummary['orders_count']) }} WO in range</div>
+                    <div class="mt-1 text-sm text-slate-500">{{ __('dashboard.wo_in_range', ['count' => number_format($plantSummary['orders_count'])]) }}</div>
                 </div>
                 <div class="gci-card-hover p-5">
                     <div class="flex items-center gap-2 mb-1">
                         <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
-                        <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">Actual Qty</div>
+                        <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">{{ __('dashboard.actual_qty') }}</div>
                     </div>
                     <div class="text-3xl font-black text-indigo-600">{{ number_format($plantSummary['actual_qty'], 0) }}</div>
                     <div class="mt-1 text-sm text-slate-500">
@@ -162,7 +162,7 @@
                 <div class="gci-card-hover p-5">
                     <div class="flex items-center gap-2 mb-1">
                         <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
-                        <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">Production Achievement</div>
+                        <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">{{ __('dashboard.production_achievement') }}</div>
                     </div>
                     <div class="text-3xl font-black text-indigo-600">{{ number_format($productionAchievement, 1) }}%</div>
                     <div class="w-full bg-slate-200 rounded-full h-1.5 mt-3 overflow-hidden">
@@ -173,15 +173,15 @@
                 <div class="gci-card-hover p-5">
                     <div class="flex items-center gap-2 mb-1">
                         <div class="w-2 h-2 rounded-full bg-indigo-500"></div>
-                        <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">Support Data</div>
+                        <div class="text-xs uppercase tracking-wider text-slate-400 font-bold">{{ __('dashboard.support_data') }}</div>
                     </div>
                     <div class="mt-2 space-y-2 text-sm text-slate-600">
                         <div class="flex justify-between items-center p-2 rounded-lg bg-slate-50">
-                            <span>Delivery Notes</span>
+                            <span>{{ __('dashboard.delivery_notes') }}</span>
                             <span class="font-bold text-slate-900">{{ number_format($plantSummary['delivery_notes_count']) }}</span>
                         </div>
                         <div class="flex justify-between items-center p-2 rounded-lg bg-slate-50">
-                            <span>Stock Opname Lines</span>
+                            <span>{{ __('dashboard.stock_opname') }}</span>
                             <span class="font-bold text-slate-900">{{ number_format($plantSummary['stock_opname_lines']) }}</span>
                         </div>
                     </div>
@@ -214,7 +214,7 @@
                         </div>
                         <div>
                             <h3 class="text-sm font-black text-slate-900">{{ $department }}</h3>
-                            <div class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">KPI Metrics</div>
+                            <div class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">{{ __('dashboard.kpi_metrics') }}</div>
                         </div>
                     </div>
                     <div class="grid gap-2 {{ count($items) > 4 ? 'sm:grid-cols-2 xl:grid-cols-3' : 'sm:grid-cols-2' }}">
@@ -249,8 +249,8 @@
             {{-- QC Status --}}
             <div class="gci-card p-6">
                 <div class="pb-3 border-b border-slate-100">
-                    <h3 class="text-sm font-black text-slate-900">QC Status</h3>
-                    <p class="text-xs text-slate-400 mt-0.5">Quality check summary</p>
+                    <h3 class="text-sm font-black text-slate-900">{{ __('dashboard.qc_status') }}</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">{{ __('dashboard.qc_summary') }}</p>
                 </div>
                 <div class="mt-4 space-y-2">
                     @php
@@ -276,11 +276,11 @@
             <div class="lg:col-span-2 gci-card p-6">
                 <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                     <div>
-                        <h3 class="text-sm font-black text-slate-900">Recent Receives</h3>
-                        <p class="text-xs text-slate-400 mt-0.5">Latest 5 processed items</p>
+                        <h3 class="text-sm font-black text-slate-900">{{ __('dashboard.recent_receives') }}</h3>
+                        <p class="text-xs text-slate-400 mt-0.5">{{ __('dashboard.latest_5') }}</p>
                     </div>
                     <a href="{{ route('receives.completed') }}" class="gci-btn-primary gci-btn-sm">
-                        View All
+                        {{ __('dashboard.view_all') }}
                     </a>
                 </div>
                 <div class="mt-4 space-y-2">
@@ -308,7 +308,7 @@
                             </div>
                         </div>
                     @empty
-                        <p class="text-sm text-slate-400 text-center py-8">No receives yet</p>
+                        <p class="text-sm text-slate-400 text-center py-8">{{ __('dashboard.no_receives') }}</p>
                     @endforelse
                 </div>
             </div>
@@ -320,15 +320,15 @@
         <div class="card-hover rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <div class="flex items-center justify-between pb-4 border-b border-slate-100">
                 <div>
-                    <h3 class="text-sm font-black text-slate-900">Departure Records</h3>
-                    <p class="text-xs text-slate-400 mt-0.5">Inbound shipments with pricing breakdowns</p>
+                    <h3 class="text-sm font-black text-slate-900">{{ __('dashboard.departure_records') }}</h3>
+                    <p class="text-xs text-slate-400 mt-0.5">{{ __('dashboard.departure_desc') }}</p>
                 </div>
                 <a href="{{ route('departures.create') }}"
                     class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-colors shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
                     </svg>
-                    New Departure
+                    {{ __('dashboard.new_departure') }}
                 </a>
             </div>
 
@@ -369,7 +369,7 @@
 
                                 <div class="mt-2.5">
                                     <div class="flex items-center justify-between text-[10px] mb-1">
-                                        <span class="font-semibold text-slate-400 uppercase tracking-wider">Received</span>
+                                        <span class="font-semibold text-slate-400 uppercase tracking-wider">{{ __('dashboard.received') }}</span>
                                         <span class="font-bold {{ $progress == 100 ? 'text-indigo-600' : 'text-slate-600' }}">{{ $totalReceived }} / {{ number_format($totalQty) }}</span>
                                     </div>
                                     <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
@@ -383,7 +383,7 @@
                                 <span class="text-[10px] text-slate-400">{{ $arrival->invoice_date->format('d M Y') }}</span>
                                 <a href="{{ route('departures.show', $arrival) }}"
                                     class="px-3 py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 text-xs font-bold rounded-lg transition-colors">
-                                    Details →
+                                    {{ __('dashboard.details') }}
                                 </a>
                             </div>
                         </div>
@@ -396,8 +396,8 @@
                                     d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/>
                             </svg>
                         </div>
-                        <h3 class="text-base font-bold text-slate-900 mb-1">No Departures Yet</h3>
-                        <p class="text-sm text-slate-400">Start by creating your first departure record.</p>
+                        <h3 class="text-base font-bold text-slate-900 mb-1">{{ __('dashboard.no_departures') }}</h3>
+                        <p class="text-sm text-slate-400">{{ __('dashboard.no_departures_desc') }}</p>
                     </div>
                 @endforelse
             </div>

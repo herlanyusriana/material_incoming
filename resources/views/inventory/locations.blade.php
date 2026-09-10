@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="header">
-        Warehouse Locations
+        {{ __('warehouse.inventory.locations.header') }}
     </x-slot>
 
     <div class="py-6" x-data="warehouseLocationsPage()">
@@ -25,7 +25,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                         </svg>
-                        Warehouse Map (Denah)
+                        {{ __('warehouse.inventory.locations.map_title') }}
                     </h3>
                     <div class="flex items-center gap-3">
                         <a href="{{ route('inventory.locations.print-map') }}" target="_blank"
@@ -36,7 +36,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                             </svg>
-                            Print A4
+                            {{ __('warehouse.inventory.locations.print_a4') }}
                         </a>
                         <button class="text-slate-500 hover:text-indigo-600">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform duration-200"
@@ -50,7 +50,7 @@
                 </div>
                 <div class="mt-4" x-show="expanded" x-cloak x-transition>
                     <div class="rounded-xl border border-slate-200 overflow-hidden bg-slate-50 flex justify-center p-4">
-                        <img src="{{ asset('assets/denah_warehouse.jpeg') }}" alt="Denah Warehouse"
+                        <img src="{{ asset('assets/denah_warehouse.jpeg') }}" alt="{{ __('warehouse.inventory.locations.map_alt') }}"
                             class="max-w-full h-auto object-contain rounded-lg shadow-sm">
                     </div>
                 </div>
@@ -68,7 +68,7 @@
                         <form method="GET" class="flex flex-wrap items-end gap-3 w-full lg:w-auto">
                             <div class="w-full sm:w-64">
                                 <label
-                                    class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Search</label>
+                                    class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">{{ __('warehouse.inventory.locations.search') }}</label>
                                 <div class="relative">
                                     <svg xmlns="http://www.w3.org/2000/svg"
                                         class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400"
@@ -78,13 +78,13 @@
                                     </svg>
                                     <input name="search" value="{{ $search }}"
                                         class="w-full pl-9 rounded-xl border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                        placeholder="Location code / QR...">
+                                        placeholder="{{ __('warehouse.inventory.locations.search_ph') }}">
                                 </div>
                             </div>
 
                             <div class="w-24">
                                 <label
-                                    class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Class</label>
+                                    class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">{{ __('warehouse.inventory.locations.class') }}</label>
                                 <input name="class" value="{{ $class }}"
                                     class="w-full rounded-xl border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500 text-center uppercase"
                                     placeholder="A">
@@ -92,7 +92,7 @@
 
                             <div class="w-24">
                                 <label
-                                    class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Zone</label>
+                                    class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">{{ __('warehouse.inventory.locations.zone') }}</label>
                                 <input name="zone" value="{{ $zone }}"
                                     class="w-full rounded-xl border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500 text-center uppercase"
                                     placeholder="Z1">
@@ -100,24 +100,24 @@
 
                             <div class="w-32">
                                 <label
-                                    class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">Status</label>
+                                    class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">{{ __('warehouse.inventory.locations.status') }}</label>
                                 <select name="status"
                                     class="w-full rounded-xl border-slate-200 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                    <option value="">All Status</option>
-                                    <option value="ACTIVE" @selected(strtoupper($status) === 'ACTIVE')>Active</option>
-                                    <option value="INACTIVE" @selected(strtoupper($status) === 'INACTIVE')>Inactive
+                                    <option value="">{{ __('warehouse.inventory.locations.all_status') }}</option>
+                                    <option value="ACTIVE" @selected(strtoupper($status) === 'ACTIVE')>{{ __('warehouse.inventory.locations.active') }}</option>
+                                    <option value="INACTIVE" @selected(strtoupper($status) === 'INACTIVE')>{{ __('warehouse.inventory.locations.inactive') }}
                                     </option>
                                 </select>
                             </div>
 
                             <button
                                 class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-semibold text-sm shadow-sm transition-colors">
-                                Filter
+                                {{ __('warehouse.inventory.locations.filter') }}
                             </button>
 
                             @if(request()->anyFilled(['search', 'class', 'zone', 'status']))
                                 <a href="{{ route('inventory.locations.index') }}"
-                                    class="px-3 py-2 text-slate-500 hover:text-slate-700 text-sm font-medium">Clear</a>
+                                    class="px-3 py-2 text-slate-500 hover:text-slate-700 text-sm font-medium">{{ __('warehouse.inventory.locations.clear') }}</a>
                             @endif
                         </form>
 
@@ -130,7 +130,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
                                     d="M12 4v16m8-8H4" />
                             </svg>
-                            Add Location
+                            {{ __('warehouse.inventory.locations.add_location') }}
                         </button>
                     </div>
 
@@ -140,20 +140,20 @@
                         <!-- Bulk Print Tool (Collapsible-ish concept) -->
                         <form action="{{ route('inventory.locations.print-range') }}" method="GET" target="_blank"
                             class="flex flex-wrap items-center gap-2 bg-slate-50 rounded-lg p-1.5 border border-slate-200">
-                            <span class="text-xs font-bold text-slate-500 px-2 uppercase">Print Range:</span>
+                            <span class="text-xs font-bold text-slate-500 px-2 uppercase">{{ __('warehouse.inventory.locations.print_range_label') }}</span>
                             <input name="start" value="{{ request('start') }}"
                                 class="w-24 px-2 py-1 text-sm rounded-xl border-slate-200 placeholder-slate-400 uppercase focus:border-indigo-500 focus:ring-0"
-                                placeholder="Start">
-                            <span class="text-slate-400 text-xs">to</span>
+                                placeholder="{{ __('warehouse.inventory.locations.start_ph') }}">
+                            <span class="text-slate-400 text-xs">{{ __('warehouse.inventory.locations.to') }}</span>
                             <input name="end" value="{{ request('end') }}"
                                 class="w-24 px-2 py-1 text-sm rounded-xl border-slate-200 placeholder-slate-400 uppercase focus:border-indigo-500 focus:ring-0"
-                                placeholder="End">
+                                placeholder="{{ __('warehouse.inventory.locations.end_ph') }}">
                             <input type="number" name="limit" min="1" max="50" value="{{ request('limit', 20) }}"
                                 class="w-16 px-2 py-1 text-sm rounded-xl border-slate-200 placeholder-slate-400 focus:border-indigo-500 focus:ring-0"
-                                title="Limit">
+                                title="{{ __('warehouse.inventory.locations.limit_title') }}">
                             <button
                                 class="px-3 py-1 bg-white border border-slate-200 rounded-xl text-slate-600 text-xs font-bold hover:text-indigo-600 hover:border-indigo-300 transition-colors uppercase tracking-wide">
-                                Print
+                                {{ __('warehouse.inventory.locations.print') }}
                             </button>
                         </form>
 
@@ -166,7 +166,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                                 </svg>
-                                Export
+                                {{ __('warehouse.inventory.locations.export') }}
                             </a>
                             <form action="{{ route('inventory.locations.import') }}" method="POST"
                                 enctype="multipart/form-data" class="flex items-center">
@@ -178,7 +178,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                                     </svg>
-                                    <span>Import</span>
+                                    <span>{{ __('warehouse.inventory.locations.import') }}</span>
                                     <input type="file" name="file" class="hidden" onchange="this.form.submit()">
                                 </label>
                             </form>
@@ -192,11 +192,11 @@
                         <thead
                             class="bg-slate-50 border-b border-slate-200 text-slate-500 uppercase font-semibold text-xs tracking-wider">
                             <tr>
-                                <th class="px-6 py-4">Location</th>
-                                <th class="px-6 py-4">Class</th>
-                                <th class="px-6 py-4">Zone</th>
-                                <th class="px-6 py-4">Status</th>
-                                <th class="px-6 py-4 text-right">Actions</th>
+                                <th class="px-6 py-4">{{ __('warehouse.inventory.locations.th_location') }}</th>
+                                <th class="px-6 py-4">{{ __('warehouse.inventory.locations.th_class') }}</th>
+                                <th class="px-6 py-4">{{ __('warehouse.inventory.locations.th_zone') }}</th>
+                                <th class="px-6 py-4">{{ __('warehouse.inventory.locations.th_status') }}</th>
+                                <th class="px-6 py-4 text-right">{{ __('warehouse.inventory.locations.th_actions') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -231,7 +231,7 @@
                                         <div class="flex items-center justify-end gap-2">
                                             <a href="{{ route('inventory.locations.print', $loc) }}" target="_blank"
                                                 class="p-1 text-slate-400 hover:text-indigo-600 transition-colors"
-                                                title="Print QR">
+                                                title="{{ __('warehouse.inventory.locations.print_qr_title') }}">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
                                                     viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -240,7 +240,7 @@
                                             </a>
                                             <button type="button"
                                                 class="p-1 text-slate-400 hover:text-amber-600 transition-colors"
-                                                @click="openEdit(@js($loc))" title="Edit">
+                                                @click="openEdit(@js($loc))" title="{{ __('warehouse.inventory.locations.edit_title') }}">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
                                                     viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -248,12 +248,12 @@
                                                 </svg>
                                             </button>
                                             <form action="{{ route('inventory.locations.destroy', $loc) }}" method="POST"
-                                                class="inline" onsubmit="return confirm('Delete location?')">
+                                                class="inline" onsubmit='return confirm(@js(__('warehouse.inventory.locations.delete_confirm)))'>
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit"
                                                     class="p-1 text-slate-400 hover:text-red-600 transition-colors"
-                                                    title="Delete">
+                                                    title="{{ __('warehouse.inventory.locations.delete_title') }}">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
                                                         viewBox="0 0 24 24" stroke="currentColor">
                                                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -274,7 +274,7 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
                                                     d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                                             </svg>
-                                            <span class="font-medium">No locations found</span>
+                                            <span class="font-medium">{{ __('warehouse.inventory.locations.empty') }}</span>
                                         </div>
                                     </td>
                                 </tr>
@@ -295,7 +295,7 @@
             <div class="w-full max-w-lg bg-white rounded-2xl shadow-xl border border-slate-200">
                 <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200">
                     <div class="text-sm font-semibold text-slate-900"
-                        x-text="mode === 'create' ? 'Add Location' : 'Edit Location'"></div>
+                        x-text='mode === "create" ? @js(__('warehouse.inventory.locations.modal_create')) : @js(__('warehouse.inventory.locations.modal_edit'))'></div>
                     <button type="button" class="w-9 h-9 rounded-xl border border-slate-200 hover:bg-slate-50"
                         @click="close()">✕</button>
                 </div>
@@ -307,26 +307,26 @@
                     </template>
 
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">Lokasi (Location Code)</label>
+                        <label class="text-sm font-semibold text-slate-700">{{ __('warehouse.inventory.locations.code_label') }}</label>
                         <input type="text" name="location_code"
                             class="mt-1 w-full rounded-xl border-slate-200 uppercase" placeholder="RACK-A1" required
                             x-model="form.location_code">
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="text-sm font-semibold text-slate-700">Class</label>
+                            <label class="text-sm font-semibold text-slate-700">{{ __('warehouse.inventory.locations.class') }}</label>
                             <input type="text" name="class" class="mt-1 w-full rounded-xl border-slate-200 uppercase"
-                                placeholder="A or TROLLY" x-model="form.class">
-                            <p class="text-[10px] text-slate-400 mt-1 italic">Type 'TROLLY' for mobile storage.</p>
+                                placeholder="{{ __('warehouse.inventory.locations.class_ph') }}" x-model="form.class">
+                            <p class="text-[10px] text-slate-400 mt-1 italic">{{ __('warehouse.inventory.locations.class_hint') }}</p>
                         </div>
                         <div>
-                            <label class="text-sm font-semibold text-slate-700">Zone</label>
+                            <label class="text-sm font-semibold text-slate-700">{{ __('warehouse.inventory.locations.zone') }}</label>
                             <input type="text" name="zone" class="mt-1 w-full rounded-xl border-slate-200 uppercase"
-                                placeholder="Z1" x-model="form.zone">
+                                placeholder="{{ __('warehouse.inventory.locations.zone_ph') }}" x-model="form.zone">
                         </div>
                     </div>
                     <div>
-                        <label class="text-sm font-semibold text-slate-700">Status</label>
+                        <label class="text-sm font-semibold text-slate-700">{{ __('warehouse.inventory.locations.status') }}</label>
                         <select name="status" class="mt-1 w-full rounded-xl border-slate-200" x-model="form.status">
                             <option value="ACTIVE">ACTIVE</option>
                             <option value="INACTIVE">INACTIVE</option>
@@ -335,9 +335,9 @@
 
                     <div class="flex justify-end gap-2 pt-2">
                         <button type="button" class="px-4 py-2 rounded-xl border border-slate-200 hover:bg-slate-50"
-                            @click="close()">Cancel</button>
+                            @click="close()">{{ __('warehouse.inventory.locations.cancel') }}</button>
                         <button type="submit"
-                            class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">Save</button>
+                            class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold">{{ __('warehouse.inventory.locations.save') }}</button>
                     </div>
                 </form>
             </div>

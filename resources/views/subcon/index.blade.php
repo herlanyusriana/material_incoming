@@ -3,8 +3,8 @@
 @section('content')
     <div class="space-y-6">
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-            <h1 class="text-2xl font-black text-slate-900">{{ $pageTitle ?? 'Subcon Orders' }}</h1>
-            <div class="mt-1 text-sm text-slate-600">{{ $pageDescription ?? 'Subcon order list.' }}</div>
+            <h1 class="text-2xl font-black text-slate-900">{{ $pageTitle ?? __('subcon.orders.index.title') }}</h1>
+            <div class="mt-1 text-sm text-slate-600">{{ $pageDescription ?? __('subcon.orders.index.description') }}</div>
         </div>
 
         @if (session('success'))
@@ -21,23 +21,23 @@
         {{-- Stats Cards --}}
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
             <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Total</div>
+                <div class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('subcon.orders.index.total') }}</div>
                 <div class="mt-1 text-2xl font-black text-slate-900">{{ $stats->total }}</div>
             </div>
             <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 shadow-sm">
-                <div class="text-xs font-bold uppercase tracking-wider text-blue-600">Sent</div>
+                <div class="text-xs font-bold uppercase tracking-wider text-blue-600">{{ __('subcon.orders.index.sent') }}</div>
                 <div class="mt-1 text-2xl font-black text-blue-700">{{ $stats->sent }}</div>
             </div>
             <div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
-                <div class="text-xs font-bold uppercase tracking-wider text-amber-600">Partial</div>
+                <div class="text-xs font-bold uppercase tracking-wider text-amber-600">{{ __('subcon.orders.index.partial') }}</div>
                 <div class="mt-1 text-2xl font-black text-amber-700">{{ $stats->partial }}</div>
             </div>
             <div class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
-                <div class="text-xs font-bold uppercase tracking-wider text-emerald-600">Completed</div>
+                <div class="text-xs font-bold uppercase tracking-wider text-emerald-600">{{ __('subcon.orders.index.completed') }}</div>
                 <div class="mt-1 text-2xl font-black text-emerald-700">{{ $stats->completed }}</div>
             </div>
             <div class="rounded-2xl border border-rose-200 bg-rose-50 p-4 shadow-sm">
-                <div class="text-xs font-bold uppercase tracking-wider text-rose-600">Outstanding Qty</div>
+                <div class="text-xs font-bold uppercase tracking-wider text-rose-600">{{ __('subcon.orders.index.outstanding_qty') }}</div>
                 <div class="mt-1 text-2xl font-black text-rose-700">{{ number_format($stats->total_outstanding) }}</div>
             </div>
         </div>
@@ -48,45 +48,45 @@
                 <form action="{{ ($mode ?? 'receive') === 'traceability' ? route('subcon.traceability-index') : route('subcon.receive-index') }}" method="GET" class="flex flex-wrap items-end gap-3">
                     @if (($mode ?? 'receive') !== 'traceability')
                         <div>
-                            <label for="status" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Status</label>
+                            <label for="status" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">{{ __('subcon.orders.index.status') }}</label>
                             <select id="status" name="status" class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                <option value="">All</option>
+                                <option value="">{{ __('subcon.orders.index.all') }}</option>
                                 @foreach (['draft','sent','partial','completed','cancelled'] as $s)
-                                    <option value="{{ $s }}" @selected(request('status') === $s)>{{ ucfirst($s) }}</option>
+                                    <option value="{{ $s }}" @selected(request('status') === $s)>{{ __('subcon.status.'.$s) }}</option>
                                 @endforeach
                             </select>
                         </div>
                     @endif
                     <div>
-                        <label for="vendor_id" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">Vendor</label>
+                        <label for="vendor_id" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">{{ __('subcon.orders.index.vendor') }}</label>
                         <select id="vendor_id" name="vendor_id" class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            <option value="">All</option>
+                            <option value="">{{ __('subcon.orders.index.all') }}</option>
                             @foreach ($vendors as $v)
                                 <option value="{{ $v->id }}" @selected(request('vendor_id') == $v->id)>{{ $v->vendor_name }}</option>
                             @endforeach
                         </select>
                     </div>
                     <div>
-                        <label for="date_from" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">From</label>
+                        <label for="date_from" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">{{ __('subcon.orders.index.from') }}</label>
                         <input type="date" id="date_from" name="date_from" value="{{ request('date_from') }}"
                             class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                     </div>
                     <div>
-                        <label for="date_to" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">To</label>
+                        <label for="date_to" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1">{{ __('subcon.orders.index.to') }}</label>
                         <input type="date" id="date_to" name="date_to" value="{{ request('date_to') }}"
                             class="rounded-lg border-slate-300 text-sm focus:border-indigo-500 focus:ring-indigo-500" />
                     </div>
                     <button type="submit"
                         class="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900 disabled:opacity-60 disabled:cursor-not-allowed">
-                        Filter
+                        {{ __('subcon.orders.index.filter') }}
                     </button>
                     @if (($mode ?? 'receive') === 'receive')
                         <a href="{{ route('subcon.receive-index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                            Reset
+                            {{ __('subcon.orders.index.reset') }}
                         </a>
                     @else
                         <a href="{{ route('subcon.traceability-index') }}" class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
-                            Reset
+                            {{ __('subcon.orders.index.reset') }}
                         </a>
                     @endif
                 </form>
@@ -96,50 +96,50 @@
         @if (($mode ?? 'receive') === 'traceability')
             <div class="grid gap-4 lg:grid-cols-3">
                 <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                    <div class="text-xs font-bold uppercase tracking-wider text-slate-500">Kontrak Ada Sisa Efektif</div>
+                    <div class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ __('subcon.orders.index.contracts_remaining') }}</div>
                     <div class="mt-1 text-3xl font-black text-slate-900">{{ $contractRemainRows->count() }}</div>
                 </div>
                 <div class="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
-                    <div class="text-xs font-bold uppercase tracking-wider text-amber-700">Perlu Alarm</div>
+                    <div class="text-xs font-bold uppercase tracking-wider text-amber-700">{{ __('subcon.orders.index.need_alarm') }}</div>
                     <div class="mt-1 text-3xl font-black text-amber-800">{{ $contractAlarmRows->count() }}</div>
                 </div>
                 <div class="rounded-2xl border border-indigo-200 bg-indigo-50 p-5 shadow-sm">
-                    <div class="text-xs font-bold uppercase tracking-wider text-indigo-700">Setting Limit</div>
+                    <div class="text-xs font-bold uppercase tracking-wider text-indigo-700">{{ __('subcon.orders.index.setting_limit') }}</div>
                     <a href="{{ route('contract-numbers.index') }}" class="mt-2 inline-flex rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700">
-                        Buka Master Kontrak
+                        {{ __('subcon.orders.index.open_master') }}
                     </a>
                 </div>
             </div>
 
             @if ($contractAlarmRows->isNotEmpty())
                 <div class="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-900">
-                    <div class="font-black">Alarm sisa kontrak mendekati limit</div>
-                    <div class="mt-1">Segera siapkan SKEP/kontrak baru untuk material yang ditandai.</div>
+                    <div class="font-black">{{ __('subcon.orders.index.alarm_title') }}</div>
+                    <div class="mt-1">{{ __('subcon.orders.index.alarm_desc') }}</div>
                 </div>
             @endif
 
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                 <div class="border-b border-slate-100 px-5 py-4">
-                    <h2 class="text-lg font-black text-slate-900">Remain Efektif Kontrak / SKEP</h2>
-                    <div class="mt-1 text-sm text-slate-500">Sisa dihitung dari target dikurangi qty sent dan NG.</div>
+                    <h2 class="text-lg font-black text-slate-900">{{ __('subcon.orders.index.remain_title') }}</h2>
+                    <div class="mt-1 text-sm text-slate-500">{{ __('subcon.orders.index.remain_desc') }}</div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm divide-y divide-slate-200">
                         <thead class="bg-slate-50">
                             <tr>
-                                <th class="px-4 py-3 text-left font-bold text-slate-700">Nomor Kontrak</th>
-                                <th class="px-4 py-3 text-left font-bold text-slate-700">Vendor</th>
-                                <th class="px-4 py-3 text-left font-bold text-slate-700">RM Part</th>
-                                <th class="px-4 py-3 text-left font-bold text-slate-700">WIP Part</th>
-                                <th class="px-4 py-3 text-center font-bold text-slate-700">Process</th>
-                                <th class="px-4 py-3 text-center font-bold text-slate-700">UOM</th>
-                                <th class="px-4 py-3 text-right font-bold text-slate-700">Target</th>
-                                <th class="px-4 py-3 text-right font-bold text-slate-700">Sent</th>
-                                <th class="px-4 py-3 text-right font-bold text-slate-700">NG</th>
-                                <th class="px-4 py-3 text-right font-bold text-slate-700">Remain Efektif</th>
-                                <th class="px-4 py-3 text-right font-bold text-slate-700 whitespace-nowrap">Remain Efektif (KGM)</th>
-                                <th class="px-4 py-3 text-right font-bold text-slate-700">Limit Alarm</th>
-                                <th class="px-4 py-3 text-center font-bold text-slate-700">Status</th>
+                                <th class="px-4 py-3 text-left font-bold text-slate-700">{{ __('subcon.orders.index.contract_no') }}</th>
+                                <th class="px-4 py-3 text-left font-bold text-slate-700">{{ __('subcon.orders.index.vendor') }}</th>
+                                <th class="px-4 py-3 text-left font-bold text-slate-700">{{ __('subcon.orders.index.rm_part') }}</th>
+                                <th class="px-4 py-3 text-left font-bold text-slate-700">{{ __('subcon.orders.index.wip_part') }}</th>
+                                <th class="px-4 py-3 text-center font-bold text-slate-700">{{ __('subcon.orders.index.process') }}</th>
+                                <th class="px-4 py-3 text-center font-bold text-slate-700">{{ __('subcon.orders.index.uom') }}</th>
+                                <th class="px-4 py-3 text-right font-bold text-slate-700">{{ __('subcon.orders.index.target') }}</th>
+                                <th class="px-4 py-3 text-right font-bold text-slate-700">{{ __('subcon.orders.index.sent') }}</th>
+                                <th class="px-4 py-3 text-right font-bold text-slate-700">{{ __('subcon.orders.index.ng') }}</th>
+                                <th class="px-4 py-3 text-right font-bold text-slate-700">{{ __('subcon.orders.index.remain_effective') }}</th>
+                                <th class="px-4 py-3 text-right font-bold text-slate-700 whitespace-nowrap">{{ __('subcon.orders.index.remain_effective_kgm') }}</th>
+                                <th class="px-4 py-3 text-right font-bold text-slate-700">{{ __('subcon.orders.index.limit_alarm') }}</th>
+                                <th class="px-4 py-3 text-center font-bold text-slate-700">{{ __('subcon.orders.index.status') }}</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -173,15 +173,15 @@
                                     <td class="px-4 py-3 text-right font-mono">{{ $row['warning_limit_qty'] !== null ? number_format($row['warning_limit_qty']) : '-' }}</td>
                                     <td class="px-4 py-3 text-center">
                                         @if ($row['is_alarm'])
-                                            <span class="inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-black text-amber-800">Buat SKEP Baru</span>
+                                            <span class="inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-black text-amber-800">{{ __('subcon.orders.index.new_alarm') }}</span>
                                         @else
-                                            <span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700">Aman</span>
+                                            <span class="inline-flex rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-700">{{ __('subcon.orders.index.safe') }}</span>
                                         @endif
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="13" class="px-4 py-8 text-center text-slate-400">Tidak ada sisa kontrak aktif.</td>
+                                    <td colspan="13" class="px-4 py-8 text-center text-slate-400">{{ __('subcon.orders.index.empty_contract') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -195,26 +195,26 @@
                 <table class="w-full text-sm divide-y divide-slate-200">
                     <thead class="bg-slate-50">
                         <tr>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">Order No</th>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">Nomor Kontrak</th>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">Vendor</th>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">RM Part</th>
-                            <th class="px-4 py-3 text-left font-bold text-slate-700">WIP Part</th>
-                            <th class="px-4 py-3 text-center font-bold text-slate-700">Process</th>
-                            <th class="px-4 py-3 text-center font-bold text-slate-700">UOM</th>
-                            <th class="px-4 py-3 text-right font-bold text-slate-700">Sent</th>
-                            <th class="px-4 py-3 text-right font-bold text-slate-700">Received</th>
-                            <th class="px-4 py-3 text-right font-bold text-slate-700">Rejected</th>
-                            <th class="px-4 py-3 text-right font-bold text-slate-700">Outstanding</th>
-                            <th class="px-4 py-3 text-center font-bold text-slate-700">Sent Date</th>
-                            <th class="px-4 py-3 text-center font-bold text-slate-700">Status</th>
-                            <th class="px-4 py-3 text-center font-bold text-slate-700">Action</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">{{ __('subcon.orders.index.order_no') }}</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">{{ __('subcon.orders.index.contract_no') }}</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">{{ __('subcon.orders.index.vendor') }}</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">{{ __('subcon.orders.index.rm_part') }}</th>
+                            <th class="px-4 py-3 text-left font-bold text-slate-700">{{ __('subcon.orders.index.wip_part') }}</th>
+                            <th class="px-4 py-3 text-center font-bold text-slate-700">{{ __('subcon.orders.index.process') }}</th>
+                            <th class="px-4 py-3 text-center font-bold text-slate-700">{{ __('subcon.orders.index.uom') }}</th>
+                            <th class="px-4 py-3 text-right font-bold text-slate-700">{{ __('subcon.orders.index.sent') }}</th>
+                            <th class="px-4 py-3 text-right font-bold text-slate-700">{{ __('subcon.orders.index.received') }}</th>
+                            <th class="px-4 py-3 text-right font-bold text-slate-700">{{ __('subcon.orders.index.rejected') }}</th>
+                            <th class="px-4 py-3 text-right font-bold text-slate-700">{{ __('subcon.orders.index.outstanding') }}</th>
+                            <th class="px-4 py-3 text-center font-bold text-slate-700">{{ __('subcon.orders.index.sent_date') }}</th>
+                            <th class="px-4 py-3 text-center font-bold text-slate-700">{{ __('subcon.orders.index.status') }}</th>
+                            <th class="px-4 py-3 text-center font-bold text-slate-700">{{ __('subcon.orders.index.action') }}</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         @if ($orders->isEmpty())
                             <tr>
-                                <td colspan="14" class="px-4 py-8 text-center text-slate-400">No subcon orders found.</td>
+                                <td colspan="14" class="px-4 py-8 text-center text-slate-400">{{ __('subcon.orders.index.empty_orders') }}</td>
                             </tr>
                         @else
                             @foreach ($orders->getCollection()->groupBy(fn ($order) => ($order->contract_no ?: 'NO-CONTRACT-' . $order->id) . '|' . $order->vendor_id) as $contractGroup)
@@ -227,7 +227,7 @@
                                     <td class="px-4 py-3 text-slate-700 font-semibold align-middle border-r border-slate-100" rowspan="{{ $contractGroup->count() }}">
                                         {{ $order->contract_no ?? '-' }}
                                         @if ($contractGroup->count() > 1)
-                                            <div class="mt-1 text-[10px] font-bold uppercase text-indigo-500">{{ $contractGroup->count() }} items</div>
+                                            <div class="mt-1 text-[10px] font-bold uppercase text-indigo-500">{{ __('subcon.orders.index.items', ['count' => $contractGroup->count()]) }}</div>
                                         @endif
                                     </td>
                                 @endif
@@ -242,7 +242,7 @@
                                 </td>
                                 <td class="px-4 py-3 text-center">
                                     <span class="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                                        {{ ucfirst($order->process_type) }}
+                                        {{ $order->process_type }}
                                     </span>
                                 </td>
                                 <td class="px-4 py-3 text-center font-mono text-xs font-black text-slate-600">
@@ -278,7 +278,7 @@
                                         ];
                                     @endphp
                                     <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold {{ $statusColors[$order->status] ?? 'bg-slate-100 text-slate-700' }}">
-                                        {{ ucfirst($order->status) }}
+                                        {{ __('subcon.status.'.$order->status) }}
                                     </span>
                                 </td>
                                 @if ($loop->first)
@@ -289,7 +289,7 @@
                                                     Receive
                                                 </a>
                                             @else
-                                                <a href="{{ route('subcon.show', $order) }}" class="font-semibold text-indigo-600 hover:text-indigo-800">Receive</a>
+                                                <a href="{{ route('subcon.show', $order) }}" class="font-semibold text-indigo-600 hover:text-indigo-800">{{ __('subcon.orders.index.receive') }}</a>
                                             @endif
                                         </div>
                                     </td>

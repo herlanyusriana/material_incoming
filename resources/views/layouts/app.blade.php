@@ -7,11 +7,6 @@
 
         <title>Smart Application System | Geum Cheon Indo</title>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
 	        <style>[x-cloak]{display:none !important;}</style>
@@ -57,20 +52,17 @@
                 .ts-control input {
                     text-transform: uppercase !important;
                 }
-                body {
-                    font-family: 'Inter', sans-serif;
-                }
 	        </style>
 	    </head>
-    <body class="bg-slate-50 text-slate-800 antialiased">
+    <body class="bg-slate-100/70 font-sans text-slate-800 antialiased">
         <a href="#main-content" class="skip-link">Skip ke konten utama</a>
 	        <div class="flex min-h-screen flex-col">
-                <header class="sticky top-0 z-20 border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur">
+                <header class="sticky top-0 z-20 border-b border-slate-200/90 bg-white/95 backdrop-blur">
                     <div class="mx-auto w-full max-w-[1440px] px-4 py-2 sm:px-6 lg:px-8">
                         <div class="flex items-center justify-between gap-4">
                             <div class="flex min-w-0 items-center gap-3">
                                 <a href="{{ route('home') }}" class="flex shrink-0 items-center gap-2 rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="{{ __('nav.home') }}">
-                                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-sm">
+                                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white shadow-sm shadow-indigo-600/20">
                                         <x-icon name="sparkles" class="h-4 w-4" />
                                     </span>
                                     <span class="hidden text-sm font-bold tracking-tight text-slate-900 sm:block">
@@ -117,8 +109,8 @@
                     </div>
                 </header>
 
-                <main id="main-content" tabindex="-1" class="flex-1 bg-slate-50/50">
-                    <div class="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
+                <main id="main-content" tabindex="-1" class="flex-1">
+                    <div class="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
                         @isset($slot)
                             {{ $slot }}
                         @else
