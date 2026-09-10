@@ -18,6 +18,7 @@ use App\Models\PurchaseOrderItem;
 use App\Support\PartFamily;
 use App\Services\MrpIncomingIntegrationService;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -273,6 +274,8 @@ class MrpController extends Controller
                 'monthLabels' => $monthLabels,
                 'family' => $family,
                 'families' => PartFamily::labels(),
+                'mrpDataBuyPage' => null,
+                'mrpDataMakePage' => null,
             ]);
         }
 
@@ -566,9 +569,27 @@ class MrpController extends Controller
         usort($mrpDataBuy, $byFamily);
         usort($mrpDataMake, $byFamily);
 
+        $mrpDataBuyPage = $this->paginateRows($mrpDataBuy, $request, 'buy_page');
+        $mrpDataMakePage = $this->paginateRows($mrpDataMake, $request, 'make_page');
+
         $families = PartFamily::labels();
 
-        return view('planning.mrp.index', compact('period', 'dates', 'months', 'monthLabels', 'mrpData', 'mrpDataBuy', 'mrpDataMake', 'family', 'families'));
+        return view('planning.mrp.index', compact('period', 'dates', 'months', 'monthLabels', 'mrpData', 'mrpDataBuy', 'mrpDataMake', 'mrpDataBuyPage', 'mrpDataMakePage', 'family', 'families'));
+    }
+
+    private function paginateRows(array $rows, Request $request, string $pageName, int $perPage = 25): LengthAwarePaginator
+    {
+        $page = max(1, (int) $request->query($pageName, 1));
+        $query = $request->query();
+        unset($query[$pageName]);
+
+        return new LengthAwarePaginator(
+            array_slice($rows, ($page - 1) * $perPage, $perPage),
+            count($rows),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'pageName' => $pageName, 'query' => $query]
+        );
     }
 
     private function getWeeksForRange(\Carbon\Carbon $start, \Carbon\Carbon $end): array

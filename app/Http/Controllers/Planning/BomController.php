@@ -510,7 +510,6 @@ class BomController extends Controller
     {
         $validated = $request->validate([
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
-            'net_weight' => ['nullable', 'numeric', 'min:0', 'decimal:0,4'],
             'part_id' => [
                 'nullable',
                 Rule::exists('gci_parts', 'id')->where(fn($q) => $q->where('classification', 'FG')),
@@ -526,24 +525,11 @@ class BomController extends Controller
             $payload['part_id'] = (int) $validated['part_id'];
         }
 
-        $updatesNetWeight = array_key_exists('net_weight', $validated);
-
-        if ($payload === [] && ! $updatesNetWeight) {
+        if ($payload === []) {
             return back()->with('error', 'No changes provided.');
         }
 
-        DB::transaction(function () use ($bom, $payload, $validated, $updatesNetWeight) {
-            if ($payload !== []) {
-                $bom->update($payload);
-            }
-
-            if ($updatesNetWeight) {
-                $fgPartId = (int) ($payload['part_id'] ?? $bom->part_id);
-                GciPart::query()->whereKey($fgPartId)->update([
-                    'net_weight' => $validated['net_weight'],
-                ]);
-            }
-        });
+        $bom->update($payload);
 
         return back()->with('success', 'BOM updated.');
     }

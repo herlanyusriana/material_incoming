@@ -1,3 +1,5 @@
+@php($fullWidth = true)
+
 <x-app-layout>
     <x-slot name="header">
         {{ __('planning.boms.index.header') }}
@@ -383,7 +385,7 @@
 
                 {{-- Table --}}
                 <div class="max-w-full overflow-auto max-h-[calc(100dvh-250px)] border-t border-slate-200">
-                    <table class="bom-table min-w-[2300px] w-full text-sm"
+                    <table class="bom-table min-w-[2150px] w-full text-sm"
                         :class="density === 'comfortable' ? 'bom-table-comfortable' : 'bom-table-compact'">
                         <thead class="bg-slate-50 border-b border-slate-200">
                             <tr class="text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -392,7 +394,6 @@
                                 <th class="px-2 py-2 text-left min-w-[220px]">{{ __('planning.boms.index.th_fg_name') }}</th>
                                 <th class="px-2 py-2 text-left min-w-[130px]">{{ __('planning.boms.index.th_fg_model') }}</th>
                                 <th class="px-2 py-2 text-left min-w-[150px]">{{ __('planning.boms.index.th_fg_part_no') }}</th>
-                                <th class="px-2 py-2 text-right min-w-[130px]">{{ __('planning.boms.index.th_fg_net_weight') }}</th>
                                 <th class="px-2 py-2 text-left min-w-[140px]">{{ __('planning.boms.index.th_process_name') }}</th>
                                 <th class="px-2 py-2 text-left min-w-[170px]">{{ __('planning.boms.index.th_machine_name') }}</th>
                                 <th class="px-2 py-2 text-left min-w-[160px]">{{ __('planning.boms.index.th_parent_part_no') }}</th>
@@ -411,13 +412,12 @@
                                     $fgNo = $bom->part->part_no ?? '-';
                                     $fgName = $bom->part->part_name ?? '-';
                                     $fgModel = $bom->part->model ?? '';
-                                    $fgNetWeight = $bom->part->net_weight;
                                     $groupNo = ($boms->firstItem() ?? 1) + $loop->index;
                                     $items = ($bom->items ?? collect())->sortBy(fn($i) => $i->line_no ?? 0)->values();
                                 @endphp
 
                                 <tr class="parent-row">
-                                    <td colspan="14" class="px-3 py-2.5">
+                                    <td colspan="13" class="px-3 py-2.5">
                                         <div class="flex min-w-max items-center gap-3">
                                             <button type="button"
                                                 class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 active:translate-y-px"
@@ -457,7 +457,6 @@
                                                     'action' => route('planning.boms.update', $bom),
                                                     'part_id' => $bom->part_id,
                                                     'current_label' => ($bom->part?->part_no ?? '-') . ' - ' . ($bom->part?->part_name ?? '-'),
-                                                    'net_weight' => $fgNetWeight,
                                                 ]))">FG</button>
                                             <form action="{{ route('planning.boms.destroy', $bom) }}" method="POST"
                                                 class="inline" onsubmit='return confirm(@js(__("planning.boms.index.confirm_delete_bom")));'>
@@ -497,9 +496,6 @@
                                         </td>
                                         <td class="px-2 py-2 whitespace-nowrap font-mono text-xs font-bold text-slate-900">
                                             {{ $fgNo }}
-                                        </td>
-                                        <td class="px-2 py-2 text-right whitespace-nowrap font-mono text-xs font-bold text-slate-700">
-                                            {{ $fgNetWeight !== null ? number_format((float) $fgNetWeight, 4, '.', '') . ' kg/pcs' : '-' }}
                                         </td>
                                         <td class="px-2 py-2 whitespace-nowrap text-xs font-semibold text-slate-700">
                                             {{ $item->process_name ?? '' }}
@@ -631,13 +627,13 @@
                                     </tr>
                                 @empty
                                     <tr class="bg-slate-50/50" x-show="expanded[{{ $bomId }}]" x-cloak>
-                                        <td colspan="15" class="px-3 py-4 text-center text-slate-500">{{ __('planning.boms.index.empty_lines') }}</td>
+                                        <td colspan="14" class="px-3 py-4 text-center text-slate-500">{{ __('planning.boms.index.empty_lines') }}</td>
                                     </tr>
                                 @endforelse
 
                                 {{-- Add line row --}}
                                 <tr class="bg-white" x-show="expanded[{{ $bomId }}]" x-cloak>
-                                    <td colspan="15" class="px-3 py-3">
+                                    <td colspan="14" class="px-3 py-3">
                                         <button type="button"
                                             class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm"
                                             @click="openLineModal(@js([
@@ -670,7 +666,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="15" class="px-4 py-8 text-center text-slate-500">{{ __('planning.boms.index.empty') }}</td>
+                                    <td colspan="14" class="px-4 py-8 text-center text-slate-500">{{ __('planning.boms.index.empty') }}</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -680,10 +676,11 @@
                 {{-- Footer --}}
                 <div class="border-t border-slate-200 p-4 bg-slate-50">
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                        <div class="text-sm text-slate-500">
+                        <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-500">
                             <span class="font-semibold">{{ __('planning.boms.index.tip_label') }}</span> {{ __('planning.boms.index.tip_before') }} <span class="font-semibold">{{ __('planning.boms.index.tip_add') }}</span> {{ __('planning.boms.index.tip_after') }}
+                            <span class="font-medium text-slate-700">Showing {{ $boms->firstItem() ?? 0 }}–{{ $boms->lastItem() ?? 0 }} of {{ $boms->total() }} BOMs</span>
                         </div>
-                        <div>{{ $boms->links() }}</div>
+                        <div aria-label="BOM pagination">{{ $boms->links() }}</div>
                     </div>
                 </div>
             </div>
@@ -1151,7 +1148,6 @@
                             action: '',
                             current_label: '',
                             part_id: '',
-                            net_weight: '',
                         },
                         lineModalOpen: false,
                         substituteOpen: false,
@@ -1219,7 +1215,6 @@
                                 action: payload.action,
                                 current_label: payload.current_label ?? '',
                                 part_id: payload.part_id ?? '',
-                                net_weight: payload.net_weight ?? '',
                             };
                             this.changeFgOpen = true;
                         },
@@ -1338,11 +1333,10 @@
                         <div>
                             <label class="text-xs font-semibold text-slate-600">{{ __('planning.boms.index.new_fg') }}</label>
                             <select name="part_id" class="mt-1 w-full rounded-xl border-slate-200" required
-                                x-model="changeFgForm.part_id"
-                                @change="changeFgForm.net_weight = $event.target.selectedOptions[0]?.dataset.netWeight ?? ''">
+                                x-model="changeFgForm.part_id">
                                 <option value="" disabled>{{ __('planning.boms.index.select_fg') }}</option>
                                 @foreach(($fgParts ?? []) as $p)
-                                    <option value="{{ optional($p)->id }}" data-net-weight="{{ optional($p)->net_weight }}">{{ optional($p)->part_no }} -
+                                    <option value="{{ optional($p)->id }}">{{ optional($p)->part_no }} -
                                         {{ optional($p)->part_name ?? '-' }}
                                     </option>
                                 @endforeach
@@ -1351,17 +1345,6 @@
                                 {{ __('planning.boms.index.change_note_before') }} <span
                                     class="font-semibold">FG</span>
                                 {{ __('planning.boms.index.change_note_after') }}
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="text-xs font-semibold text-slate-600">{{ __('planning.boms.index.net_weight_kg_pcs') }}</label>
-                            <div class="relative mt-1">
-                                <input type="number" name="net_weight" min="0" step="0.0001"
-                                    x-model="changeFgForm.net_weight"
-                                    class="w-full rounded-xl border-slate-200 pr-20 font-mono text-sm focus:border-blue-500 focus:ring-blue-500"
-                                    placeholder="0.0000">
-                                <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs font-semibold text-slate-400">kg/pcs</span>
                             </div>
                         </div>
 

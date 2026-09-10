@@ -110,7 +110,7 @@
                 </header>
 
                 <main id="main-content" tabindex="-1" class="flex-1">
-                    <div class="mx-auto w-full max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+                    <div class="mx-auto w-full {{ ($fullWidth ?? false) ? 'max-w-none' : 'max-w-[1440px]' }} px-4 py-8 sm:px-6 lg:px-8">
                         @isset($slot)
                             {{ $slot }}
                         @else

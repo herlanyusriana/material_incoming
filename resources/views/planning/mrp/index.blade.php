@@ -1,3 +1,5 @@
+@php($fullWidth = true)
+
 <x-app-layout>
     <x-slot name="header">
         {{ __('planning.mrp.index.header') }}
@@ -18,7 +20,7 @@
     </div>
 
     <div class="py-6">
-        <div class="max-w-[98%] mx-auto px-2 space-y-6">
+        <div class="w-full mx-auto px-0 sm:px-2 space-y-6">
             @php
                 $familyColors = [
                     'Comp Base' => 'bg-indigo-100 text-indigo-700',
@@ -179,24 +181,37 @@
                     </div>
                 @else
                     <div class="space-y-6" x-show="(tab === 'buy' || tab === 'all') && viewMode === 'daily'" x-cloak>
-                        @include('planning.mrp.partials.table', ['mrpRows' => $mrpDataBuy ?? [], 'modeLabel' => __('planning.mrp.index.mode_buy_daily'), 'showPoAction' => true, 'showIncoming' => true, 'month' => $month])
+                        @include('planning.mrp.partials.table', ['mrpRows' => $mrpDataBuyPage?->items() ?? [], 'modeLabel' => __('planning.mrp.index.mode_buy_daily'), 'showPoAction' => true, 'showIncoming' => true, 'month' => $month])
                     </div>
                     <div class="space-y-6" x-show="(tab === 'buy' || tab === 'all') && viewMode === 'summary'" x-cloak>
-                        @include('planning.mrp.partials.table_monthly', ['mrpRows' => $mrpDataBuy ?? [], 'modeLabel' => __('planning.mrp.index.mode_buy_summary'), 'showPoAction' => true, 'showIncoming' => true])
+                        @include('planning.mrp.partials.table_monthly', ['mrpRows' => $mrpDataBuyPage?->items() ?? [], 'modeLabel' => __('planning.mrp.index.mode_buy_summary'), 'showPoAction' => true, 'showIncoming' => true])
                     </div>
                     <div class="space-y-6" x-show="(tab === 'buy' || tab === 'all') && viewMode === 'month'" x-cloak>
-                        @include('planning.mrp.partials.table_month_columns', ['mrpRows' => $mrpDataBuy ?? [], 'modeLabel' => __('planning.mrp.index.mode_buy_month'), 'showPoAction' => true, 'months' => $months ?? [], 'monthLabels' => $monthLabels ?? []])
+                        @include('planning.mrp.partials.table_month_columns', ['mrpRows' => $mrpDataBuyPage?->items() ?? [], 'modeLabel' => __('planning.mrp.index.mode_buy_month'), 'showPoAction' => true, 'months' => $months ?? [], 'monthLabels' => $monthLabels ?? []])
                     </div>
 
                     <div class="space-y-6" x-show="(tab === 'make' || tab === 'all') && viewMode === 'daily'" x-cloak>
-                        @include('planning.mrp.partials.table', ['mrpRows' => $mrpDataMake ?? [], 'modeLabel' => __('planning.mrp.index.mode_make_daily'), 'showPoAction' => false, 'showIncoming' => false, 'month' => $month])
+                        @include('planning.mrp.partials.table', ['mrpRows' => $mrpDataMakePage?->items() ?? [], 'modeLabel' => __('planning.mrp.index.mode_make_daily'), 'showPoAction' => false, 'showIncoming' => false, 'month' => $month])
                     </div>
                     <div class="space-y-6" x-show="(tab === 'make' || tab === 'all') && viewMode === 'summary'" x-cloak>
-                        @include('planning.mrp.partials.table_monthly', ['mrpRows' => $mrpDataMake ?? [], 'modeLabel' => __('planning.mrp.index.mode_make_summary'), 'showPoAction' => false, 'showIncoming' => false])
+                        @include('planning.mrp.partials.table_monthly', ['mrpRows' => $mrpDataMakePage?->items() ?? [], 'modeLabel' => __('planning.mrp.index.mode_make_summary'), 'showPoAction' => false, 'showIncoming' => false])
                     </div>
                     <div class="space-y-6" x-show="(tab === 'make' || tab === 'all') && viewMode === 'month'" x-cloak>
-                        @include('planning.mrp.partials.table_month_columns', ['mrpRows' => $mrpDataMake ?? [], 'modeLabel' => __('planning.mrp.index.mode_make_month'), 'showPoAction' => false, 'months' => $months ?? [], 'monthLabels' => $monthLabels ?? []])
+                        @include('planning.mrp.partials.table_month_columns', ['mrpRows' => $mrpDataMakePage?->items() ?? [], 'modeLabel' => __('planning.mrp.index.mode_make_month'), 'showPoAction' => false, 'months' => $months ?? [], 'monthLabels' => $monthLabels ?? []])
                     </div>
+
+                    @if($mrpDataBuyPage?->hasPages())
+                        <div x-show="tab === 'buy' || tab === 'all'" x-cloak class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                            <span class="text-xs font-medium text-slate-600">Showing {{ $mrpDataBuyPage->firstItem() }}–{{ $mrpDataBuyPage->lastItem() }} of {{ $mrpDataBuyPage->total() }} purchase requirements</span>
+                            <nav aria-label="MRP purchase requirements pagination">{{ $mrpDataBuyPage->links() }}</nav>
+                        </div>
+                    @endif
+                    @if($mrpDataMakePage?->hasPages())
+                        <div x-show="tab === 'make' || tab === 'all'" x-cloak class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                            <span class="text-xs font-medium text-slate-600">Showing {{ $mrpDataMakePage->firstItem() }}–{{ $mrpDataMakePage->lastItem() }} of {{ $mrpDataMakePage->total() }} production requirements</span>
+                            <nav aria-label="MRP production requirements pagination">{{ $mrpDataMakePage->links() }}</nav>
+                        </div>
+                    @endif
                 @endif
             </div>
         </div>

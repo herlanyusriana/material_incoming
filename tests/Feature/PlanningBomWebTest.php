@@ -14,7 +14,7 @@ class PlanningBomWebTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_bom_index_renders_flat_manufacturing_columns_and_fg_net_weight(): void
+    public function test_bom_index_renders_flat_manufacturing_columns_without_fg_net_weight(): void
     {
         $user = User::factory()->create();
         [$bom] = $this->makeBomFixture();
@@ -28,7 +28,6 @@ class PlanningBomWebTest extends TestCase
                 'FG Name',
                 'FG Model',
                 'FG Part No.',
-                'FG Net Weight',
                 'Process Name',
                 'Machine Name',
                 'Parent Part No.',
@@ -38,24 +37,33 @@ class PlanningBomWebTest extends TestCase
                 'Child Part No.',
                 'Child Part Name',
             ])
-            ->assertSeeText('12.3456 kg/pcs')
+            ->assertDontSeeText('FG Net Weight')
+            ->assertDontSeeText('12.3456 kg/pcs')
             ->assertSeeText('FG-100')
             ->assertSeeText('WIP-100-01')
             ->assertSeeText('RM-100');
     }
 
-    public function test_bom_update_persists_net_weight_on_the_fg_master(): void
+    public function test_bom_update_does_not_modify_net_weight_on_the_fg_master(): void
     {
         $user = User::factory()->create();
-        [$bom, $fg] = $this->makeBomFixture();
+        [$bom] = $this->makeBomFixture();
+        $newFg = GciPart::create([
+            'part_no' => 'FG-200',
+            'part_name' => 'Replacement Assembly',
+            'classification' => 'FG',
+            'status' => 'active',
+            'net_weight' => 4.2500,
+        ]);
 
         $this->actingAs($user)
             ->put(route('planning.boms.update', $bom), [
+                'part_id' => $newFg->id,
                 'net_weight' => '8.1250',
             ])
             ->assertRedirect();
 
-        $this->assertSame('8.1250', $fg->fresh()->getRawOriginal('net_weight'));
+        $this->assertSame('4.2500', $newFg->fresh()->getRawOriginal('net_weight'));
     }
 
     private function makeBomFixture(): array
