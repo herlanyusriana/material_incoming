@@ -3,8 +3,8 @@
         {{ __('planning.boms.index.header') }}
     </x-slot>
 
-    <div class="py-6" x-data="planningBoms()">
-        <div class="w-full px-2 sm:px-4 lg:px-6 space-y-5">
+    <div class="py-2 min-w-0" x-data="planningBoms()">
+        <div class="w-full min-w-0 space-y-5">
             @if (session('success'))
                 <div
                     class="rounded-xl bg-emerald-50 border border-emerald-200/60 px-5 py-3.5 text-sm text-emerald-800 flex items-center gap-3 shadow-sm animate-fade-in">
@@ -247,6 +247,55 @@
                 [x-cloak] {
                     display: none !important;
                 }
+
+                /* Fit the manufacturing sheet to the viewport, including actions. */
+                .bom-table {
+                    table-layout: fixed;
+                    min-width: 0;
+                    width: 100%;
+                }
+                .bom-table th,
+                .bom-table td {
+                    min-width: 0;
+                    max-width: none;
+                    white-space: normal;
+                    overflow-wrap: anywhere;
+                    padding-left: 5px;
+                    padding-right: 5px;
+                    line-height: 1.45;
+                }
+                .bom-table th {
+                    letter-spacing: 0;
+                    font-size: 10px;
+                }
+                .bom-table .sticky-col-no,
+                .bom-table .sticky-col-actions {
+                    position: static;
+                    box-shadow: none;
+                }
+                .bom-table .truncate {
+                    max-width: 100%;
+                    white-space: normal;
+                    overflow: visible;
+                    overflow-wrap: anywhere;
+                    text-overflow: clip;
+                }
+                .bom-table .parent-row td > div {
+                    min-width: 0;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                }
+                .bom-table .sticky-col-actions > div {
+                    flex-wrap: wrap;
+                }
+                .bom-table .parent-row td {
+                    padding-top: 8px;
+                    padding-bottom: 8px;
+                }
+                #bom-gci {
+                    width: 100%;
+                    max-width: 340px;
+                }
             </style>
 
             <div class="bg-white border-y border-slate-200">
@@ -382,9 +431,25 @@
                 </div>
 
                 {{-- Table --}}
-                <div class="max-w-full overflow-auto max-h-[calc(100dvh-250px)] border-t border-slate-200">
-                    <table class="bom-table min-w-[2150px] w-full text-sm"
+                <div class="w-full min-w-0 border-t border-slate-200">
+                    <table class="bom-table w-full text-sm"
                         :class="density === 'comfortable' ? 'bom-table-comfortable' : 'bom-table-compact'">
+                        <colgroup>
+                            <col style="width: 3%">
+                            <col style="width: 3%">
+                            <col style="width: 8%">
+                            <col style="width: 5%">
+                            <col style="width: 8%">
+                            <col style="width: 7%">
+                            <col style="width: 8%">
+                            <col style="width: 9%">
+                            <col style="width: 8%">
+                            <col style="width: 4%">
+                            <col style="width: 4%">
+                            <col style="width: 8%">
+                            <col style="width: 9%">
+                            <col style="width: 8%">
+                        </colgroup>
                         <thead class="bg-slate-50 border-b border-slate-200">
                             <tr class="text-xs font-bold text-slate-500 uppercase tracking-wider">
                                 <th class="px-2 py-2 text-center sticky-col-no th-sticky w-12">{{ __('planning.boms.index.th_no') }}</th>
