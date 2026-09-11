@@ -14,7 +14,7 @@ class PlanningBomWebTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_bom_index_renders_flat_manufacturing_columns_without_fg_net_weight(): void
+    public function test_bom_index_groups_fg_identity_and_renders_process_columns_without_fg_net_weight(): void
     {
         $user = User::factory()->create();
         [$bom] = $this->makeBomFixture();
@@ -23,11 +23,7 @@ class PlanningBomWebTest extends TestCase
             ->get(route('planning.boms.index', ['gci_part_id' => $bom->part_id]))
             ->assertOk()
             ->assertSeeTextInOrder([
-                'No',
                 'Seq',
-                'FG Name',
-                'FG Model',
-                'FG Part No.',
                 'Process Name',
                 'Machine Name',
                 'Parent Part No.',
@@ -36,11 +32,17 @@ class PlanningBomWebTest extends TestCase
                 'Parent Part UOM',
                 'Child Part No.',
                 'Child Part Name',
+                'Material / Size',
+                'Spec / Make-Buy',
             ])
             ->assertDontSeeText('FG Net Weight')
             ->assertDontSeeText('12.3456 kg/pcs')
             ->assertSeeText('FG-100')
             ->assertSeeText('WIP-100-01')
+            ->assertSeeText('Pressed Body')
+            ->assertSeeText('Steel Coil')
+            ->assertSeeText('Finished Assembly')
+            ->assertSeeText('MODEL-X')
             ->assertSeeText('RM-100');
     }
 

@@ -296,25 +296,17 @@
                     width: 100%;
                     max-width: 340px;
                 }
-                .bom-detail-grid {
-                    display: grid;
-                    grid-template-columns: repeat(3, minmax(0, 1fr));
-                    gap: 12px 24px;
-                    padding: 8px;
-                    font-size: 12px;
-                }
-                .bom-detail-grid dl { min-width: 0; margin: 0; }
-                .bom-detail-grid dt { color: #64748b; font-size: 11px; margin-top: 4px; }
-                .bom-detail-grid dd { margin: 0; color: #0f172a; white-space: normal; overflow-wrap: anywhere; }
-                .bom-detail-row { background: #f8fafc; }
-                @media (max-width: 767px) {
-                    .bom-detail-grid { grid-template-columns: minmax(0, 1fr); }
-                }
+                .bom-table .child-row td { padding-top: 8px; padding-bottom: 8px; }
+                .bom-table .child-row td:nth-child(5),
+                .bom-table .child-row td:nth-child(9) { font-size: 12px; font-weight: 500; }
+                .bom-table th { text-transform: none; font-size: 11px; }
+                .bom-table .parent-row { background: #eef2f6; }
+                .bom-table .parent-row td { border-top: 2px solid #cbd5e1; }
             </style>
 
             <div class="bg-white border-y border-slate-200">
                 {{-- Header --}}
-                <div class="p-6 border-b border-slate-100">
+                <div class="p-4 border-b border-slate-100">
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                         <div class="flex items-start gap-3">
                             <div
@@ -322,7 +314,7 @@
                                 BOM
                             </div>
                             <div>
-                                <div class="text-2xl md:text-3xl font-black text-slate-900">{{ __('planning.boms.index.title') }}</div>
+                                <div class="text-xl font-semibold text-slate-900">{{ __('planning.boms.index.title') }}</div>
                                 <div class="mt-1 text-sm text-slate-500">
                                     {{ __('planning.boms.index.subtitle') }}
                                     <span
@@ -355,7 +347,7 @@
                     </div>
 
                     {{-- Toolbar --}}
-                    <div class="mt-6 flex flex-wrap gap-4 items-end border-t border-slate-100 pt-6">
+                    <div class="mt-4 flex flex-wrap gap-3 items-end border-t border-slate-100 pt-4">
                         <form method="GET" class="flex flex-wrap items-end gap-3">
                             <div>
                                 <label for="bom-search"
@@ -392,7 +384,9 @@
                             </button>
                         </form>
 
-                        <div class="flex items-center gap-2 ml-auto flex-wrap">
+                        <details class="relative ml-auto" @keydown.escape="$el.open = false" @click.outside="$el.open = false">
+                            <summary class="cursor-pointer rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700">Tools</summary>
+                            <div class="absolute right-0 z-50 mt-2 flex w-72 max-w-[80vw] flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
                             <a href="{{ route('planning.boms.export', request()->query()) }}"
                                 class="inline-flex items-center rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                                 {{ __('planning.boms.index.export') }}
@@ -440,7 +434,8 @@
                                 <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3v18h18M7 14l3-3 4 4 5-6" /></svg>
                                 {{ __('planning.boms.index.explosion') }}
                             </a>
-                        </div>
+                            </div>
+                        </details>
                     </div>
                 </div>
 
@@ -450,27 +445,21 @@
                         :class="density === 'comfortable' ? 'bom-table-comfortable' : 'bom-table-compact'">
                         <colgroup>
                             <col style="width: 3%">
-                            <col style="width: 3%">
-                            <col style="width: 8%">
-                            <col style="width: 5%">
-                            <col style="width: 8%">
                             <col style="width: 7%">
                             <col style="width: 8%">
-                            <col style="width: 9%">
-                            <col style="width: 8%">
+                            <col style="width: 10%">
+                            <col style="width: 11%">
                             <col style="width: 4%">
                             <col style="width: 4%">
-                            <col style="width: 8%">
-                            <col style="width: 9%">
-                            <col style="width: 8%">
+                            <col style="width: 10%">
+                            <col style="width: 13%">
+                            <col style="width: 7%">
+                            <col style="width: 7%">
+                            <col style="width: 6%">
                         </colgroup>
                         <thead class="bg-slate-50 border-b border-slate-200">
                             <tr class="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                                <th class="px-2 py-2 text-center sticky-col-no th-sticky w-12">{{ __('planning.boms.index.th_no') }}</th>
                                 <th class="px-2 py-2 text-center whitespace-nowrap">{{ __('planning.boms.index.th_seq') }}</th>
-                                <th class="px-2 py-2 text-left min-w-[220px]">{{ __('planning.boms.index.th_fg_name') }}</th>
-                                <th class="px-2 py-2 text-left min-w-[130px]">{{ __('planning.boms.index.th_fg_model') }}</th>
-                                <th class="px-2 py-2 text-left min-w-[150px]">{{ __('planning.boms.index.th_fg_part_no') }}</th>
                                 <th class="px-2 py-2 text-left min-w-[140px]">{{ __('planning.boms.index.th_process_name') }}</th>
                                 <th class="px-2 py-2 text-left min-w-[170px]">{{ __('planning.boms.index.th_machine_name') }}</th>
                                 <th class="px-2 py-2 text-left min-w-[160px]">{{ __('planning.boms.index.th_parent_part_no') }}</th>
@@ -479,6 +468,8 @@
                                 <th class="px-2 py-2 text-left min-w-[120px]">{{ __('planning.boms.index.th_parent_part_uom') }}</th>
                                 <th class="px-2 py-2 text-left min-w-[160px]">{{ __('planning.boms.index.th_child_part_no') }}</th>
                                 <th class="px-2 py-2 text-left min-w-[210px]">{{ __('planning.boms.index.th_child_part_name') }}</th>
+                                <th class="px-2 py-2 text-left">Material / Size</th>
+                                <th class="px-2 py-2 text-left">Spec / Make-Buy</th>
                                 <th class="px-2 py-2 text-center font-bold sticky-col-actions th-sticky-actions min-w-[100px]">{{ __('planning.boms.index.th_actions') }}</th>
                             </tr>
                         </thead>
@@ -495,13 +486,14 @@
                                 @endphp
 
                                 <tr class="parent-row">
-                                    <td colspan="13" class="px-3 py-2.5">
+                                    <td colspan="11" class="px-3 py-2.5">
                                         <div class="flex min-w-max items-center gap-3">
                                             <button type="button"
                                                 class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 active:translate-y-px"
                                                 @click="toggle({{ $bomId }})" aria-label="Toggle BOM lines">
                                                 <span x-text="expanded[{{ $bomId }}] ? '−' : '+'" class="text-sm font-bold"></span>
                                             </button>
+                                            <span class="text-xs text-slate-500">{{ $groupNo }} · FG</span>
                                             <span class="font-mono text-xs font-black text-blue-700">{{ $fgNo }}</span>
                                             <span class="text-xs font-semibold text-slate-800">{{ $fgName }}</span>
                                             @if($fgModel)
@@ -565,21 +557,13 @@
                                         $subCount = $substitutes->count();
                                     @endphp
                                     <tr class="child-row group" x-show="expanded[{{ $bomId }}]" x-cloak>
-                                        <td class="sticky-col-no px-2 py-2 text-center font-mono text-xs font-black text-slate-700">
-                                            {{ $groupNo }}
-                                        </td>
+
                                         <td class="px-2 py-2 text-center font-mono text-xs font-black text-blue-700">
                                             {{ $lineNo }}
                                         </td>
-                                        <td class="px-2 py-2 text-xs font-semibold text-slate-800">
-                                            <span class="block max-w-[220px] truncate" title="{{ $fgName }}">{{ $fgName }}</span>
-                                        </td>
-                                        <td class="px-2 py-2 whitespace-nowrap font-mono text-xs text-slate-600">
-                                            {{ $fgModel ?: '-' }}
-                                        </td>
-                                        <td class="px-2 py-2 whitespace-nowrap font-mono text-xs font-bold text-slate-900">
-                                            {{ $fgNo }}
-                                        </td>
+
+
+
                                         <td class="px-2 py-2 whitespace-nowrap text-xs font-semibold text-slate-700">
                                             {{ $item->process_name ?? '' }}
                                         </td>
@@ -619,6 +603,17 @@
                                                 {{ $item->consumptionUom?->code ?? ($item->consumption_uom ?? '') }}
                                                 <span class="ml-1 font-sans {{ str_contains($policyClass, 'orange') ? 'text-orange-700' : 'text-slate-500' }}">{{ $policyLabel }}</span>
                                             </span>
+                                        </td>
+                                        <td class="text-xs text-slate-700">
+                                            <span class="block">{{ $item->material_name ?: ($rmName ?: '—') }}</span>
+                                            <span class="block text-slate-500">{{ $item->material_size ?: '—' }}</span>
+                                        </td>
+                                        <td class="text-xs text-slate-700">
+                                            <span class="block">{{ $item->material_spec ?: '—' }}</span>
+                                            <span class="block text-slate-500">{{ strtoupper((string) $item->make_or_buy) ?: '—' }}</span>
+                                            @if(filled($item->special))
+                                                <span class="block">{{ $item->special }}</span>
+                                            @endif
                                         </td>
                                         <td
                                             class="px-2 py-1.5 text-center whitespace-nowrap sticky-col-actions bg-white border-l border-slate-200 shadow-[-4px_0_6px_-1px_rgba(0,0,0,0.05)]">
@@ -708,45 +703,15 @@
                                             </div>
                                         </td>
                                     </tr>
-                                    <tr class="bom-detail-row" x-show="expanded[{{ $bomId }}]" x-cloak>
-                                        <td colspan="14">
-                                            <div class="bom-detail-grid">
-                                                <dl>
-                                                    <dt>{{ __('planning.boms.index.th_fg_name') }}</dt>
-                                                    <dd>{{ $fgName ?: '—' }}</dd>
-                                                    <dt>{{ __('planning.boms.index.th_parent_part_name') }}</dt>
-                                                    <dd>{{ $wipName ?: '—' }}</dd>
-                                                    <dt>{{ __('planning.boms.index.th_child_part_name') }}</dt>
-                                                    <dd class="font-semibold">{{ $rmName ?: '—' }}</dd>
-                                                </dl>
-                                                <dl>
-                                                    <dt>Material Name</dt>
-                                                    <dd>{{ $item->material_name ?: '—' }}</dd>
-                                                    <dt>Material Size / Material Spec</dt>
-                                                    <dd>{{ $item->material_size ?: '—' }} / {{ $item->material_spec ?: '—' }}</dd>
-                                                    <dt>Special</dt>
-                                                    <dd>{{ $item->special ?: '—' }}</dd>
-                                                </dl>
-                                                <dl>
-                                                    <dt>Consumption / UOM</dt>
-                                                    <dd>{{ formatNumber($item->usage_qty) }} {{ $item->consumptionUom?->code ?: $item->consumption_uom }}</dd>
-                                                    <dt>Make/Buy / {{ __('planning.boms.index.th_policy') }}</dt>
-                                                    <dd>{{ strtoupper((string) $item->make_or_buy) ?: '—' }} / {{ $policyLabel }}</dd>
-                                                    <dt>Scrap Factor / Yield Factor</dt>
-                                                    <dd>{{ $item->scrap_factor ?? '—' }} / {{ $item->yield_factor ?? '—' }}</dd>
-                                                </dl>
-                                            </div>
-                                        </td>
-                                    </tr>
                                 <?php endforeach; else: ?>
                                     <tr class="bg-slate-50/50" x-show="expanded[{{ $bomId }}]" x-cloak>
-                                        <td colspan="14" class="px-3 py-4 text-center text-slate-500">{{ __('planning.boms.index.empty_lines') }}</td>
+                                        <td colspan="12" class="px-3 py-4 text-center text-slate-500">{{ __('planning.boms.index.empty_lines') }}</td>
                                     </tr>
                                 <?php endif; ?>
 
                                 {{-- Add line row --}}
                                 <tr class="bg-white" x-show="expanded[{{ $bomId }}]" x-cloak>
-                                    <td colspan="14" class="px-3 py-3">
+                                    <td colspan="12" class="px-3 py-3">
                                         <button type="button"
                                             class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm"
                                             @click="openLineModal(@js([
@@ -779,7 +744,7 @@
                                 </tr>
                             <?php endforeach; else: ?>
                                 <tr>
-                                    <td colspan="14" class="px-4 py-8 text-center text-slate-500">{{ __('planning.boms.index.empty') }}</td>
+                                    <td colspan="12" class="px-4 py-8 text-center text-slate-500">{{ __('planning.boms.index.empty') }}</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
