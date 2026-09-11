@@ -296,6 +296,20 @@
                     width: 100%;
                     max-width: 340px;
                 }
+                .bom-detail-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, minmax(0, 1fr));
+                    gap: 12px 24px;
+                    padding: 8px;
+                    font-size: 12px;
+                }
+                .bom-detail-grid dl { min-width: 0; margin: 0; }
+                .bom-detail-grid dt { color: #64748b; font-size: 11px; margin-top: 4px; }
+                .bom-detail-grid dd { margin: 0; color: #0f172a; white-space: normal; overflow-wrap: anywhere; }
+                .bom-detail-row { background: #f8fafc; }
+                @media (max-width: 767px) {
+                    .bom-detail-grid { grid-template-columns: minmax(0, 1fr); }
+                }
             </style>
 
             <div class="bg-white border-y border-slate-200">
@@ -543,6 +557,10 @@
                                         $wipNo = $item->wip_part_no ?: ($item->wipPart?->part_no ?? '');
                                         $wipName = $item->wip_part_name ?: ($item->wipPart?->part_name ?? '');
                                         $rmNo = $item->component_part_no ?: ($item->componentPart?->part_no ?? '');
+                                        $rmName = trim((string) $item->componentPart?->part_name)
+                                            ?: (trim((string) $item->material_name)
+                                            ?: trim((string) $item->incomingPart?->vendor_part_name));
+                                        $wipName = trim((string) $wipName);
                                         $substitutes = $item->substitutes ?? collect();
                                         $subCount = $substitutes->count();
                                     @endphp
@@ -593,8 +611,8 @@
                                                 ];
                                                 [$policyLabel, $policyClass] = $policyLabels[$policy] ?? ['-', 'bg-slate-100 text-slate-500 border-slate-200'];
                                             @endphp
-                                            <span class="block max-w-[210px] truncate font-medium" title="{{ $item->componentPart?->part_name ?? $item->material_name }}">
-                                                {{ $item->componentPart?->part_name ?? ($item->material_name ?: '-') }}
+                                            <span class="block font-medium" title="{{ $rmName }}">
+                                                {{ $rmName ?: '—' }}
                                             </span>
                                             <span class="mt-0.5 block font-mono text-[10px] text-slate-500">
                                                 {{ rtrim(rtrim(number_format((float) $item->usage_qty, 4, '.', ''), '0'), '.') }}
@@ -687,6 +705,36 @@
                                                     <button type="submit" class="action-btn hover:bg-red-50 text-red-600"
                                                         title="{{ __('planning.boms.index.delete_title') }}">🗑</button>
                                                 </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <tr class="bom-detail-row" x-show="expanded[{{ $bomId }}]" x-cloak>
+                                        <td colspan="14">
+                                            <div class="bom-detail-grid">
+                                                <dl>
+                                                    <dt>{{ __('planning.boms.index.th_fg_name') }}</dt>
+                                                    <dd>{{ $fgName ?: '—' }}</dd>
+                                                    <dt>{{ __('planning.boms.index.th_parent_part_name') }}</dt>
+                                                    <dd>{{ $wipName ?: '—' }}</dd>
+                                                    <dt>{{ __('planning.boms.index.th_child_part_name') }}</dt>
+                                                    <dd class="font-semibold">{{ $rmName ?: '—' }}</dd>
+                                                </dl>
+                                                <dl>
+                                                    <dt>Material Name</dt>
+                                                    <dd>{{ $item->material_name ?: '—' }}</dd>
+                                                    <dt>Material Size / Material Spec</dt>
+                                                    <dd>{{ $item->material_size ?: '—' }} / {{ $item->material_spec ?: '—' }}</dd>
+                                                    <dt>Special</dt>
+                                                    <dd>{{ $item->special ?: '—' }}</dd>
+                                                </dl>
+                                                <dl>
+                                                    <dt>Consumption / UOM</dt>
+                                                    <dd>{{ formatNumber($item->usage_qty) }} {{ $item->consumptionUom?->code ?: $item->consumption_uom }}</dd>
+                                                    <dt>Make/Buy / {{ __('planning.boms.index.th_policy') }}</dt>
+                                                    <dd>{{ strtoupper((string) $item->make_or_buy) ?: '—' }} / {{ $policyLabel }}</dd>
+                                                    <dt>Scrap Factor / Yield Factor</dt>
+                                                    <dd>{{ $item->scrap_factor ?? '—' }} / {{ $item->yield_factor ?? '—' }}</dd>
+                                                </dl>
                                             </div>
                                         </td>
                                     </tr>
