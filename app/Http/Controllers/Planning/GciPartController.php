@@ -7,7 +7,7 @@ use App\Exports\GciPartsExport;
 use App\Imports\GciPartsImport;
 use App\Models\Bom;
 use App\Models\BomItem;
-use App\Models\BomItemSubstitute;
+use App\Models\MaterialSubstitute;
 use App\Models\GciPart;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
@@ -143,21 +143,20 @@ class GciPartController extends Controller
         // Substitutes FOR this part (when used as component in BOMs)
         $partSubstitutesMap = [];
         if (!empty($rmIds)) {
-            $subsForParts = BomItemSubstitute::query()
-                ->whereHas('bomItem', fn($q) => $q->whereIn('component_part_id', $rmIds))
-                ->with(['bomItem.bom.part:id,part_no,part_name', 'bomItem:id,bom_id,component_part_id', 'part:id,part_no,part_name'])
+            $subsForParts = MaterialSubstitute::query()
+                ->whereIn('generic_part_id', $rmIds)
+                ->with(['substitutePart:id,part_no,part_name'])
                 ->get();
 
             foreach ($subsForParts as $sub) {
-                $componentPartId = $sub->bomItem->component_part_id;
-                $partSubstitutesMap[$componentPartId][] = [
+                $partSubstitutesMap[$sub->generic_part_id][] = [
                     'id' => $sub->id,
-                    'bom_item_id' => $sub->bom_item_id,
-                    'fg_part_id' => $sub->bomItem->bom->part->id ?? null,
-                    'fg_part_no' => $sub->bomItem->bom->part->part_no ?? '?',
+                    'bom_item_id' => null,
+                    'fg_part_id' => null,
+                    'fg_part_no' => 'Global',
                     'substitute_part_id' => $sub->substitute_part_id,
-                    'substitute_part_no' => $sub->part->part_no ?? $sub->substitute_part_no,
-                    'substitute_part_name' => $sub->part->part_name ?? '',
+                    'substitute_part_no' => $sub->substitutePart->part_no ?? '',
+                    'substitute_part_name' => $sub->substitutePart->part_name ?? '',
                     'ratio' => $sub->ratio,
                     'priority' => $sub->priority,
                     'status' => $sub->status,
@@ -169,17 +168,17 @@ class GciPartController extends Controller
         // Where this part IS a substitute for other parts
         $partAsSubstituteMap = [];
         if (!empty($rmIds)) {
-            $asSubstitute = BomItemSubstitute::query()
+            $asSubstitute = MaterialSubstitute::query()
                 ->whereIn('substitute_part_id', $rmIds)
-                ->with(['bomItem.bom.part:id,part_no', 'bomItem:id,bom_id,component_part_id,component_part_no', 'bomItem.componentPart:id,part_no,part_name'])
+                ->with(['genericPart:id,part_no,part_name'])
                 ->get();
 
             foreach ($asSubstitute as $sub) {
                 $partAsSubstituteMap[$sub->substitute_part_id][] = [
                     'id' => $sub->id,
-                    'fg_part_no' => $sub->bomItem->bom->part->part_no ?? '?',
-                    'original_rm_part_no' => $sub->bomItem->componentPart->part_no ?? $sub->bomItem->component_part_no,
-                    'original_rm_part_name' => $sub->bomItem->componentPart->part_name ?? '',
+                    'fg_part_no' => 'Global',
+                    'original_rm_part_no' => $sub->genericPart->part_no ?? '',
+                    'original_rm_part_name' => $sub->genericPart->part_name ?? '',
                     'ratio' => $sub->ratio,
                     'priority' => $sub->priority,
                     'status' => $sub->status,
@@ -491,13 +490,12 @@ class GciPartController extends Controller
 
         $substitutePart = GciPart::find($validated['substitute_part_id']);
 
-        BomItemSubstitute::updateOrCreate(
+        MaterialSubstitute::updateOrCreate(
             [
-                'bom_item_id' => $bomItem->id,
+                'generic_part_id' => $gciPart->id,
                 'substitute_part_id' => (int) $validated['substitute_part_id'],
             ],
             [
-                'substitute_part_no' => $substitutePart->part_no,
                 'ratio' => $validated['ratio'] ?? 1,
                 'priority' => $validated['priority'] ?? 1,
                 'status' => $validated['status'] ?? 'active',
@@ -508,7 +506,7 @@ class GciPartController extends Controller
         return back()->with('success', 'Substitute saved.');
     }
 
-    public function updateSubstitute(Request $request, BomItemSubstitute $substitute)
+    public function updateSubstitute(Request $request, MaterialSubstitute $substitute)
     {
         $validated = $request->validate([
             'substitute_part_id' => ['required', 'exists:gci_parts,id'],
@@ -518,11 +516,8 @@ class GciPartController extends Controller
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $substitutePart = GciPart::find($validated['substitute_part_id']);
-
         $substitute->update([
             'substitute_part_id' => (int) $validated['substitute_part_id'],
-            'substitute_part_no' => $substitutePart->part_no,
             'ratio' => $validated['ratio'] ?? 1,
             'priority' => $validated['priority'] ?? 1,
             'status' => $validated['status'] ?? 'active',
@@ -532,7 +527,7 @@ class GciPartController extends Controller
         return back()->with('success', 'Substitute updated.');
     }
 
-    public function destroySubstitute(BomItemSubstitute $substitute)
+    public function destroySubstitute(MaterialSubstitute $substitute)
     {
         $substitute->delete();
         return back()->with('success', 'Substitute deleted.');

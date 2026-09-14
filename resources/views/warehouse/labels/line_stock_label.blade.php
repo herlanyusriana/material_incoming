@@ -80,11 +80,12 @@
             width: 35mm;
             height: 35mm;
         }
-        .qr svg {
+        .qr img {
             width: 100% !important;
             height: 100% !important;
         }
         .scan-text {
+            white-space: pre-line;
             font-size: 9pt;
             font-weight: 900;
             text-align: center;
@@ -110,8 +111,8 @@
                 </div>
             </section>
             <section class="qr-area">
-                <div class="qr">{!! $qrSvg !!}</div>
-                <div class="scan-text">{!! nl2br(e(__('warehouse.labels.line_stock.scan_text'))) !!}</div>
+                <div class="qr"><img src="data:image/svg+xml;base64,{{ base64_encode($qrSvg) }}" alt="QR line stock"></div>
+                <div class="scan-text">{{ __('warehouse.labels.line_stock.scan_text') }}</div>
             </section>
         </div>
     </div>

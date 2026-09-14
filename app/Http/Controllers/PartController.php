@@ -14,7 +14,7 @@ use Maatwebsite\Excel\Validators\ValidationException;
 use Illuminate\Support\Facades\DB;
 use App\Models\Bom;
 use App\Models\BomItem;
-use App\Models\BomItemSubstitute;
+use App\Models\MaterialSubstitute;
 use Illuminate\Database\QueryException;
 use Illuminate\Validation\Rule;
 
@@ -79,15 +79,12 @@ class PartController extends Controller
                 'incoming_part_id' => $vendorPart->id,
             ]);
 
-        $subSynced = BomItemSubstitute::query()
+        $subSynced = MaterialSubstitute::query()
             ->where('substitute_part_id', $part->id)
             ->where('status', 'active')
-            ->whereNull('incoming_part_id')
-            ->whereHas('bomItem.bom', function ($q) use ($asOfDate) {
-                $this->activeBomScope($q, $asOfDate);
-            })
+            ->whereNull('vendor_part_id')
             ->update([
-                'incoming_part_id' => $vendorPart->id,
+                'vendor_part_id' => $vendorPart->id,
             ]);
 
         return [
@@ -162,16 +159,14 @@ class PartController extends Controller
         $consumptionPolicy = $this->normalizeConsumptionPolicy($request->query('consumption_policy'));
         $policyConfirmation = trim((string) $request->query('policy_confirmation', ''));
 
-        // Substitute tab: query BomItemSubstitute instead of GciPart
+        // Substitute tab: query MaterialSubstitute
         if (strtoupper($classification) === 'SUB') {
-            $substitutes = BomItemSubstitute::with(['bomItem.bom.part', 'bomItem.componentPart', 'part'])
+            $substitutes = MaterialSubstitute::with(['genericPart:id,part_no,part_name', 'substitutePart:id,part_no,part_name', 'vendorPart.vendor:id,vendor_name'])
                 ->when($status, fn($q) => $q->where('status', $status))
                 ->when($search, function ($query) use ($search) {
                     $query->where(function ($inner) use ($search) {
-                        $inner->where('substitute_part_no', 'like', "%{$search}%")
-                            ->orWhereHas('part', fn($q) => $q->where('part_name', 'like', "%{$search}%"))
-                            ->orWhereHas('bomItem.componentPart', fn($q) => $q->where('part_no', 'like', "%{$search}%"))
-                            ->orWhereHas('bomItem.bom.part', fn($q) => $q->where('part_no', 'like', "%{$search}%"));
+                        $inner->whereHas('genericPart', fn($q) => $q->where('part_no', 'like', "%{$search}%")->orWhere('part_name', 'like', "%{$search}%"))
+                            ->orWhereHas('substitutePart', fn($q) => $q->where('part_no', 'like', "%{$search}%")->orWhere('part_name', 'like', "%{$search}%"));
                     });
                 })
                 ->latest()
@@ -287,20 +282,20 @@ class PartController extends Controller
 
         $rmIds = ($classification === 'RM') ? $parts->pluck('id')->toArray() : [];
         if (!empty($rmIds)) {
-            $subsForParts = BomItemSubstitute::query()
-                ->whereHas('bomItem', fn($q) => $q->whereIn('component_part_id', $rmIds))
-                ->with(['bomItem.bom.part:id,part_no,part_name', 'bomItem:id,bom_id,component_part_id', 'part:id,part_no,part_name'])
+            // Query global material_substitutes instead of per-BOM-line bom_item_substitutes.
+            $subsForParts = MaterialSubstitute::query()
+                ->whereIn('generic_part_id', $rmIds)
+                ->with(['substitutePart:id,part_no,part_name', 'vendorPart.vendor:id,vendor_name'])
                 ->get();
 
             foreach ($subsForParts as $sub) {
-                $componentPartId = $sub->bomItem->component_part_id;
-                $partSubstitutesMap[$componentPartId][] = [
+                $partSubstitutesMap[$sub->generic_part_id][] = [
                     'id' => $sub->id,
-                    'fg_part_id' => $sub->bomItem->bom->part->id ?? null,
-                    'fg_part_no' => $sub->bomItem->bom->part->part_no ?? '?',
+                    'fg_part_id' => null,
+                    'fg_part_no' => 'Global',
                     'substitute_part_id' => $sub->substitute_part_id,
-                    'substitute_part_no' => $sub->part->part_no ?? $sub->substitute_part_no,
-                    'substitute_part_name' => $sub->part->part_name ?? '',
+                    'substitute_part_no' => $sub->substitutePart->part_no ?? '',
+                    'substitute_part_name' => $sub->substitutePart->part_name ?? '',
                     'ratio' => $sub->ratio,
                     'priority' => $sub->priority,
                     'status' => $sub->status,
@@ -308,17 +303,17 @@ class PartController extends Controller
                 ];
             }
 
-            $asSubstitute = BomItemSubstitute::query()
+            $asSubstitute = MaterialSubstitute::query()
                 ->whereIn('substitute_part_id', $rmIds)
-                ->with(['bomItem.bom.part:id,part_no', 'bomItem:id,bom_id,component_part_id,component_part_no', 'bomItem.componentPart:id,part_no,part_name'])
+                ->with(['genericPart:id,part_no,part_name'])
                 ->get();
 
             foreach ($asSubstitute as $sub) {
                 $partAsSubstituteMap[$sub->substitute_part_id][] = [
                     'id' => $sub->id,
-                    'fg_part_no' => $sub->bomItem->bom->part->part_no ?? '?',
-                    'original_rm_part_no' => $sub->bomItem->componentPart->part_no ?? $sub->bomItem->component_part_no,
-                    'original_rm_part_name' => $sub->bomItem->componentPart->part_name ?? '',
+                    'fg_part_no' => 'Global',
+                    'original_rm_part_no' => $sub->genericPart->part_no ?? '',
+                    'original_rm_part_name' => $sub->genericPart->part_name ?? '',
                     'ratio' => $sub->ratio,
                     'priority' => $sub->priority,
                     'status' => $sub->status,

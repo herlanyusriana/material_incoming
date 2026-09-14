@@ -72,6 +72,122 @@ class MasterDataWorkbookImporterTest extends TestCase
         return $this->workbookPath = $path;
     }
 
+    /**
+     * Workbook using the exact column names from master data 20260908.xlsx.
+     */
+    private function makeRealFormatWorkbook(): string
+    {
+        $spreadsheet = new Spreadsheet();
+
+        $fg = $spreadsheet->getActiveSheet();
+        $fg->setTitle('master FG');
+        $fg->fromArray(['No', 'NAME', 'MODEL', 'Part #'], null, 'A5');
+        $fg->fromArray([[1, 'Widget Assembly', 'WD-01', 'FG-100']], null, 'A6');
+
+        $mtrl = $spreadsheet->createSheet();
+        $mtrl->setTitle('master mtrl');
+        $mtrl->fromArray(
+            ['No', 'Name', 'Model', 'Material Part #', 'Subs Part #', 'Size', 'Satuan', 'Supplier', 'Source'],
+            null,
+            'A5'
+        );
+        $mtrl->fromArray([
+            [1, 'Steel Coil', 'WD-01', 'RM-GENERIC', 'RM-SUPPLIER', '1.0 X 100', 'KGM', 'PT Steel', 'Local'],
+        ], null, 'A6');
+
+        $bom = $spreadsheet->createSheet();
+        $bom->setTitle('BOM');
+        $bom->fromArray([
+            'No', 'Seq', 'FG Name', 'FG Model', 'FG Part No.', 'Process Name', 'Machine Name',
+            'Parent Part No.', 'Parent Part Name', 'Parent Part Qty', 'Parent Part UOM',
+            'Child Part No.', 'Child Part Name', 'Child Part Qty', 'UOM_RM', 'spesial', 'Source',
+        ], null, 'A5');
+        $bom->fromArray([
+            [1, 1, 'Widget Assembly', 'WD-01', 'FG-100', 'Press', 'Press 01', 'FG-100-WIP1', 'Draw', 1, 'PCS', 'RM-GENERIC', 'Steel Coil', 1.5, 'KGM', 'S', 'Vendor'],
+            [1, 2, 'Widget Assembly', 'WD-01', 'FG-100', 'Trimming', 'Press 01', 'FG-100-WIP2', 'Trimming', 1, 'PCS', 'FG-100-WIP1', 'Draw', 1, 'PCS', null, 'Prod'],
+            [1, 3, 'Widget Assembly', 'WD-01', 'FG-100', 'Assembly', 'Assembly 01', 'FG-100', 'Widget Assembly', 1, 'PCS', 'FG-100-WIP2', 'Trimming', 1, 'PCS', null, 'Prod'],
+        ], null, 'A6');
+
+        $path = tempnam(sys_get_temp_dir(), 'mdwb_real_') . '.xlsx';
+        (new Xlsx($spreadsheet))->save($path);
+
+        return $this->workbookPath = $path;
+    }
+
+    public function test_real_bom_columns_sync_parent_and_child_metadata_to_part_master(): void
+    {
+        $importer = new \App\Services\MasterDataWorkbookImporter();
+        $importer->import($this->makeRealFormatWorkbook());
+
+        $this->assertDatabaseHas('gci_parts', [
+            'part_no' => 'FG-100-WIP1',
+            'part_name' => 'Draw',
+            'uom' => 'PCE',
+            'classification' => 'WIP',
+        ]);
+        $this->assertDatabaseHas('gci_parts', [
+            'part_no' => 'FG-100-WIP2',
+            'part_name' => 'Trimming',
+            'uom' => 'PCE',
+            'classification' => 'WIP',
+        ]);
+        $this->assertDatabaseHas('gci_parts', [
+            'part_no' => 'RM-GENERIC',
+            'part_name' => 'Steel Coil',
+            'uom' => 'KGM',
+            'classification' => 'RM',
+        ]);
+        $this->assertDatabaseHas('gci_parts', [
+            'part_no' => 'FG-100',
+            'part_name' => 'Widget Assembly',
+            'uom' => 'PCE',
+            'classification' => 'FG',
+        ]);
+        $this->assertDatabaseHas('bom_items', [
+            'line_no' => 1,
+            'wip_part_no' => 'FG-100-WIP1',
+            'wip_part_name' => 'Draw',
+            'wip_qty' => 1,
+            'wip_uom' => 'PCE',
+            'component_part_no' => 'RM-GENERIC',
+            'consumption_uom' => 'KGM',
+        ]);
+        $this->assertDatabaseHas('bom_items', [
+            'line_no' => 3,
+            'wip_part_no' => 'FG-100',
+            'wip_part_name' => 'Widget Assembly',
+            'wip_qty' => 1,
+            'wip_uom' => 'PCE',
+            'component_part_no' => 'FG-100-WIP2',
+            'consumption_uom' => 'PCE',
+        ]);
+        $this->assertSame(1, GciPart::where('part_no', 'FG-100-WIP1')->count());
+    }
+
+    public function test_replace_parts_removes_obsolete_parts_but_preserves_vendors(): void
+    {
+        GciPart::create([
+            'part_no' => 'OBSOLETE-PART',
+            'part_name' => 'Must be removed',
+            'classification' => 'RM',
+            'status' => 'active',
+        ]);
+        $vendor = Vendor::create([
+            'vendor_name' => 'Vendor Preserved',
+            'vendor_code' => 'V-PRESERVED',
+            'status' => 'active',
+        ]);
+
+        $importer = new \App\Services\MasterDataWorkbookImporter();
+        $importer->import($this->makeRealFormatWorkbook(), replaceParts: true);
+
+        $this->assertDatabaseMissing('gci_parts', ['part_no' => 'OBSOLETE-PART']);
+        $this->assertDatabaseHas('vendors', ['id' => $vendor->id, 'vendor_name' => 'Vendor Preserved']);
+        $this->assertDatabaseHas('gci_parts', ['part_no' => 'FG-100', 'classification' => 'FG']);
+        $this->assertDatabaseHas('gci_parts', ['part_no' => 'FG-100-WIP1', 'classification' => 'WIP']);
+        $this->assertDatabaseHas('gci_parts', ['part_no' => 'RM-GENERIC', 'classification' => 'RM']);
+    }
+
     public function test_import_creates_all_entities_with_normalized_uom(): void
     {
         $importer = new \App\Services\MasterDataWorkbookImporter();
@@ -246,5 +362,23 @@ class MasterDataWorkbookImporterTest extends TestCase
 
         $this->assertSame(2, GciPart::where('classification', 'FG')->count());
         $this->assertSame(4, BomItem::count());
+    }
+
+    public function test_command_replace_parts_rebuilds_part_master_from_workbook(): void
+    {
+        GciPart::create([
+            'part_no' => 'OBSOLETE-PART',
+            'part_name' => 'Must be removed',
+            'classification' => 'RM',
+            'status' => 'active',
+        ]);
+
+        $this->artisan('master-data:import', [
+            'path' => $this->makeRealFormatWorkbook(),
+            '--replace-parts' => true,
+        ])->assertExitCode(0);
+
+        $this->assertDatabaseMissing('gci_parts', ['part_no' => 'OBSOLETE-PART']);
+        $this->assertDatabaseHas('gci_parts', ['part_no' => 'FG-100-WIP1', 'classification' => 'WIP']);
     }
 }

@@ -9,7 +9,8 @@ class ImportMasterDataWorkbook extends Command
 {
     protected $signature = 'master-data:import
                             {path : Absolute path to the master data .xlsx workbook}
-                            {--dry-run : Validate and count without writing anything}';
+                            {--dry-run : Validate and count without writing anything}
+                            {--replace-parts : Clear BOM, vendor-part links, and Part Master before rebuilding from the workbook}';
 
     protected $description = 'Import master FG / master mtrl / BOM sheets from the master data workbook into the ERP schema';
 
@@ -17,6 +18,7 @@ class ImportMasterDataWorkbook extends Command
     {
         $path = $this->argument('path');
         $dryRun = (bool) $this->option('dry-run');
+        $replaceParts = (bool) $this->option('replace-parts');
 
         if (!is_file($path) || !is_readable($path)) {
             $this->error("Workbook tidak ditemukan atau tidak bisa dibaca: {$path}");
@@ -25,7 +27,7 @@ class ImportMasterDataWorkbook extends Command
         }
 
         try {
-            $result = $importer->import($path, $dryRun);
+            $result = $importer->import($path, $dryRun, $replaceParts);
         } catch (\RuntimeException $e) {
             $this->error($e->getMessage());
 

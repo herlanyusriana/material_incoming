@@ -3,7 +3,8 @@
 namespace App\Services;
 
 use App\Models\Bom;
-use App\Models\BomItemSubstitute;
+use App\Models\BomItem;
+use App\Models\MaterialSubstitute;
 use App\Models\NewSchema\Core\GciPart;
 use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use App\Models\NewSchema\Inventory\InventoryStockMovement;
@@ -118,8 +119,8 @@ class WoTrackingService
 
         $remaining = max(0, (float) $requirement->required_qty - $alreadyForThisWo);
 
-        $substituteIds = BomItemSubstitute::query()
-            ->where('bom_item_id', $requirement->bom_item_id)
+        $substituteIds = MaterialSubstitute::query()
+            ->where('generic_part_id', $requirement->gci_part_id)
             ->where('status', 'active')
             ->whereNotNull('substitute_part_id')
             ->pluck('substitute_part_id');
@@ -278,8 +279,8 @@ class WoTrackingService
                 ->where('location_code', $location)
                 ->where('qty_on_hand', '>', 0)
                 ->first(['gci_part_id', 'qty_on_hand']);
-            $substituteIds = BomItemSubstitute::query()
-                ->where('bom_item_id', $requirement->bom_item_id)
+            $substituteIds = MaterialSubstitute::query()
+                ->where('generic_part_id', $requirement->gci_part_id)
                 ->where('status', 'active')
                 ->pluck('substitute_part_id')
                 ->filter()

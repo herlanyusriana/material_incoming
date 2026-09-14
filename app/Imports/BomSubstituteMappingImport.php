@@ -2,8 +2,7 @@
 
 namespace App\Imports;
 
-use App\Models\BomItem;
-use App\Models\BomItemSubstitute;
+use App\Models\MaterialSubstitute;
 use App\Models\GciPart;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
@@ -16,7 +15,7 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
     protected array $failures = [];
     protected array $seenKeys = [];
     /** @var array<string, true> */
-    public array $missingComponentParts = [];
+    public array $missingGenericParts = [];
     /** @var array<string, true> */
     public array $missingSubstituteParts = [];
     /** @var list<string> */
@@ -66,8 +65,8 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
             $row = $row->mapWithKeys(fn($item, $key) => [strtolower(trim((string) $key)) => $item]);
 
             $validator = Validator::make($row->toArray(), [
-                'component_part_no' => ['required', 'string'],
-                'component_part_name' => ['nullable', 'string', 'max:255'],
+                'generic_part_no' => ['required', 'string'],
+                'generic_part_name' => ['nullable', 'string', 'max:255'],
                 'substitute_part_no' => ['required', 'string'],
                 'substitute_part_name' => ['nullable', 'string', 'max:255'],
                 'supplier' => ['nullable', 'string', 'max:255'],
@@ -82,14 +81,14 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
                 continue;
             }
 
-            $componentPartNo = $this->normalizePartNo($row['component_part_no']);
+            $genericPartNo = $this->normalizePartNo($row['generic_part_no']);
             $subPartNo = $this->normalizePartNo($row['substitute_part_no']);
-            if ($componentPartNo === '' || $subPartNo === '') {
-                $this->addFailure($rowIndex, 'component_part_no/substitute_part_no cannot be empty');
+            if ($genericPartNo === '' || $subPartNo === '') {
+                $this->addFailure($rowIndex, 'generic_part_no/substitute_part_no cannot be empty');
                 continue;
             }
 
-            $dedupeKey = "{$componentPartNo}|{$subPartNo}";
+            $dedupeKey = "{$genericPartNo}|{$subPartNo}";
             if (isset($this->seenKeys[$dedupeKey])) {
                 $this->addFailure($rowIndex, "Duplicate row in file: {$dedupeKey}");
                 continue;
@@ -101,18 +100,15 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
             $finalNotes = trim(implode(' | ', array_values(array_filter([$supplier !== '' ? $supplier : null, $notes !== '' ? $notes : null]))));
 
             $subPart = $this->findGciPartByPartNo($subPartNo);
-            if ($this->autoCreateParts) {
-                if (!$subPart) {
-                    // BUGFIX: Use part_no as fallback instead of generic 'AUTO-CREATED (SUBSTITUTE)'
-                    $subPart = GciPart::query()->create([
-                        'part_no' => $subPartNo,
-                        'part_name' => !empty($row['substitute_part_name']) ? $row['substitute_part_name'] : $subPartNo,
-                        'classification' => 'RM',
-                        'status' => 'active',
-                    ]);
-                }
+            if ($this->autoCreateParts && !$subPart) {
+                $subPart = GciPart::query()->create([
+                    'part_no' => $subPartNo,
+                    'part_name' => !empty($row['substitute_part_name']) ? $row['substitute_part_name'] : $subPartNo,
+                    'classification' => 'RM',
+                    'status' => 'active',
+                ]);
             }
-            // If substitute exists, always allow updating its name from import (even when auto-create is OFF).
+            // If substitute exists, always allow updating its name from import
             if ($subPart && !empty($row['substitute_part_name'])) {
                 $subName = trim((string) $row['substitute_part_name']);
                 if ($subName !== '' && $subPart->part_name !== $subName) {
@@ -126,71 +122,33 @@ class BomSubstituteMappingImport implements ToCollection, WithHeadingRow
                 continue;
             }
 
-            $componentPart = $this->findGciPartByPartNo($componentPartNo);
-            $componentPartId = $componentPart ? (int) $componentPart->id : 0;
-            if ($componentPartId <= 0) {
-                $this->missingComponentParts[$componentPartNo] = true;
-            }
-            if ($componentPart && !empty($row['component_part_name'])) {
-                $compName = trim((string) $row['component_part_name']);
-                if ($compName !== '' && $componentPart->part_name !== $compName) {
-                    $componentPart->update(['part_name' => $compName]);
-                }
-            }
-
-            $bomItems = BomItem::query()
-                ->when($componentPartId > 0, function ($q) use ($componentPartId) {
-                    $q->where('component_part_id', $componentPartId);
-                }, function ($q) use ($componentPartNo) {
-                    $q->whereRaw($this->normalizedExprSql('component_part_no') . ' = ?', array_merge($this->stripChars, [$componentPartNo]));
-                })
-                ->get(['id']);
-
-            // Fallback: some BOMs keep only component_part_no even if master exists
-            if ($componentPartId > 0) {
-                $extra = BomItem::query()
-                    ->whereRaw($this->normalizedExprSql('component_part_no') . ' = ?', array_merge($this->stripChars, [$componentPartNo]))
-                    ->get(['id']);
-                $bomItems = $bomItems->merge($extra)->unique('id')->values();
-            }
-
-            if ($bomItems->isEmpty()) {
-                $this->addFailure($rowIndex, "No BOM lines found using component: {$componentPartNo}");
+            $genericPart = $this->findGciPartByPartNo($genericPartNo);
+            if (!$genericPart) {
+                $this->missingGenericParts[$genericPartNo] = true;
+                $this->addFailure($rowIndex, "Generic part not found: {$genericPartNo}");
                 continue;
             }
-
-            foreach ($bomItems as $bomItem) {
-                $existing = BomItemSubstitute::query()
-                    ->where('bom_item_id', (int) $bomItem->id)
-                    ->where('substitute_part_id', (int) $subPart->id)
-                    ->get();
-                if ($existing->count() > 1) {
-                    $this->addFailure($rowIndex, "Duplicate substitute records already exist in DB for component {$componentPartNo} / sub {$subPartNo}. Please cleanup duplicates first.");
-                    continue;
-                }
-
-                $payload = [
-                    'substitute_part_no' => $subPartNo,
-                    'ratio' => $row['ratio'] ?? 1,
-                    'priority' => $row['priority'] ?? 1,
-                    'status' => $row['status'] ?? 'active',
-                    'notes' => $finalNotes !== '' ? $finalNotes : null,
-                ];
-
-                if ($existing->count() === 1) {
-                    /** @var BomItemSubstitute $sub */
-                    $sub = $existing->first();
-                    $sub->update($payload);
-                } else {
-                    BomItemSubstitute::query()->create(array_merge(
-                        [
-                            'bom_item_id' => (int) $bomItem->id,
-                            'substitute_part_id' => (int) $subPart->id,
-                        ],
-                        $payload
-                    ));
+            if (!empty($row['generic_part_name'])) {
+                $genName = trim((string) $row['generic_part_name']);
+                if ($genName !== '' && $genericPart->part_name !== $genName) {
+                    $genericPart->update(['part_name' => $genName]);
                 }
             }
+
+            $payload = [
+                'ratio' => $row['ratio'] ?? 1,
+                'priority' => $row['priority'] ?? 1,
+                'status' => $row['status'] ?? 'active',
+                'notes' => $finalNotes !== '' ? $finalNotes : null,
+            ];
+
+            MaterialSubstitute::updateOrCreate(
+                [
+                    'generic_part_id' => (int) $genericPart->id,
+                    'substitute_part_id' => (int) $subPart->id,
+                ],
+                $payload
+            );
 
             $this->rowCount++;
         }

@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Models\Bom;
 use App\Models\BomItem;
-use App\Models\BomItemSubstitute;
 use App\Models\GciPartVendor;
 use App\Models\Machine;
+use App\Models\MaterialSubstitute;
 use App\Models\NewSchema\Core\GciPart;
 use App\Models\NewSchema\Core\Vendor;
 use App\Models\NewSchema\Core\VendorPart;
@@ -35,6 +35,16 @@ class MasterDataWorkbookImporter
 {
     private const HEADER_ROW = 5;
 
+    /**
+     * Reconciliation for BOM rows whose Child Part No. formula evaluates to
+     * #N/A in the workbook. Keyed by normalized Child Part Name.
+     * (Approved by data owner — see master mtrl: PIN HINGE LOWER / BRACKET HINGE LOWER.)
+     */
+    private const CHILD_NAME_FALLBACK = [
+        'pinhollow' => 'PINHLKG1533C',
+        'brackethl' => 'BRKG2057C',
+    ];
+
     /** @var array<string, string[]> accepted normalized header aliases per logical field */
     private const HEADER_ALIASES = [
         'part_no' => ['partno', 'partnumber', 'part', 'kodepart', 'mtrlpartno', 'materialno', 'subspart', 'subspartno', 'subspartnumber', 'substitutepartno', 'substitutepart'],
@@ -47,8 +57,12 @@ class MasterDataWorkbookImporter
         'generic_part_no' => ['genericpartno', 'genericpart', 'generic', 'basematerialpartno', 'mastermtrlno', 'materialpartno', 'mtrlno', 'materialpart', 'materialpartnumber'],
         'fg_part_no' => ['fgpartno', 'fgpart', 'fgpartnumber', 'fgno'],
         'parent' => ['parent', 'parentpart', 'parentpartno', 'parentassembly', 'assembly', 'assemblypartno', 'output'],
+        'parent_name' => ['parentpartname', 'parentname', 'wippartname', 'wipname'],
+        'parent_qty' => ['parentpartqty', 'parentqty', 'wipqty', 'wipquantity'],
+        'parent_uom' => ['parentpartuom', 'parentuom', 'wipuom'],
         'wip' => ['wip', 'wippart', 'wippartno', 'wipno', 'wipoutput', 'intermediate'],
         'child' => ['child', 'childpart', 'childpartno', 'component', 'componentpart', 'componentpartno', 'materialpart', 'materialpartno'],
+        'child_name' => ['childpartname', 'childname', 'componentpartname', 'componentname'],
         'seq' => ['seq', 'sequence', 'step', 'line', 'lineno', 'linenumber', 'urutan', 'nostep'],
         'qty' => ['qty', 'quantity', 'usage', 'usageqty', 'consumption', 'consumptionqty', 'netrequired', 'childpartqty', 'childqty'],
         'source' => ['source', 'sourcetype', 'makeorbuy', 'makebuy', 'sourcecode'],
@@ -60,7 +74,7 @@ class MasterDataWorkbookImporter
     /** @var array<string, int> normalized header key -> column index per sheet */
     private array $columnMap = [];
 
-    public function import(string $path, bool $dryRun = false): array
+    public function import(string $path, bool $dryRun = false, bool $replaceParts = false): array
     {
         if (!is_file($path) || !is_readable($path)) {
             throw new \RuntimeException("Workbook tidak ditemukan atau tidak bisa dibaca: {$path}");
@@ -71,6 +85,9 @@ class MasterDataWorkbookImporter
         DB::beginTransaction();
 
         try {
+            if ($replaceParts) {
+                $this->clearPartMaster();
+            }
             $result = $this->apply($parsed);
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -86,6 +103,29 @@ class MasterDataWorkbookImporter
         DB::commit();
 
         return $result;
+    }
+
+    /**
+     * Remove the workbook-owned part graph before a full source-of-truth import.
+     * The surrounding transaction guarantees a complete rollback when another
+     * application table still references a part.
+     */
+    private function clearPartMaster(): void
+    {
+        try {
+            BomItem::query()->delete();
+            Bom::query()->delete();
+            MaterialSubstitute::query()->delete();
+            GciPartVendor::query()->delete();
+            VendorPart::withTrashed()->forceDelete();
+            GciPart::withTrashed()->forceDelete();
+        } catch (\Throwable $e) {
+            throw new \RuntimeException(
+                'Reset Part Master dibatalkan karena masih ada data operasional yang mereferensikan part. '
+                . 'Tidak ada data yang diubah. Detail: ' . $e->getMessage(),
+                previous: $e
+            );
+        }
     }
 
     // ------------------------------------------------------------------
@@ -356,32 +396,62 @@ class MasterDataWorkbookImporter
 
         // ---------- BOM ----------
         $bomColumns = $parsed['bom']['columns'];
-        $genericSubstituteIndex = []; // generic part id => list of substitutes
 
+        // Persist global substitutes from master mtrl into material_substitutes.
+        // Deduplicate by (generic, sub, vendor).
+        $seen = [];
         foreach ($substitutes as $sub) {
             if ($sub['generic'] === null) {
                 continue;
             }
-            // Keyed by part id: workbook bisa punya baris substitusi duplikat.
-            $genericSubstituteIndex[$sub['generic']->id][$sub['part']->id] = $sub;
+            $key = "{$sub['generic']->id}:{$sub['part']->id}:{$sub['vendor_part']->id}";
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+
+            MaterialSubstitute::updateOrCreate(
+                [
+                    'generic_part_id' => $sub['generic']->id,
+                    'substitute_part_id' => $sub['part']->id,
+                    'vendor_part_id' => $sub['vendor_part']->id,
+                ],
+                [
+                    'ratio' => 1,
+                    'priority' => $sub['vendor']->id,
+                    'status' => 'active',
+                ]
+            );
+            $counts['substitutes_linked']++;
         }
 
         // Kumpulkan owner (FG) + parent (WIP) + baris valid lebih dulu.
         $parsedBomRows = [];
         $ownerNos = [];
-        $parentNos = [];        foreach ($parsed['bom']['rows'] as $row) {
+        $parentNos = [];
+        $parentMetadata = [];
+        foreach ($parsed['bom']['rows'] as $row) {
             $ownerNo = $this->partNo($this->cell($bomColumns, 'fg_part_no', $row['data'], $row['excel_row']));
             $parentNo = $this->partNo($this->cell($bomColumns, 'parent', $row['data'], $row['excel_row']));
             $childNo = $this->partNo($this->cell($bomColumns, 'child', $row['data'], $row['excel_row']));
             $qty = $this->cell($bomColumns, 'qty', $row['data'], $row['excel_row']);
 
             if ($childNo === null || $qty === null) {
-                $reason = $childNo === null ? 'Child Part No. tidak valid/kosong (mis. #N/A)' : 'Child Qty kosong';
-                $warnings[] = "Baris {$row['excel_row']} (BOM): {$reason}, dilewati.";
-                continue;
+                // Child Part No. bisa #N/A karena formula XLOOKUP gagal resolve.
+                // Coba recover dari Child Part Name (keputusan data owner).
+                $childNameForFallback = $this->cell($bomColumns, 'child_name', $row['data'], $row['excel_row']);
+                $fallbackKey = $this->nameKey($childNameForFallback);
+                $fallbackNo = self::CHILD_NAME_FALLBACK[$fallbackKey] ?? null;
+                if ($childNo === null && $fallbackNo !== null) {
+                    $childNo = $fallbackNo;
+                    $warnings[] = "Baris {$row['excel_row']} (BOM): Child Part No. #N/A → pakai '{$fallbackNo}' (dari nama '{$childNameForFallback}').";
+                } else {
+                    $reason = $childNo === null ? 'Child Part No. tidak valid/kosong (mis. #N/A)' : 'Child Qty kosong';
+                    $warnings[] = "Baris {$row['excel_row']} (BOM): {$reason}, dilewati.";
+                    continue;
+                }
             }
 
-            // Owner: kolom FG Part No. kalau ada; kalau tidak, fallback ke Parent (workbook lama/sintetis).
             $effectiveOwner = $ownerNo ?? $parentNo;
             if ($effectiveOwner === null) {
                 $warnings[] = "Baris {$row['excel_row']} (BOM): FG Part No. dan Parent kosong, dilewati.";
@@ -392,6 +462,14 @@ class MasterDataWorkbookImporter
             $ownerNos[$effectiveOwner] = true;
             if ($parentNo !== null) {
                 $parentNos[$parentNo] = true;
+                $parentMetadata[$parentNo] = array_filter([
+                    'part_name' => $this->cell($bomColumns, 'parent_name', $row['data'], $row['excel_row']),
+                    'uom' => $this->normalizeUom(
+                        $this->cell($bomColumns, 'parent_uom', $row['data'], $row['excel_row']),
+                        $warnings,
+                        $row['excel_row']
+                    ),
+                ], fn ($value) => $value !== null);
             }
         }
 
@@ -400,7 +478,6 @@ class MasterDataWorkbookImporter
         foreach (array_keys($ownerNos) as $ownerNo) {
             if (isset($fgParts[$ownerNo])) {
                 $owners[$ownerNo] = $fgParts[$ownerNo];
-
                 continue;
             }
             $owners[$ownerNo] = $this->upsertPart($ownerNo, [], 'WIP');
@@ -411,11 +488,14 @@ class MasterDataWorkbookImporter
         $parents = [];
         foreach (array_keys($parentNos) as $parentNo) {
             if (isset($owners[$parentNo])) {
-                $parents[$parentNo] = $owners[$parentNo];
-
+                $parents[$parentNo] = $this->upsertPart(
+                    $parentNo,
+                    $parentMetadata[$parentNo] ?? [],
+                    'WIP'
+                );
                 continue;
             }
-            $parents[$parentNo] = $this->upsertPart($parentNo, [], 'WIP');
+            $parents[$parentNo] = $this->upsertPart($parentNo, $parentMetadata[$parentNo] ?? [], 'WIP');
             $counts['wip_parts']++;
         }
 
@@ -426,17 +506,31 @@ class MasterDataWorkbookImporter
         )));
         Bom::whereIn('part_id', $ownedIds)->get()->each(function (Bom $bom) {
             $bom->items()->each(function (BomItem $item) {
-                $item->substitutes()->delete();
                 $item->delete();
             });
             $bom->delete();
         });
+
+        // Build a quick lookup: substitute_part_id → vendor_part_id from material_substitutes.
+        $subVendorMap = [];
+        foreach ($substitutes as $sub) {
+            if ($sub['generic'] !== null && $sub['part'] !== null && $sub['vendor_part'] !== null) {
+                $subVendorMap[$sub['part']->id] = $sub['vendor_part']->id;
+            }
+        }
 
         foreach ($parsedBomRows as $row) {
             $ownerNo = $this->partNo($this->cell($bomColumns, 'fg_part_no', $row['data'], $row['excel_row']))
                 ?? $this->partNo($this->cell($bomColumns, 'parent', $row['data'], $row['excel_row']));
             $parentNo = $this->partNo($this->cell($bomColumns, 'parent', $row['data'], $row['excel_row']));
             $childNo = $this->partNo($this->cell($bomColumns, 'child', $row['data'], $row['excel_row']));
+            $childName = $this->cell($bomColumns, 'child_name', $row['data'], $row['excel_row']);
+
+            // Reapply child-name fallback for #N/A child numbers (same as first pass).
+            if ($childNo === null) {
+                $childNo = self::CHILD_NAME_FALLBACK[$this->nameKey($childName)] ?? null;
+            }
+
             $seq = $this->cell($bomColumns, 'seq', $row['data'], $row['excel_row']);
             $qty = $this->cell($bomColumns, 'qty', $row['data'], $row['excel_row']);
             $uom = $this->normalizeUom($this->cell($bomColumns, 'uom', $row['data'], $row['excel_row']), $warnings, $row['excel_row']);
@@ -444,25 +538,73 @@ class MasterDataWorkbookImporter
             $machineName = $this->cell($bomColumns, 'machine', $row['data'], $row['excel_row']);
             $process = $this->cell($bomColumns, 'process', $row['data'], $row['excel_row']);
             $special = $this->cell($bomColumns, 'special', $row['data'], $row['excel_row']);
+            $wipPartName = $this->cell($bomColumns, 'parent_name', $row['data'], $row['excel_row']);
+            $wipQty = $this->cell($bomColumns, 'parent_qty', $row['data'], $row['excel_row']);
+            $wipUom = $this->normalizeUom(
+                $this->cell($bomColumns, 'parent_uom', $row['data'], $row['excel_row']),
+                $warnings,
+                $row['excel_row']
+            );
 
             $owner = $owners[$ownerNo];
-            $child = $this->resolveChildPart($childNo, $genericParts);
+            $child = $this->resolveChildPart($childNo, $genericParts, [
+                'part_name' => $childName,
+                'uom' => $uom,
+            ]);
 
-            // WIP/output part: kolom WIP eksplisit (workbook lama) atau Parent (real workbook,
-            // di mana Parent adalah stage WIP dan owner adalah FG akhir).
+            // WIP/output part
             $wipNo = $this->partNo($this->cell($bomColumns, 'wip', $row['data'], $row['excel_row']));
-            if ($wipNo === null && $parentNo !== null && $ownerNo !== null && $parentNo !== $ownerNo) {
+            $hasExplicitFgOwner = $this->cell($bomColumns, 'fg_part_no', $row['data'], $row['excel_row']) !== null;
+            if ($wipNo === null && $hasExplicitFgOwner && $parentNo !== null) {
                 $wipNo = $parentNo;
             }
             $wipPartId = $wipNo !== null ? GciPart::where('part_no', $wipNo)->value('id') : null;
 
             $bom = $this->bomFor($owner, $counts);
-            $machineId = $machineName !== null ? $this->resolveMachine($machineName, $counts) : null;
+            // Machine: pakai Machine Name; bila kosong, fallback ke Process Name (keputusan user).
+            $machineRef = ($machineName !== null && $machineName !== '')
+                ? $machineName
+                : (($process !== null && $process !== '') ? $process : null);
+            $machineId = $machineRef !== null ? $this->resolveMachine($machineRef, $counts) : null;
 
-            $item = BomItem::create([
+            // Resolve incoming_part_id: look up vendor_part for this child.
+            // Priority: child's own vendor link → substitute's vendor link.
+            $incomingPartId = VendorPart::where('gci_part_id', $child->id)->value('id')
+                ?? $subVendorMap[$child->id] ?? null;
+
+            // If child is a generic RM, also pick from the first global substitute vendor.
+            if ($incomingPartId === null && isset($genericParts[$childNo])) {
+                // This child IS a generic RM — pick first substitute's vendor_part.
+                $firstSub = MaterialSubstitute::where('generic_part_id', $child->id)
+                    ->orderBy('priority')
+                    ->value('vendor_part_id');
+                $incomingPartId = $firstSub;
+            }
+
+            // If child is a substitute (not generic), look up its generic's first substitute vendor.
+            if ($incomingPartId === null) {
+                $genericForSub = $subsByPartNo[$childNo] ?? null;
+                if ($genericForSub !== null) {
+                    $genericId = GciPart::where('part_no', $genericForSub)->value('id');
+                    if ($genericId !== null) {
+                        $incomingPartId = MaterialSubstitute::where('generic_part_id', $genericId)
+                            ->orderBy('priority')
+                            ->value('vendor_part_id');
+                    }
+                }
+            }
+
+            // Material descriptor: isi dari Excel (Child Part Name + Size master mtrl).
+            // material_spec memang tidak ada sumbernya di sheet mana pun → dibiarkan null.
+            $materialName = $childName !== null && $childName !== ''
+                ? $childName
+                : ($child->part_name ?? $child->part_no);
+
+            BomItem::create([
                 'bom_id' => $bom->id,
                 'component_part_id' => $child->id,
                 'component_part_no' => $child->part_no,
+                'incoming_part_id' => $incomingPartId,
                 'usage_qty' => (float) $qty,
                 'line_no' => $seq !== null ? (int) $seq : null,
                 'consumption_uom' => $uom,
@@ -471,62 +613,15 @@ class MasterDataWorkbookImporter
                 'process_name' => $process,
                 'special' => $special,
                 'wip_part_id' => $wipPartId,
+                'wip_part_no' => $wipNo,
+                'wip_part_name' => $wipPartName,
+                'wip_qty' => $wipQty !== null ? (float) $wipQty : null,
+                'wip_uom' => $wipUom,
+                'material_name' => $materialName,
+                'material_size' => $child->size ?? null,
+                'material_spec' => null,
             ]);
             $counts['bom_items']++;
-
-            // Link supplier substitutes.
-            $subList = array_values($genericSubstituteIndex[$child->id] ?? []);
-            if ($subList !== []) {
-                // Child adalah material generic → link semua substitusinya.
-                $item->incoming_part_id = $subList[0]['vendor_part']->id;
-                $item->save();
-                $counts['substitutes_linked']++;
-
-                $priority = 1;
-                foreach ($subList as $sub) {
-                    BomItemSubstitute::create([
-                        'bom_item_id' => $item->id,
-                        'substitute_part_id' => $sub['part']->id,
-                        'substitute_part_no' => $sub['part']->part_no,
-                        'incoming_part_id' => $sub['vendor_part']->id,
-                        'ratio' => 1,
-                        'priority' => $priority++,
-                        'status' => 'active',
-                    ]);
-                }
-            } else {
-                $vendorPartId = VendorPart::where('gci_part_id', $child->id)->value('id');
-                if ($vendorPartId !== null) {
-                    // Child adalah part supplier spesifik → link ke dirinya + sibling substitutes.
-                    $item->incoming_part_id = $vendorPartId;
-                    $item->save();
-
-                    $genericNo = $subsByPartNo[$childNo] ?? null;
-                    $siblings = [];
-                    foreach ($substitutes as $sub) {
-                        if ($sub['generic'] !== null && $sub['generic']->part_no === $genericNo) {
-                            // Dedupe: baris substitusi duplikat di workbook.
-                            $siblings[$sub['part']->id] = $sub;
-                        }
-                    }
-                    $siblings = array_values($siblings);
-                    if (count($siblings) > 1) {
-                        $counts['substitutes_linked']++;
-                        $priority = 1;
-                        foreach ($siblings as $sub) {
-                            BomItemSubstitute::create([
-                                'bom_item_id' => $item->id,
-                                'substitute_part_id' => $sub['part']->id,
-                                'substitute_part_no' => $sub['part']->part_no,
-                                'incoming_part_id' => $sub['vendor_part']->id,
-                                'ratio' => 1,
-                                'priority' => $priority++,
-                                'status' => 'active',
-                            ]);
-                        }
-                    }
-                }
-            }
         }
 
         return $counts;
@@ -631,13 +726,13 @@ class MasterDataWorkbookImporter
         return $incomingRank > $currentRank ? $incoming : (string) $current;
     }
 
-    private function resolveChildPart(string $childNo, array $genericParts): GciPart
+    private function resolveChildPart(string $childNo, array $genericParts, array $attributes = []): GciPart
     {
         if (isset($genericParts[$childNo])) {
-            return $genericParts[$childNo];
+            return $this->upsertPart($childNo, $attributes, 'RM');
         }
 
-        return $this->upsertPart($childNo, [], 'RM');
+        return $this->upsertPart($childNo, $attributes, 'RM');
     }
 
     private function resolveVendor(string $supplierName, array &$vendorsByAlias, array &$counts): Vendor

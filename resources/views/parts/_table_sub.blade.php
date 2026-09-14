@@ -17,16 +17,15 @@
                 @forelse ($substitutes ?? [] as $sub)
                     <tr class="hover:bg-slate-50">
                         <td class="px-3 py-2.5">
-                            <span class="font-mono font-semibold text-slate-900">{{ $sub->substitute_part_no ?? ($sub->part->part_no ?? '-') }}</span>
-                            <span class="block text-xs text-slate-500">{{ $sub->part->part_name ?? '' }}</span>
+                            <span class="font-mono font-semibold text-slate-900">{{ $sub->substitutePart->part_no ?? '-' }}</span>
+                            <span class="block text-xs text-slate-500">{{ $sub->substitutePart->part_name ?? '' }}</span>
                         </td>
                         <td class="px-3 py-2.5">
-                            <span class="font-mono text-slate-700">{{ $sub->bomItem->componentPart->part_no ?? '-' }}</span>
-                            <span class="block text-xs text-slate-400">{{ $sub->bomItem->componentPart->part_name ?? '' }}</span>
+                            <span class="font-mono text-slate-700">{{ $sub->genericPart->part_no ?? '-' }}</span>
+                            <span class="block text-xs text-slate-400">{{ $sub->genericPart->part_name ?? '' }}</span>
                         </td>
                         <td class="px-3 py-2.5">
-                            <span class="font-mono text-slate-700">{{ $sub->bomItem->bom->part->part_no ?? '-' }}</span>
-                            <span class="block text-xs text-slate-400">{{ $sub->bomItem->bom->part->part_name ?? '' }}</span>
+                            <span class="font-mono text-slate-700">Global</span>
                         </td>
                         <td class="px-3 py-2.5 text-center font-mono text-slate-700">{{ $sub->ratio }}</td>
                         <td class="px-3 py-2.5 text-center text-slate-500">{{ $sub->priority }}</td>
@@ -43,8 +42,8 @@
                                 'priority' => $sub->priority,
                                 'status' => $sub->status,
                                 'notes' => $sub->notes,
-                                'fg_part_no' => $sub->bomItem->bom->part->part_no ?? '',
-                                'component_part_no' => $sub->bomItem->componentPart->part_no ?? $sub->bomItem->component_part_no,
+                                'fg_part_no' => 'Global',
+                                'component_part_no' => $sub->genericPart->part_no ?? '',
                             ]))">{{ __('master.parts.table_sub.edit') }}</button>
                             <form action="{{ route('planning.gci-part-substitutes.destroy', $sub) }}" method="POST" class="inline ml-2" onsubmit="return confirm(@js(__('master.parts.table_sub.delete_confirm')))">
                                 @csrf @method('DELETE')

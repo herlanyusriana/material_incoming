@@ -59,7 +59,7 @@
             @endif
 
             <div class="bg-white shadow-lg border border-slate-200 rounded-2xl p-6 space-y-4"
-                x-data="{ tab: 'buy', viewMode: 'summary' }">
+                x-data="{ tab: 'buy', viewMode: 'summary', advancedOpen: false }">
                 {{-- Control Bar --}}
                 <div class="flex flex-wrap items-end justify-between gap-3">
                     <form method="GET" class="flex items-end gap-3">
@@ -72,7 +72,7 @@
                                 {{ __('planning.mrp.index.demand_hint', ['year' => substr($month, 0, 4)]) }}
                             </div>
                         </div>
-                        <div>
+                        <div x-show="advancedOpen" x-cloak>
                             <label class="text-xs font-semibold text-slate-600">{{ __('planning.mrp.index.family_label') }}</label>
                             <select name="family" class="mt-1 rounded-xl border-slate-200">
                                 <option value="">{{ __('planning.mrp.index.filter_all') }}</option>
@@ -81,6 +81,7 @@
                                 @endforeach
                             </select>
                         </div>
+                        <button type="button" @click="advancedOpen = !advancedOpen" class="px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-semibold hover:bg-slate-50">More filters</button>
                         <button class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">{{ __('planning.mrp.index.load') }}</button>
                     </form>
 

@@ -7,7 +7,7 @@ use App\Http\Controllers\Api\OutgoingPickingController;
 use App\Http\Controllers\Api\SubcountApiController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/auth/login', [AuthController::class, 'login']);
+Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:api-login');
 
 // Flutter "Material Tracker" — WO tracking (JSON)
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {

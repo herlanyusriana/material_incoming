@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Production;
 use App\Http\Controllers\Controller;
 use App\Models\ProductionOrder;
 use App\Models\Bom;
+use App\Models\MaterialSubstitute;
 use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use Illuminate\Http\Request;
 
@@ -51,7 +52,7 @@ class MaterialAvailabilityController extends Controller
             return back()->with('error', 'No BOM found for this part.');
         }
 
-        $bomItems = $bom->items()->with(['componentPart', 'substitutes.part'])->get();
+        $bomItems = $bom->items()->with(['componentPart'])->get();
         $materials = [];
         $allAvailable = true;
 
@@ -61,17 +62,21 @@ class MaterialAvailabilityController extends Controller
             // Get stock from primary part
             $primaryStock = InventoryLocationStock::where('gci_part_id', $item->component_part_id)->sum('qty_on_hand');
 
-            // Get stock from substitute parts
+            // Get stock from global substitute parts
             $substituteStock = 0;
             $substituteDetails = [];
-            if ($item->substitutes && $item->substitutes->count() > 0) {
-                foreach ($item->substitutes as $substitute) {
-                    $subStock = InventoryLocationStock::where('gci_part_id', $substitute->substitute_part_id)->sum('qty_on_hand');
+            $globalSubs = MaterialSubstitute::where('generic_part_id', $item->component_part_id)
+                ->where('status', 'active')
+                ->with('substitutePart:id,part_no,part_name')
+                ->get();
+            if ($globalSubs->isNotEmpty()) {
+                foreach ($globalSubs as $sub) {
+                    $subStock = InventoryLocationStock::where('gci_part_id', $sub->substitute_part_id)->sum('qty_on_hand');
                     $substituteStock += $subStock;
                     if ($subStock > 0) {
                         $substituteDetails[] = [
-                            'part_no' => $substitute->part?->part_no ?? 'Unknown',
-                            'part_name' => $substitute->part?->part_name ?? 'Unknown',
+                            'part_no' => $sub->substitutePart->part_no ?? 'Unknown',
+                            'part_name' => $sub->substitutePart->part_name ?? 'Unknown',
                             'stock' => $subStock,
                         ];
                     }
@@ -145,24 +150,28 @@ class MaterialAvailabilityController extends Controller
         
         $materials = [];
         if ($bom) {
-            $bomItems = $bom->items()->with(['componentPart', 'substitutes.part'])->get();
+            $bomItems = $bom->items()->with(['componentPart'])->get();
             foreach ($bomItems as $item) {
                 $requiredQty = $item->usage_qty * $order->qty_planned;
                 
                 // Get stock from primary part
                 $primaryStock = InventoryLocationStock::where('gci_part_id', $item->component_part_id)->sum('qty_on_hand');
 
-                // Get stock from substitute parts
+                // Get stock from global substitute parts
                 $substituteStock = 0;
                 $substituteDetails = [];
-                if ($item->substitutes && $item->substitutes->count() > 0) {
-                    foreach ($item->substitutes as $substitute) {
-                        $subStock = InventoryLocationStock::where('gci_part_id', $substitute->substitute_part_id)->sum('qty_on_hand');
+                $globalSubs = MaterialSubstitute::where('generic_part_id', $item->component_part_id)
+                    ->where('status', 'active')
+                    ->with('substitutePart:id,part_no,part_name')
+                    ->get();
+                if ($globalSubs->isNotEmpty()) {
+                    foreach ($globalSubs as $sub) {
+                        $subStock = InventoryLocationStock::where('gci_part_id', $sub->substitute_part_id)->sum('qty_on_hand');
                         $substituteStock += $subStock;
                         if ($subStock > 0) {
                             $substituteDetails[] = [
-                                'part_no' => $substitute->part?->part_no ?? 'Unknown',
-                                'part_name' => $substitute->part?->part_name ?? 'Unknown',
+                                'part_no' => $sub->substitutePart->part_no ?? 'Unknown',
+                                'part_name' => $sub->substitutePart->part_name ?? 'Unknown',
                                 'stock' => $subStock,
                             ];
                         }

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\BomItemSubstitute;
+use App\Models\MaterialSubstitute;
 use App\Models\NewSchema\Inventory\InventoryLocationStock;
 use App\Models\NewSchema\Production\ProductionWorkOrder;
 use App\Models\NewSchema\Production\WoMaterialAllocation;
@@ -94,8 +94,8 @@ class WoTrackingApiController extends Controller
         $requirement = null;
         if (($info['gci_part_id'] ?? 0) > 0) {
             $requirement = $woTracking->requirements->first(function ($candidate) use ($info) {
-                return BomItemSubstitute::query()
-                    ->where('bom_item_id', $candidate->bom_item_id)
+                return MaterialSubstitute::query()
+                    ->where('generic_part_id', $candidate->gci_part_id)
                     ->where('substitute_part_id', $info['gci_part_id'])
                     ->where('status', 'active')
                     ->exists();

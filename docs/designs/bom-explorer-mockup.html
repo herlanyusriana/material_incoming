@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mockup — BOM Explorer (FG & RM)</title>
+<style>
+  :root{
+    --bg:#f1f5f9; --card:#ffffff; --line:#e2e8f0; --ink:#0f172a; --muted:#64748b;
+    --fg:#4f46e5; --fg-soft:#eef2ff; --fg-line:#c7d2fe;
+    --wip:#d97706; --wip-soft:#fffbeb; --wip-line:#fde68a;
+    --rm:#059669; --rm-soft:#ecfdf5; --rm-line:#a7f3d0;
+    --buy:#059669; --make:#0284c7; --subcon:#7c3aed; --free:#e11d48;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.45}
+  .topbar{background:#0f172a;color:#fff;padding:14px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .topbar h1{font-size:16px;margin:0;font-weight:700;letter-spacing:.2px}
+  .topbar .tag{font-size:11px;background:#334155;color:#cbd5e1;padding:2px 9px;border-radius:999px;font-weight:600}
+  .wrap{max-width:1200px;margin:0 auto;padding:22px}
+  .tabs{display:flex;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:6px;margin-bottom:22px;overflow-x:auto}
+  .tabs button{flex:1;min-width:150px;border:0;background:transparent;padding:11px 16px;border-radius:9px;
+    font-size:14px;font-weight:600;color:var(--muted);cursor:pointer;transition:.15s;white-space:nowrap}
+  .tabs button.active{background:#0f172a;color:#fff}
+  .tab{display:none}.tab.active{display:block}
+  .note{font-size:12.5px;color:var(--muted);background:var(--card);border:1px dashed var(--line);
+    border-radius:10px;padding:12px 14px;margin-bottom:18px}
+  .h6{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 12px}
+  /* ——— FG grid cards ——— */
+  .fg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+  .fg-card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;
+    position:relative;cursor:pointer;transition:.18s;box-shadow:0 1px 2px rgba(15,23,42,.04)}
+  .fg-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px -12px rgba(79,70,229,.25);border-color:var(--fg-line)}
+  .fg-card .row1{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;letter-spacing:.04em;
+    padding:3px 8px;border-radius:999px}
+  .badge.fg{background:var(--fg-soft);color:var(--fg);border:1px solid var(--fg-line)}
+  .badge.rev{background:#f8fafc;color:var(--muted);border:1px solid var(--line)}
+  .badge.ok{background:#ecfdf5;color:#047857;border:1px solid #a7f3d0}
+  .fg-no{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:18px;font-weight:800;color:var(--fg);letter-spacing:-.01em}
+  .fg-name{font-size:13px;color:#475569;font-weight:600;margin-top:2px}
+  .fg-model{font-size:12px;color:var(--muted)}
+  .fg-meta{margin-top:12px;border-top:1px solid var(--line);padding-top:10px;display:flex;gap:8px;flex-wrap:wrap}
+  .meta{font-size:11.5px;font-weight:600;color:#475569;background:#f8fafc;border:1px solid var(--line);
+    padding:4px 9px;border-radius:8px;display:inline-flex;align-items:center;gap:5px}
+  .meta b{color:#0f172a}
+  .card-foot{margin-top:12px;display:flex;justify-content:space-between;align-items:center}
+  .cta{font-size:12.5px;font-weight:700;color:var(--fg)}
+  .icons{display:flex;gap:6px;opacity:.75}
+  .icons span{width:28px;height:28px;border:1px solid var(--line);border-radius:8px;display:grid;place-items:center;font-size:13px;background:#fff}
+  /* ——— Tree ——— */
+  .hero{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-bottom:18px;
+    display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap}
+  .hero .name{font-family:ui-monospace,Menlo,monospace;font-size:20px;font-weight:800;color:var(--fg)}
+  .hero .sub{font-size:13px;color:var(--muted);font-weight:600}
+  .hero .pills{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+  .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 13px;font-size:13px;font-weight:600;cursor:pointer;color:#334155;transition:.15s}
+  .btn:hover{background:#f1f5f9}
+  .btn.primary{background:var(--fg);border-color:var(--fg);color:#fff}
+  .btn.primary:hover{background:#4338ca}
+  .tree{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:10px 4px 14px}
+  ul.tree-list{list-style:none;margin:0;padding:0}
+  ul.tree-list ul.tree-list{padding-left:26px;margin-left:12px;border-left:2px solid var(--line)}
+  li.node{position:relative;margin:2px 0}
+  .node-row{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:9px;cursor:pointer;transition:.14s;min-height:38px}
+  .node-row:hover{background:#f8fafc}
+  .node-knob{width:18px;height:18px;flex:0 0 18px;border-radius:6px;display:grid;place-items:center;font-size:12px;font-weight:800;color:#fff;user-select:none}
+  .knob-fg{background:var(--fg)} .knob-wip{background:var(--wip)} .knob-rm{background:var(--rm)}
+  .node-chips{display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-width:0}
+  .pbidge{font-size:9.5px;font-weight:800;letter-spacing:.04em;padding:2px 7px;border-radius:6px}
+  .pbidge.fg{background:var(--fg-soft);color:var(--fg)}
+  .pbidge.wip{background:var(--wip-soft);color:var(--wip)}
+  .pbidge.rm{background:var(--rm-soft);color:var(--rm)}
+  .mb{font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:6px;color:#fff}
+  .mb.buy{background:var(--buy)} .mb.make{background:var(--make)} .mb.subcon{background:var(--subcon)} .mb.free{background:var(--free)}
+  .part-no{font-family:ui-monospace,Menlo,monospace;font-size:13px;font-weight:700;color:#0f172a}
+  .part-name{font-size:12.5px;color:#475569}
+  .dim{font-size:11.5px;color:var(--muted);font-family:ui-monospace,Menlo,monospace}
+  .qty{font-size:12px;font-weight:700;color:#334155;white-space:nowrap}
+  .subs-chip{font-size:11px;font-weight:700;color:var(--fg);background:var(--fg-soft);border:1px solid var(--fg-line);
+    padding:2px 8px;border-radius:999px;cursor:pointer;white-space:nowrap}
+  .arrow{margin-left:auto;color:var(--muted);font-size:11px;font-weight:800;transition:.15s}
+  .fold-rm{opacity:.92}
+  /* ——— Detail drawer ——— */
+  .det{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+  .det-head{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  table.dt{width:100%;border-collapse:collapse;font-size:13px}
+  .dt th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
+    padding:8px 10px;border-bottom:2px solid var(--line)}
+  .dt td{padding:10px;border-bottom:1px solid #f1f5f9;vertical-align:top}
+  .dt tr:hover td{background:#fafbff}
+  .vno{font-family:ui-monospace,Menlo,monospace;font-weight:700;color:#0f172a}
+  .prio{display:inline-block;min-width:22px;text-align:center;font-weight:800;color:#fff;background:#94a3b8;border-radius:6px;padding:1px 6px;font-size:11px}
+  @media (max-width:640px){.hero{flex-direction:column;align-items:flex-start}}
+  .hint{font-size:11.5px;color:#94a3b8;text-align:center;margin-top:14px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <h1>🧩 BOM Explorer</h1><span class="tag">MOCKUP — klik untuk melihat visual</span>
+  <span class="tag">Warna: FG indigo · WIP amber · RM emerald</span>
+</div>
+
+<div class="wrap">
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="t1">1 · Daftar BOM (grid FG)</button>
+    <button class="tab-btn" data-tab="t2">2 · BOM Exploder (tree)</button>
+    <button class="tab-btn" data-tab="t3">3 · Detail RM (substitute)</button>
+  </div>
+
+  <!-- ============ TAB 1 ============ -->
+  <div class="tab active" id="t1">
+    <div class="note">💡 <b>Klik kartu FG</b> untuk membuka tree exploder. Tidak ada lagi tabel 12 kolom selebar 1840px — daftar FG jadi grid kartu yang bisa discan.</div>
+    <h6 class="h6">Finished Goods — 148</h6>
+    <div class="fg-grid" id="fgGrid"></div>
+    <p class="hint">← Klik tab “2 · BOM Exploder” atau klik salah satu kartu untuk lanjut.</p>
+  </div>
+
+  <!-- ============ TAB 2 ============ -->
+  <div class="tab" id="t2">
+    <div class="hero">
+      <div>
+        <div class="name">AAN30056405</div>
+        <div class="sub">COMPRESSOR · OMEGA 6</div>
+        <div class="pills">
+          <span class="badge fg">FG</span><span class="badge rev">REV A</span><span class="badge ok">ACTIVE</span>
+        </div>
+      </div>
+      <div class="toolbar">
+        <input class="btn" type="number" value="1" min="1" style="width:70px" title="Qty">
+        <button class="btn primary">Recalc</button>
+        <button class="btn" id="expandAll">Expand all</button>
+        <button class="btn" id="collapseAll">Collapse all</button>
+      </div>
+    </div>
+    <div class="tree">
+      <ul class="tree-list" id="tree"></ul>
+    </div>
+    <p class="hint">Garis cabang = tahapan proses (WIP). Klik RM emerald untuk membuka detail substitutenya.</p>
+  </div>
+
+  <!-- ============ TAB 3 ============ -->
+  <div class="tab" id="t3">
+    <div class="det">
+      <div class="det-head">
+        <span class="node-knob knob-rm">◆</span>
+        <div>
+          <div class="part-no">CBKG07256C</div>
+          <div class="sub">COMP BASE · 1.09 KGM · 0.25 × 640 × 1480</div>
+        </div>
+        <span class="badge fg" style="margin-left:auto">COMP BASE</span>
+      </div>
+      <table class="dt">
+        <thead><tr><th>#</th><th>Substitute part</th><th>Vendor</th><th>Ratio</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td><span class="prio">1</span></td><td><div class="vno">KBTGICBVT12</div><div style="color:#64748b">COMP BASE</div></td><td>BT INTERNATIONAL CO., LTD</td><td>1.00</td><td><span class="badge ok">ACTIVE</span></td></tr>
+          <tr><td><span class="prio">2</span></td><td><div class="vno">KHCGICBVT12S</div><div style="color:#64748b">COMP BASE</div></td><td>HAE KWAN METAL</td><td>1.00</td><td><span class="badge ok">ACTIVE</span></td></tr>
+          <tr><td><span class="prio">3</span></td><td><div class="vno">IJPGICBVT12S</div><div style="color:#64748b">COMP BASE</div></td><td>PT. POSCO INDONESIA</td><td>1.00</td><td><span class="badge ok">ACTIVE</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="hint">Sumber data: <b>material_substitutes</b> (global, Part Master "Supply Options") — bukan lagi per-barang BOM.</p>
+  </div>
+</div>
+
+<script>
+  // ——— FG data (riil dari import) ———
+  const FG = [
+    {no:"AAN30056405", name:"COMPRESSOR", model:"OMEGA 6",  proc:6, rm:2, subs:5, rev:"A", active:true},
+    {no:"AAN30029901", name:"BASE ASSEMBLY, COMPRESSOR", model:"", proc:5, rm:4, subs:2, rev:"A", active:true},
+    {no:"AAN73829510", name:"BASE ASSEMBLY, COMPRESSOR", model:"", proc:6, rm:3, subs:0, rev:"A", active:true},
+    {no:"AEH73776308", name:"HINGE ASSEMBLY, LOWER", model:"", proc:8, rm:6, subs:3, rev:"A", active:true},
+    {no:"4980JA3016F", name:"SUPPORTER, HANDLE", model:"", proc:3, rm:2, subs:1, rev:"A", active:true},
+    {no:"MCK30025901", name:"TOP COVER MAIN", model:"", proc:2, rm:1, subs:0, rev:"A", active:false},
+  ];
+  const box = document.getElementById('fgGrid');
+  FG.forEach(f=>{
+    box.insertAdjacentHTML('beforeend', `
+      <div class="fg-card" onclick="goTab('t2')">
+        <div class="row1">
+          <span class="badge fg">FG</span>
+          <span style="display:flex;gap:5px"><span class="badge rev">REV ${f.rev}</span>${f.active?'<span class="badge ok">ACTIVE</span>':'<span class="badge rev">INACTIVE</span>'}</span>
+        </div>
+        <div class="fg-no">${f.no}</div>
+        <div class="fg-name">${f.name}</div>
+        ${f.model?`<div class="fg-model">${f.model}</div>`:''}
+        <div class="fg-meta">
+          <span class="meta">🔧 <b>${f.proc}</b> proses</span>
+          <span class="meta">🧩 <b>${f.rm}</b> RM</span>
+          <span class="meta">⇄ <b>${f.subs}</b> subs</span>
+        </div>
+        <div class="card-foot">
+          <span class="cta">Buka Exploder →</span>
+          <span class="icons"><span title="Ubah FG">✎</span><span title="Toggle">↻</span><span title="Hapus">✕</span></span>
+        </div>
+      </div>`);
+  });
+
+  // ——— Tree ———
+  const treeData = {
+    level:0, kind:'fg', no:'AAN30056405', name:'COMPRESSOR', open:true, children:[
+      {level:1, kind:'wip', no:'AAN30056405-WIP1', name:'Draw · Press · TPL COMP BASE', open:true, children:[
+        {level:2, kind:'rm', no:'CBKG07256C', name:'COMP BASE', dim:'0.25×640×1480', qty:'1.09 KGM', mb:'BUY', subs:5},
+      ]},
+      {level:1, kind:'wip', no:'AAN30056405-WIP2', name:'Trimming', open:true, children:[
+        {level:2, kind:'rm', no:'AAN30056405-WIP1', name:'(sub-assembly Draw)', dim:'', qty:'1 PCS', mb:'MAKE', subs:0},
+      ]},
+      {level:1, kind:'wip', no:'AAN30056405-WIP6', name:'Assembly with screw', open:true, children:[
+        {level:2, kind:'rm', no:'4000W4A003A', name:'SCREW, CUSTOMIZED', dim:'', qty:'1 PCS', mb:'FREE_ISSUE', subs:0, special:'OSP'},
+        {level:2, kind:'rm', no:'PINHLKG1533C', name:'PIN HOLLOW', dim:'1.5×33×C', qty:'1 PCS', mb:'BUY', subs:4},
+      ]},
+    ]
+  };
+
+  const treeEl = document.getElementById('tree');
+  function knob(k){return k==='fg'?'●':(k==='wip'?'◐':'◆')}
+  function renderTree(nodes, into){
+    nodes.forEach(n=>{
+      const li=document.createElement('li'); li.className='node';
+      const hasKids = n.children && n.children.length;
+      const pid = n.no.replace(/[^a-z0-9]/gi,'_');
+      li.innerHTML = `
+        <div class="node-row" data-kid="${hasKids?0:''}">
+          <span class="node-knob knob-${n.kind}">${knob(n.kind)}</span>
+          <span class="pbidge ${n.kind}">${n.kind.toUpperCase()}</span>
+          <span class="part-no">${n.no}</span>
+          <span class="part-name">${n.name}</span>
+          ${n.dim?`<span class="dim">${n.dim}</span>`:''}
+          ${n.qty?`<span class="qty">${n.qty}</span>`:''}
+          ${n.mb?`<span class="mb ${n.mb.toLowerCase().replace('_','')}">${n.mb}</span>`:''}
+          ${n.special?`<span class="mb subcon">${n.special}</span>`:''}
+          ${n.subs?`<span class="subs-chip" title="Buka detail substitute">⇄ ${n.subs} subs</span>`:''}
+          ${hasKids?`<span class="arrow">${n.open?'−':'+'}</span>`:''}
+        </div>`;
+      if(hasKids){
+        const ul=document.createElement('ul');
+        if(!n.open) ul.style.display='none';
+        ul.className='tree-list';
+        renderTree(n.children, ul);
+        li.appendChild(ul);
+        li.querySelector('.node-row').addEventListener('click', e=>{
+          if(e.target.closest('.subs-chip')){ goTab('t3'); return; }
+          const open = ul.style.display!=='none'; ul.style.display = open?'none':'';
+          li.querySelector('.arrow').textContent = open?'+':'−';
+        });
+      } else {
+        li.querySelector('.node-row').addEventListener('click', ()=>goTab('t3'));
+      }
+      into.appendChild(li);
+    });
+  }
+  renderTree([treeData], treeEl);
+
+  document.getElementById('expandAll').addEventListener('click', ()=>{document.querySelectorAll('#tree ul').forEach(u=>u.style.display='');document.querySelectorAll('#tree .arrow').forEach(a=>a.textContent='−');});
+  document.getElementById('collapseAll').addEventListener('click', ()=>{document.querySelectorAll('#tree ul').forEach(u=>u.style.display='none');document.querySelectorAll('#tree .arrow').forEach(a=>a.textContent='+');});
+
+  const subsChips = document.querySelectorAll('.subs-chip');
+  subsChips.forEach(c=>c.addEventListener('click', ()=>goTab('t3')));
+
+  // ——— tabs ———
+  function goTab(id){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    document.querySelector(`.tab-btn[data-tab="${id}"]`).classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+  document.querySelectorAll('.tab-btn').forEach(b=>b.addEventListener('click', ()=>goTab(b.dataset.tab)));
+</script>
+</body>
+</html>

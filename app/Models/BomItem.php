@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\GciPart;
 use App\Models\NewSchema\Core\VendorPart;
+use App\Models\MaterialSubstitute;
 
 class BomItem extends Model
 {
@@ -63,7 +64,8 @@ class BomItem extends Model
 
     public function substitutes()
     {
-        return $this->hasMany(BomItemSubstitute::class, 'bom_item_id');
+        // Global material_substitutes, keyed by component_part_id (generic RM)
+        return $this->hasMany(MaterialSubstitute::class, 'generic_part_id', 'component_part_id');
     }
 
     public function machine()

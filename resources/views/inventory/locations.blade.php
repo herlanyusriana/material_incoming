@@ -65,7 +65,7 @@
                     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
 
                         <!-- Search & Filters -->
-                        <form method="GET" class="flex flex-wrap items-end gap-3 w-full lg:w-auto">
+                        <form method="GET" class="flex flex-wrap items-end gap-3 w-full lg:w-auto" x-data="{ advancedOpen: false }">
                             <div class="w-full sm:w-64">
                                 <label
                                     class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">{{ __('warehouse.inventory.locations.search') }}</label>
@@ -82,7 +82,7 @@
                                 </div>
                             </div>
 
-                            <div class="w-24">
+                            <div class="w-24" x-show="advancedOpen" x-cloak>
                                 <label
                                     class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">{{ __('warehouse.inventory.locations.class') }}</label>
                                 <input name="class" value="{{ $class }}"
@@ -90,7 +90,7 @@
                                     placeholder="A">
                             </div>
 
-                            <div class="w-24">
+                            <div class="w-24" x-show="advancedOpen" x-cloak>
                                 <label
                                     class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 block">{{ __('warehouse.inventory.locations.zone') }}</label>
                                 <input name="zone" value="{{ $zone }}"
@@ -109,6 +109,9 @@
                                     </option>
                                 </select>
                             </div>
+
+                            <button type="button" @click="advancedOpen = !advancedOpen"
+                                class="px-4 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm">More filters</button>
 
                             <button
                                 class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-semibold text-sm shadow-sm transition-colors">

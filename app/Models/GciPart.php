@@ -184,4 +184,22 @@ class GciPart extends Model
     {
         return $this->hasOne(GciInventory::class, 'gci_part_id');
     }
+
+    // ─── Material Substitutes (Global, Part Master level) ───────
+
+    /**
+     * Substitutes that can replace THIS generic RM.
+     */
+    public function substitutes()
+    {
+        return $this->hasMany(MaterialSubstitute::class, 'generic_part_id');
+    }
+
+    /**
+     * Generic RM parts that THIS substitute can replace.
+     */
+    public function substituteFor()
+    {
+        return $this->hasMany(MaterialSubstitute::class, 'substitute_part_id');
+    }
 }

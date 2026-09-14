@@ -108,7 +108,7 @@
         </div>
 
         {{-- Filters --}}
-        <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm" x-data="{ advancedOpen: false }">
             <form method="GET" class="flex flex-wrap items-end gap-3">
                 <div>
                     <label for="period-filter" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{{ __('planning.forecasts.index.filter_month') }}</label>
@@ -119,7 +119,7 @@
                         <div class="text-[10px] text-red-500 mt-1 font-semibold">{{ $message }}</div>
                     @enderror
                 </div>
-                <div>
+                <div x-show="advancedOpen" x-cloak>
                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{{ __('planning.forecasts.index.filter_part') }}</label>
                     <select name="part_id" class="mt-1 rounded-xl border-slate-200">
                         <option value="">{{ __('planning.forecasts.index.filter_all') }}</option>
@@ -129,7 +129,7 @@
                         @endforeach
                     </select>
                 </div>
-                <div>
+                <div x-show="advancedOpen" x-cloak>
                     <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{{ __('planning.forecasts.index.filter_family') }}</label>
                     <select name="family" class="mt-1 rounded-xl border-slate-200">
                         <option value="">{{ __('planning.forecasts.index.filter_all') }}</option>
@@ -139,6 +139,8 @@
                     </select>
                 </div>
                 <div class="flex gap-2">
+                    <button type="button" @click="advancedOpen = !advancedOpen"
+                        class="px-4 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 font-semibold">More filters</button>
                     <button type="submit"
                         class="px-4 py-2 rounded-xl bg-slate-900 text-white font-semibold">{{ __('planning.forecasts.index.filter_submit') }}</button>
                     @if ($period !== '' || $partId !== '' || $family !== '')

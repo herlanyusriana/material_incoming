@@ -26,47 +26,47 @@
         </div>
 
         {{-- Toolbar --}}
-        <div class="bg-white border border-slate-200 rounded-xl divide-y divide-slate-100">
+        <div class="bg-white border border-slate-200 rounded-xl divide-y divide-slate-100" x-data="{ advancedOpen: false }">
             <div class="p-3">
                 <form method="GET" action="{{ route('parts.index') }}" x-ref="filterForm" class="flex flex-wrap items-end gap-3">
                     <input type="hidden" name="classification" value="{{ $activeTab }}">
                     <label class="flex flex-col gap-1">
                         <span class="text-xs font-medium text-slate-500">{{ __('master.parts.index.filter_status') }}</span>
-                        <select name="status" class="rounded-lg border-slate-300 text-sm py-2" @change="$refs.filterForm.requestSubmit()">
+                        <select name="status" class="rounded-lg border-slate-300 text-sm py-2">
                             <option value="">{{ __('master.parts.index.filter_all_status') }}</option>
                             <option value="active" @selected(($status ?? '') === 'active')>{{ __('master.parts.index.filter_active') }}</option>
                             <option value="inactive" @selected(($status ?? '') === 'inactive')>{{ __('master.parts.index.filter_inactive') }}</option>
                         </select>
                     </label>
                     @if ($activeTab === 'RM')
-                        <label class="flex flex-col gap-1">
+                        <label class="flex flex-col gap-1" x-show="advancedOpen" x-cloak>
                             <span class="text-xs font-medium text-slate-500">{{ __('master.parts.index.filter_vendor') }}</span>
-                            <select name="vendor_id" class="rounded-lg border-slate-300 text-sm py-2 max-w-44" @change="$refs.filterForm.requestSubmit()">
+                            <select name="vendor_id" class="rounded-lg border-slate-300 text-sm py-2 max-w-44">
                                 <option value="">{{ __('master.parts.index.filter_all_vendor') }}</option>
                                 @foreach ($vendors as $vendor)
                                     <option value="{{ $vendor->id }}" @selected((int) ($vendorId ?? 0) === (int) $vendor->id)>{{ $vendor->vendor_name }}</option>
                                 @endforeach
                             </select>
                         </label>
-                        <label class="flex flex-col gap-1">
+                        <label class="flex flex-col gap-1" x-show="advancedOpen" x-cloak>
                             <span class="text-xs font-medium text-slate-500">{{ __('master.parts.index.filter_vendor_part_name') }}</span>
                             <input type="text" name="vendor_part_name" value="{{ $vendorPartName ?? '' }}" placeholder="{{ __('master.parts.index.filter_vendor_part_placeholder') }}"
                                 class="rounded-lg border-slate-300 text-sm py-2 w-44">
                         </label>
                     @endif
                     @if ($activeTab !== 'SUB')
-                        <label class="flex flex-col gap-1">
+                        <label class="flex flex-col gap-1" x-show="advancedOpen" x-cloak>
                             <span class="text-xs font-medium text-slate-500">{{ __('master.parts.index.filter_policy') }}</span>
-                            <select name="consumption_policy" class="rounded-lg border-slate-300 text-sm py-2" @change="$refs.filterForm.requestSubmit()">
+                            <select name="consumption_policy" class="rounded-lg border-slate-300 text-sm py-2">
                                 <option value="">{{ __('master.parts.index.filter_all_policy') }}</option>
                                 <option value="direct_issue" @selected(($consumptionPolicy ?? '') === 'direct_issue')>{{ __('master.parts.index.policy_direct') }}</option>
                                 <option value="backflush_return" @selected(($consumptionPolicy ?? '') === 'backflush_return')>{{ __('master.parts.index.policy_return') }}</option>
                                 <option value="backflush_line_stock" @selected(($consumptionPolicy ?? '') === 'backflush_line_stock')>{{ __('master.parts.index.policy_line') }}</option>
                             </select>
                         </label>
-                        <label class="flex flex-col gap-1">
+                        <label class="flex flex-col gap-1" x-show="advancedOpen" x-cloak>
                             <span class="text-xs font-medium text-slate-500">{{ __('master.parts.index.filter_confirmation') }}</span>
-                            <select name="policy_confirmation" class="rounded-lg border-slate-300 text-sm py-2" @change="$refs.filterForm.requestSubmit()">
+                            <select name="policy_confirmation" class="rounded-lg border-slate-300 text-sm py-2">
                                 <option value="">{{ __('master.parts.index.filter_all_confirmation') }}</option>
                                 <option value="confirmed" @selected(($policyConfirmation ?? '') === 'confirmed')>{{ __('master.parts.index.filter_confirmed') }}</option>
                                 <option value="unconfirmed" @selected(($policyConfirmation ?? '') === 'unconfirmed')>{{ __('master.parts.index.filter_unconfirmed') }}</option>
@@ -81,7 +81,10 @@
                                 class="rounded-lg border-slate-300 text-sm py-2 pl-9 pr-3 w-full">
                         </div>
                     </label>
-                    <button type="submit" class="px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-sm font-medium text-slate-700">{{ __('master.parts.index.filter_button') }}</button>
+                    <button type="button" @click="advancedOpen = !advancedOpen" class="px-3.5 py-2 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-sm font-medium text-slate-700">
+                        More filters
+                    </button>
+                    <button type="submit" class="px-3.5 py-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold">{{ __('master.parts.index.filter_button') }}</button>
                 </form>
             </div>
 

@@ -4,7 +4,7 @@ namespace App\Imports;
 
 use App\Models\Bom;
 use App\Models\BomItem;
-use App\Models\BomItemSubstitute;
+use App\Models\MaterialSubstitute;
 use App\Models\GciPart;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
@@ -197,19 +197,18 @@ class GciPartsImport implements ToCollection, WithHeadingRow, WithValidation, Sk
             return;
         }
 
-        // Upsert substitute
+        // Upsert substitute — global material_substitutes
         $ratio = $this->norm($row['substitute_ratio'] ?? $row['ratio'] ?? null);
         $priority = $this->norm($row['substitute_priority'] ?? $row['priority'] ?? null);
         $subStatus = $this->norm($row['substitute_status'] ?? null);
         $notes = $this->norm($row['substitute_notes'] ?? $row['notes'] ?? null);
 
-        BomItemSubstitute::updateOrCreate(
+        MaterialSubstitute::updateOrCreate(
             [
-                'bom_item_id' => $bomItem->id,
+                'generic_part_id' => $componentPart->id,
                 'substitute_part_id' => $substitutePart->id,
             ],
             [
-                'substitute_part_no' => $substitutePartNo,
                 'ratio' => $ratio !== null && is_numeric($ratio) ? (float) $ratio : 1,
                 'priority' => $priority !== null && is_numeric($priority) ? (int) $priority : 1,
                 'status' => ($subStatus && in_array(strtolower($subStatus), ['active', 'inactive'], true)) ? strtolower($subStatus) : 'active',

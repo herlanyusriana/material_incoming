@@ -120,7 +120,7 @@ class Bom extends Model
 
         $explosion = [];
         
-        $this->loadMissing(['items.componentPart.bom', 'items.wipPart', 'items.consumptionUom', 'items.wipUom', 'items.substitutes.part']);
+        $this->loadMissing(['items.componentPart.bom', 'items.wipPart', 'items.consumptionUom', 'items.wipUom', 'items.substitutes.substitutePart']);
 
         foreach ($this->items as $item) {
             $netQty = $item->net_required * $parentQty;

@@ -66,19 +66,19 @@
                 </div>
             </div>
 
-            <form method="GET" class="bg-white border rounded-xl shadow-sm p-4">
+            <form method="GET" class="bg-white border rounded-xl shadow-sm p-4" x-data="{ advancedOpen: false }">
                 <div class="grid grid-cols-1 md:grid-cols-7 gap-3 items-end">
-                    <div>
+                    <div x-show="advancedOpen" x-cloak>
                         <label class="block text-xs font-semibold text-slate-600" for="filter-month">Month</label>
                         <input type="month" name="month" id="filter-month" value="{{ $month ?? '' }}"
                             class="mt-1 w-full rounded-lg border-slate-200 text-sm">
                     </div>
-                    <div>
+                    <div x-show="advancedOpen" x-cloak>
                         <label class="block text-xs font-semibold text-slate-600" for="filter-date-from">Date From</label>
                         <input type="date" name="date_from" id="filter-date-from" value="{{ $dateFrom ?? '' }}"
                             class="mt-1 w-full rounded-lg border-slate-200 text-sm">
                     </div>
-                    <div>
+                    <div x-show="advancedOpen" x-cloak>
                         <label class="block text-xs font-semibold text-slate-600" for="filter-date-to">Date To</label>
                         <input type="date" name="date_to" id="filter-date-to" value="{{ $dateTo ?? '' }}"
                             class="mt-1 w-full rounded-lg border-slate-200 text-sm">
@@ -93,7 +93,7 @@
                             @endforeach
                         </select>
                     </div>
-                    <div>
+                    <div x-show="advancedOpen" x-cloak>
                         <label class="block text-xs font-semibold text-slate-600" for="filter-inventory-balance">Sisa Material</label>
                         <select name="inventory_balance" id="filter-inventory-balance" class="mt-1 w-full rounded-lg border-slate-200 text-sm">
                             <option value="">Semua</option>
@@ -111,6 +111,8 @@
                         @endif
                     </div>
                     <div class="md:col-span-6 flex justify-end gap-2">
+                        <button type="button" @click="advancedOpen = !advancedOpen"
+                            class="px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">More filters</button>
                         <a href="{{ ($scope ?? 'open') === 'history' ? route('production.orders.history') : route('production.orders.index') }}"
                             class="px-3 py-2 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50">Reset</a>
                         <button

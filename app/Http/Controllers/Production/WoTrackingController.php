@@ -4,321 +4,225 @@ namespace App\Http\Controllers\Production;
 
 use App\Http\Controllers\Controller;
 use App\Models\Bom;
-use App\Models\BomItemSubstitute;
 use App\Models\NewSchema\Core\GciPart;
-use App\Models\NewSchema\Inventory\InventoryLocationStock;
+use App\Models\NewSchema\Incoming\IncomingReceive;
 use App\Models\NewSchema\Production\ProductionWorkOrder;
-use App\Models\NewSchema\Production\WoMaterialAllocation;
-use App\Models\NewSchema\Production\WoRequirement;
-use App\Services\WoTrackingService;
+use App\Support\Uom;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 /**
- * WO Manual + Material Tracking (scan-pick, terkunci sampai closed).
- * Alur: PLANNED -> (alokasi) RELEASED -> (hasil) CLOSED/CANCELLED.
+ * WO Manual — mekanisme sederhana.
+ *
+ * Form create: FG Part, Tanggal, WO Quantity, Main RM Part, RM Invoice, RM Tag.
+ * List       : FG Part | WO NO | Tanggal | WO QTY | Result QTY | Sisa WO QTY | Invoice Asal | Aksi.
+ * Posting hasil mengakumulasi qty_actual; status otomatis CLOSED saat target tercapai.
  */
 class WoTrackingController extends Controller
 {
-    public function __construct(private WoTrackingService $tracking)
-    {
-    }
-
     public function index(Request $request)
     {
-        $status = strtoupper(trim((string) $request->query('status', '')));
         $q = trim((string) $request->query('q', ''));
 
         $wos = ProductionWorkOrder::query()
-            ->with(['gciPart', 'requirements', 'allocations'])
-            ->when(in_array($status, ['PLANNED', 'RELEASED', 'IN_PRODUCTION', 'CLOSED', 'CANCELLED'], true), fn ($query) => $query->where('status', $status))
-            ->when($q !== '', fn ($query) => $query->where('work_order_no', 'like', "%{$q}%"))
+            ->with(['gciPart:id,part_no,part_name,uom', 'mainRmPart:id,part_no,part_name'])
+            ->when($q !== '', function ($query) use ($q) {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('work_order_no', 'like', "%{$q}%")
+                        ->orWhereHas('gciPart', function ($gq) use ($q) {
+                            $gq->where('part_no', 'like', "%{$q}%")
+                                ->orWhere('part_name', 'like', "%{$q}%");
+                        });
+                });
+            })
             ->orderByDesc('id')
-            ->paginate(15)
+            ->paginate(20)
             ->withQueryString();
 
-        return view('production.wo-tracking.index', compact('wos', 'status', 'q'));
+        return view('production.wo-tracking.index', compact('wos', 'q'));
     }
 
-    public function create()
+    /**
+     * Master data ringan untuk form WO manual (satu request, di-cache browser singkat):
+     * daftar FG, daftar RM, pemetaan FG -> Main RM (BOM aktif), stok incoming per RM
+     * (invoice -> tag).
+     */
+    public function masterData()
     {
+        $mapPart = fn ($p) => [
+            'id' => (int) $p->id,
+            'part_no' => $p->part_no,
+            'part_name' => $p->part_name,
+            'uom' => Uom::canonical($p->uom) ?? 'PCE',
+        ];
+
         $fgParts = GciPart::query()
-            ->where('classification', 'FG')
+            ->where('classification', 'FG')->where('status', 'active')
+            ->orderBy('part_no')->get(['id', 'part_no', 'part_name', 'uom'])
+            ->map($mapPart);
+
+        $rmParts = GciPart::query()
+            ->where('classification', 'RM')->where('status', 'active')
+            ->orderBy('part_no')->get(['id', 'part_no', 'part_name', 'uom'])
+            ->map($mapPart);
+
+        // FG part id -> RM part id (komponen RM BUY/FREE_ISSUE pertama dari BOM aktif).
+        $mainRm = [];
+        $boms = Bom::query()
             ->where('status', 'active')
-            ->orderBy('part_no')
-            ->get(['id', 'part_no', 'part_name', 'model', 'uom']);
+            ->with(['part:id,part_no,classification', 'items:id,bom_id,component_part_id,component_part_no,make_or_buy'])
+            ->get();
+        foreach ($boms as $bom) {
+            if (($bom->part?->classification ?? '') !== 'FG' || isset($mainRm[$bom->part_id])) {
+                continue;
+            }
+            $rm = $bom->items->first(function ($item) {
+                $mb = strtoupper(trim((string) $item->make_or_buy));
 
-        return view('production.wo-tracking.create', compact('fgParts'));
-    }
+                return in_array($mb, ['BUY', 'FREE_ISSUE'], true) && $item->component_part_id;
+            });
+            if ($rm) {
+                $mainRm[$bom->part_id] = (int) $rm->component_part_id;
+            }
+        }
 
-    /** Preview demand tanpa menyimpan (AJAX: part + qty). */
-    public function previewExplosion(Request $request)
-    {
-        $validated = $request->validate([
-            'gci_part_id' => ['required', 'integer', 'exists:gci_parts,id'],
-            'qty_target' => ['required', 'numeric', 'min:0.0001'],
-        ]);
-
-        $part = GciPart::findOrFail((int) $validated['gci_part_id']);
-        $bom = Bom::activeVersion($part->id, now());
-
-        $lines = collect();
-        if ($bom) {
-            foreach ($bom->items()->with(['componentPart', 'incomingPart.gciPart', 'substitutes.part'])->get() as $item) {
-                $componentPartId = (int) ($item->incomingPart?->gciPart?->id ?? $item->component_part_id ?? 0);
-                if ($componentPartId <= 0 || in_array(strtoupper(trim((string) ($item->make_or_buy ?? ''))), ['BUY', 'FREE_ISSUE'], true)) {
-                    continue;
-                }
-                $required = round((float) ($item->net_required ?? $item->usage_qty ?? 0) * (float) $validated['qty_target'], 4);
-                if ($required <= 0) {
-                    continue;
-                }
-                $substitutes = $item->substitutes
-                    ->where('status', 'active')
-                    ->filter(fn ($sub) => $sub->substitute_part_id)
-                    ->filter(fn ($sub) => InventoryLocationStock::where('gci_part_id', $sub->substitute_part_id)->where('qty_on_hand', '>', 0)->exists())
-                    ->sortBy('priority');
-                foreach ($substitutes as $substitute) {
-                    $sp = $substitute->part;
-                    $lines->push([
-                        'part_no' => $sp?->part_no ?? $substitute->substitute_part_no,
-                        'part_name' => $sp?->part_name,
-                        'required_qty' => round($required * (float) ($substitute->ratio ?: 1), 4),
-                        'uom' => \App\Support\Uom::canonical($sp?->uom) ?? 'PCE',
-                        'policy' => $item->consumption_policy_override ?: ($sp?->consumption_policy ?: (($sp?->is_backflush ?? true) ? 'backflush_return' : 'direct_issue')),
-                    ]);
-                }
+        // gci_part_id -> invoice_no -> [tag, ...] dari penerimaan barang.
+        $stock = [];
+        $receives = IncomingReceive::query()
+            ->whereRaw("TRIM(COALESCE(invoice_no,'')) <> ''")
+            ->whereRaw("TRIM(COALESCE(tag,'')) <> ''")
+            ->orderBy('id')
+            ->get(['gci_part_id', 'invoice_no', 'tag']);
+        foreach ($receives as $r) {
+            if (!$r->gci_part_id) {
+                continue;
+            }
+            $stock[(int) $r->gci_part_id][$r->invoice_no][] = $r->tag;
+        }
+        foreach ($stock as $pid => $inv) {
+            foreach ($inv as $ino => $tags) {
+                $stock[$pid][$ino] = array_values(array_unique($tags));
             }
         }
 
         return response()->json([
-            'bom_found' => $bom !== null,
-            'fg_uom' => \App\Support\Uom::canonical($part->uom) ?? 'PCE',
-            'lines' => $lines->values(),
+            'fg_parts' => $fgParts,
+            'rm_parts' => $rmParts,
+            'main_rm' => (object) $mainRm,
+            'stock' => (object) $stock,
         ]);
+    }
+
+    public function create()
+    {
+        return view('production.wo-tracking.create');
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'gci_part_id' => ['required', 'integer', 'exists:gci_parts,id'],
-            'qty_target' => ['required', 'numeric', 'min:0.0001'],
-            'start_date' => ['required', 'date'],
-            'notes' => ['nullable', 'string', 'max:2000'],
+        $validated = $this->validatedFields($request);
+
+        $wo = ProductionWorkOrder::create($validated + [
+            'work_order_no' => $this->nextWoNumber(),
+            'status' => 'PLANNED',
+            'created_by' => auth()->id(),
         ]);
 
-        $wo = DB::transaction(function () use ($validated, $request) {
-            $part = GciPart::findOrFail((int) $validated['gci_part_id']);
+        return redirect()->route('production.wo-tracking.index')
+            ->with('success', "WO {$wo->work_order_no} dibuat untuk {$wo->gciPart?->part_no}.");
+    }
 
-            $wo = ProductionWorkOrder::create([
-                'work_order_no' => $this->nextWoNumber(),
-                'gci_part_id' => $part->id,
-                'qty_target' => $validated['qty_target'],
-                'status' => 'PLANNED',
-                'start_date' => $validated['start_date'],
-                'notes' => $validated['notes'] ?? null,
-                'created_by' => auth()->id(),
-            ]);
+    public function edit(ProductionWorkOrder $woTracking)
+    {
+        $woTracking->load(['gciPart:id,part_no,part_name', 'mainRmPart:id,part_no,part_name']);
 
-            $this->tracking->buildRequirements($wo);
+        return view('production.wo-tracking.edit', ['wo' => $woTracking]);
+    }
+
+    public function update(Request $request, ProductionWorkOrder $woTracking)
+    {
+        if (in_array($woTracking->status, ['CLOSED', 'CANCELLED'], true)) {
+            return back()->with('error', 'WO sudah ditutup — tidak bisa diubah.');
+        }
+
+        $validated = $this->validatedFields($request);
+        $woTracking->update($validated + ['updated_by' => auth()->id()]);
+
+        return redirect()->route('production.wo-tracking.index')
+            ->with('success', "WO {$woTracking->work_order_no} diperbarui.");
+    }
+
+    /**
+     * Posting hasil: akumulasi qty_actual. Sisa = qty_target - qty_actual;
+     * otomatis CLOSED saat sisa <= 0.
+     */
+    public function postResult(Request $request, ProductionWorkOrder $woTracking)
+    {
+        $validated = $request->validate([
+            'qty_result' => ['required', 'numeric', 'min:0.0001'],
+        ]);
+
+        $wo = DB::transaction(function () use ($woTracking, $validated) {
+            $wo = ProductionWorkOrder::query()->whereKey($woTracking->id)->lockForUpdate()->firstOrFail();
+
+            if (in_array($wo->status, ['CLOSED', 'CANCELLED'], true)) {
+                abort(422, 'WO sudah ditutup — tidak bisa posting hasil.');
+            }
+
+            $wo->qty_actual = round((float) $wo->qty_actual + (float) $validated['qty_result'], 4);
+            $wo->updated_by = auth()->id();
+            if ($wo->qty_actual + 0.0001 >= (float) $wo->qty_target) {
+                $wo->qty_actual = min((float) $wo->qty_actual, (float) $wo->qty_target);
+                $wo->status = 'CLOSED';
+                $wo->end_date = now()->toDateString();
+            } else {
+                $wo->status = 'IN_PRODUCTION';
+            }
+            $wo->save();
 
             return $wo;
         });
 
-        return redirect()->route('production.wo-tracking.show', $wo)
-            ->with('success', 'WO dibuat. Lanjutkan scan-pick material.');
+        return redirect()->route('production.wo-tracking.index')
+            ->with('success', "Hasil WO {$wo->work_order_no}: total {$wo->qty_actual} dari target {$wo->qty_target}.");
     }
 
-    public function show(ProductionWorkOrder $woTracking)
+    public function destroy(ProductionWorkOrder $woTracking)
     {
-        $woTracking->load(['gciPart', 'requirements.gciPart', 'allocations.gciPart']);
+        $woTracking->delete();
 
-        $suggestions = [];
-        foreach ($woTracking->requirements as $requirement) {
-            $suggestions[$requirement->id] = $this->tracking->suggestPicks($woTracking, $requirement);
-        }
-
-        $allocatedByPart = $woTracking->allocations
-            ->whereIn('status', [WoMaterialAllocation::STATUS_RESERVED, WoMaterialAllocation::STATUS_CONSUMED])
-            ->groupBy('gci_part_id')
-            ->map(fn ($group) => (float) $group->sum('qty_reserved'));
-
-        return view('production.wo-tracking.show', compact('woTracking', 'suggestions', 'allocatedByPart'));
+        return redirect()->route('production.wo-tracking.index')
+            ->with('success', "WO {$woTracking->work_order_no} dihapus.");
     }
 
-    // ---- Fase B: scan & alokasi ----
-
-    public function locateTag(Request $request, ProductionWorkOrder $woTracking)
+    private function validatedFields(Request $request): array
     {
-        $validated = $request->validate(['tag' => ['required', 'string', 'max:255']]);
-        $info = $this->tracking->locateTag(trim($validated['tag']));
-
-        // Kebutuhan WO ini untuk part dari tag tsb (kalau ada).
-        $requirement = null;
-        if ($info['gci_part_id'] > 0) {
-            $requirement = $woTracking->requirements->first(function ($candidate) use ($info) {
-                return BomItemSubstitute::query()
-                    ->where('bom_item_id', $candidate->bom_item_id)
-                    ->where('substitute_part_id', $info['gci_part_id'])
-                    ->where('status', 'active')
-                    ->exists();
-            });
-            if ($requirement) {
-                $info['suggestion'] = $this->tracking->suggestPicks($woTracking, $requirement);
-            }
-        }
-        $info['requirement_id'] = $requirement?->id;
-        $info['requirement_qty'] = $requirement?->required_qty;
-
-        return response()->json($info);
-    }
-
-    public function allocate(Request $request, ProductionWorkOrder $woTracking, WoRequirement $requirement)
-    {
-        $validated = $request->validate([
-            'tag' => ['required', 'string', 'max:255'],
-            'qty' => ['required', 'numeric', 'min:0.0001'],
-            'location_code' => ['nullable', 'string', 'max:50'],
+        $data = $request->validate([
+            'gci_part_id' => ['required', 'integer', Rule::exists('gci_parts', 'id')->where('classification', 'FG')],
+            'start_date' => ['required', 'date'],
+            'qty_target' => ['required', 'numeric', 'min:0.0001'],
+            'main_rm_part_id' => ['nullable', 'integer', Rule::exists('gci_parts', 'id')->where('classification', 'RM')],
+            'rm_invoice_no' => ['nullable', 'string', 'max:255'],
+            'rm_tag' => ['nullable', 'string', 'max:255'],
         ]);
 
-        if ($requirement->work_order_id !== $woTracking->id) {
-            abort(422, 'Requirement bukan milik WO ini.');
-        }
-
-        $this->tracking->allocate(
-            $woTracking,
-            $requirement,
-            trim($validated['tag']),
-            (float) $validated['qty'],
-            $validated['location_code'] ?? null
-        );
-
-        return back()->with('success', "Tag {$validated['tag']} dialokasikan ke WO.");
-    }
-
-    public function deallocate(Request $request, ProductionWorkOrder $woTracking, WoMaterialAllocation $allocation)
-    {
-        if ($allocation->work_order_id !== $woTracking->id) {
-            abort(422, 'Alokasi bukan milik WO ini.');
-        }
-        if ($allocation->status !== WoMaterialAllocation::STATUS_RESERVED) {
-            abort(422, 'Alokasi sudah dikonsumsi — tidak bisa dilepas. Gunakan Return.');
-        }
-
-        $this->tracking->returnAllocation($allocation);
-
-        return back()->with('success', 'Alokasi dikembalikan ke gudang.');
-    }
-
-    public function release(ProductionWorkOrder $woTracking)
-    {
-        if (! in_array($woTracking->status, ['PLANNED', 'RELEASED'], true)) {
-            return back()->with('error', 'WO tidak dalam status yang bisa di-release.');
-        }
-
-        $short = $woTracking->requirements->filter(function (WoRequirement $requirement) use ($woTracking) {
-            $covered = (float) $woTracking->allocations()
-                ->where('requirement_id', $requirement->id)
-                ->whereIn('status', [WoMaterialAllocation::STATUS_RESERVED, WoMaterialAllocation::STATUS_CONSUMED])
-                ->sum('qty_reserved');
-
-            return $covered + 1e-9 < (float) $requirement->required_qty;
-        });
-
-        if ($short->isNotEmpty()) {
-            return back()->with('error', 'Material belum lengkap: ' . $short->map(fn ($r) => ($r->gciPart?->part_no ?? $r->component_part_no))->implode(', '));
-        }
-
-        $woTracking->update(['status' => 'RELEASED', 'released_at' => now(), 'released_by' => auth()->id()]);
-
-        return back()->with('success', 'WO released — material terkunci untuk WO ini.');
-    }
-
-    // ---- Fase C: hasil + closure ----
-
-    public function postResult(Request $request, ProductionWorkOrder $woTracking)
-    {
-        $validated = $request->validate([
-            'qty_good' => ['required', 'numeric', 'min:0'],
-            'qty_ng' => ['nullable', 'numeric', 'min:0'],
-            'notes' => ['nullable', 'string', 'max:2000'],
-        ]);
-
-        return DB::transaction(function () use ($validated, $woTracking, $request) {
-            $woTracking = ProductionWorkOrder::query()->whereKey($woTracking->id)->lockForUpdate()->firstOrFail();
-
-            if (in_array($woTracking->status, ['CLOSED', 'CANCELLED'], true)) {
-                return back()->with('error', 'WO sudah ditutup.');
-            }
-
-            $qtyGood = (float) $validated['qty_good'];
-            $qtyNg = (float) ($validated['qty_ng'] ?? 0);
-
-            // Backflush per tag: konsumsi = good × usage (dari alokasi RESERVED).
-            $woTracking->load('requirements');
-            foreach ($woTracking->requirements as $requirement) {
-                if ($requirement->consumption_policy === 'direct_issue') {
-                    continue; // sudah dikonsumsi saat alokasi
-                }
-                $consumption = round((float) $requirement->required_qty * ($qtyGood / max((float) $woTracking->qty_target, 0.0001)), 4);
-                $this->tracking->consumeForWo($woTracking, $requirement, $consumption);
-            }
-
-            // FG masuk stok: lot = WO# (genealogi ke coil via WO).
-            $fgPart = $woTracking->gciPart;
-            if ($qtyGood > 0 && $fgPart?->default_location) {
-                InventoryLocationStock::updateStock(
-                    (int) $fgPart->id,
-                    strtoupper(trim((string) $fgPart->default_location)),
-                    $qtyGood,
-                    $woTracking->work_order_no,
-                    $woTracking->work_order_no,
-                    'WO_FG_OUTPUT',
-                    "WO#{$woTracking->id}",
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    auth()->id()
-                );
-            }
-
-            $woTracking->qty_actual = (float) $woTracking->qty_actual + $qtyGood;
-            $woTracking->status = 'IN_PRODUCTION';
-            $woTracking->save();
-
-            // Sisa alokasi RESERVED setelah posting = over-alokasi → tampil di board;
-            // closure tetap menuntut consume/return penuh (guard assertClosable).
-            return back()->with('success', "Hasil diposting: good {$qtyGood}, NG {$qtyNg}. Sisa alokasi harus di-return sebelum close.");
-        });
-    }
-
-    public function close(ProductionWorkOrder $woTracking)
-    {
-        try {
-            $this->tracking->assertClosable($woTracking);
-        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
-            return back()->with('error', $e->getMessage());
-        }
-
-        $woTracking->update(['status' => 'CLOSED', 'end_date' => now()->toDateString()]);
-
-        return back()->with('success', 'WO closed. Semua material telah reconcile.');
-    }
-
-    public function cancel(ProductionWorkOrder $woTracking)
-    {
-        $this->tracking->cancelWo($woTracking);
-
-        return back()->with('success', 'WO dibatalkan, semua alokasi dikembalikan ke gudang.');
+        return [
+            'gci_part_id' => (int) $data['gci_part_id'],
+            'start_date' => $data['start_date'],
+            'qty_target' => round((float) $data['qty_target'], 4),
+            'main_rm_part_id' => isset($data['main_rm_part_id']) ? (int) $data['main_rm_part_id'] : null,
+            'rm_invoice_no' => trim((string) ($data['rm_invoice_no'] ?? '')) ?: null,
+            'rm_tag' => trim((string) ($data['rm_tag'] ?? '')) ?: null,
+        ];
     }
 
     private function nextWoNumber(): string
     {
         $prefix = 'WO-' . now()->format('Ymd') . '-';
-        $last = ProductionWorkOrder::query()->where('work_order_no', 'like', $prefix . '%')->max('work_order_no');
+        $last = ProductionWorkOrder::query()->withTrashed()
+            ->where('work_order_no', 'like', $prefix . '%')
+            ->max('work_order_no');
         $seq = $last ? ((int) substr($last, strlen($prefix))) + 1 : 1;
 
         return $prefix . str_pad((string) $seq, 4, '0', STR_PAD_LEFT);

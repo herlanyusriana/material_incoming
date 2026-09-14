@@ -423,11 +423,11 @@
                                                         'substitutes' => $substitutes->sortBy(fn($s) => (int) ($s->priority ?? 1))->map(fn($s) => [
                                                             'id' => $s->id,
                                                             'substitute_part_id' => $s->substitute_part_id,
-                                                            'part_no' => $s->part?->part_no,
-                                                            'part_name' => $s->part?->part_name,
-                                                            'incoming_part_id' => $s->incoming_part_id,
-                                                            'incoming_part_no' => $s->incomingPart?->part_no,
-                                                            'incoming_part_label' => $s->incomingPart ? ($s->incomingPart->part_no . ($s->incomingPart->vendor ? ' [' . $s->incomingPart->vendor->name . ']' : '')) : null,
+                                                            'part_no' => $s->substitutePart?->part_no,
+                                                            'part_name' => $s->substitutePart?->part_name,
+                                                            'vendor_part_id' => $s->vendor_part_id,
+                                                            'incoming_part_no' => $s->vendorPart?->part_no,
+                                                            'incoming_part_label' => $s->vendorPart ? ($s->vendorPart->part_no . ($s->vendorPart->vendor ? ' [' . $s->vendorPart->vendor->name . ']' : '')) : null,
                                                             'ratio' => $s->ratio,
                                                             'priority' => $s->priority,
                                                             'status' => $s->status,
@@ -1077,7 +1077,7 @@
                             consumption_uom: '',
                             substitutes: [],
                             substitute_part_id: '',
-                            incoming_part_id: '',
+                            vendor_part_id: '',
                             ratio: 1,
                             priority: 1,
                             status: 'active',
@@ -1162,7 +1162,7 @@
                             this.substituteForm.action = s.update_url;
                             this.substituteForm.method = 'PUT';
                             this.substituteForm.substitute_part_id = String(s.substitute_part_id || '');
-                            this.substituteForm.incoming_part_id = s.incoming_part_id ? String(s.incoming_part_id) : '';
+                            this.substituteForm.vendor_part_id = s.vendor_part_id ? String(s.vendor_part_id) : '';
                             this.substituteForm.ratio = s.ratio || 1;
                             this.substituteForm.priority = s.priority || 1;
                             this.substituteForm.status = s.status || 'active';
@@ -1435,8 +1435,8 @@
                                 </div>
                                 <div>
                                     <label class="text-xs font-semibold text-slate-600">{{ __('planning.boms.index.drawer_incoming') }}</label>
-                                    <select name="incoming_part_id" class="mt-1 w-full rounded-xl border-slate-200"
-                                        x-model="substituteForm.incoming_part_id">
+                                    <select name="vendor_part_id" class="mt-1 w-full rounded-xl border-slate-200"
+                                        x-model="substituteForm.vendor_part_id">
                                         <option value="">{{ __('planning.boms.index.drawer_no_incoming') }}</option>
                                         @foreach(($incomingParts ?? []) as $ip)
                                             <option value="{{ $ip->id }}">

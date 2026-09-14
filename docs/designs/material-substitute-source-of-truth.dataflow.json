@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Alur Master Substitute Material",
+    "output": "docs/designs/material-substitute-source-of-truth.html",
+    "animation": "none",
+    "quality_profile": "showcase",
+    "viewBox": [1080, 560]
+  },
+  "stages": [
+    { "label": "Input" },
+    { "label": "Master" },
+    { "label": "Planning dan receiving" },
+    { "label": "Stok" },
+    { "label": "WO dan trace" }
+  ],
+  "nodes": [
+    { "id": "web", "type": "frontend", "label": "Part Master Web", "sublabel": "pengelolaan utama", "stage": 0, "row": 0, "width": 150, "tag": "source of truth" },
+    { "id": "excel", "type": "external", "label": "Excel Referensi", "sublabel": "preview dan seed", "stage": 0, "row": 2, "width": 150, "tag": "tidak menimpa" },
+    { "id": "material_master", "type": "database", "label": "Material Master", "sublabel": "part dan supply option", "stage": 1, "row": 1, "width": 160, "tag": "mapping eksklusif" },
+    { "id": "planning", "type": "backend", "label": "BOM dan MRP", "sublabel": "kebutuhan generic RM", "stage": 2, "row": 0, "width": 150, "tag": "demand" },
+    { "id": "receiving", "type": "frontend", "label": "Receiving Web", "sublabel": "SKU dan tag aktual", "stage": 2, "row": 2, "width": 150, "tag": "physical receipt" },
+    { "id": "inventory", "type": "database", "label": "Inventory Material", "sublabel": "part, tag, lokasi, umur", "stage": 3, "row": 2, "width": 160, "tag": "qty on hand" },
+    { "id": "resolver", "type": "backend", "label": "FIFO Resolver", "sublabel": "substitute aktif berstok", "stage": 3, "row": 0, "width": 160, "tag": "allocation rule" },
+    { "id": "trace", "type": "database", "label": "WO dan WIP Trace", "sublabel": "part dan tag terpakai", "stage": 4, "row": 1, "width": 160, "tag": "genealogy" }
+  ],
+  "flows": [
+    { "from": "web", "to": "material_master", "label": "kelola master", "classification": "validated", "variant": "emphasis" },
+    { "from": "excel", "to": "material_master", "label": "seed awal", "classification": "preview", "variant": "dashed" },
+    { "from": "material_master", "to": "planning", "label": "generic dan opsi", "classification": "master data", "variant": "emphasis" },
+    { "from": "material_master", "to": "receiving", "label": "SKU valid", "classification": "vendor part", "variant": "default" },
+    { "from": "planning", "to": "resolver", "label": "demand generic", "classification": "required qty", "variant": "emphasis", "labelAt": [635, 200] },
+    { "from": "receiving", "to": "inventory", "label": "posting tag", "classification": "actual stock", "variant": "emphasis", "labelAt": [635, 430] },
+    { "from": "inventory", "to": "resolver", "label": "stok dan umur", "classification": "FIFO", "variant": "emphasis", "labelAt": [745, 430] },
+    { "from": "resolver", "to": "trace", "label": "alokasi aktual", "classification": "part dan tag", "variant": "emphasis" }
+  ],
+  "cards": [
+    { "dot": "violet", "title": "Master", "items": ["Satu substitute hanya untuk satu generic", "Part number unik", "Edit web tercatat"] },
+    { "dot": "emerald", "title": "Eksekusi", "items": ["BOM meminta generic RM", "Receiving mencatat SKU aktual", "WO memilih stok substitute secara FIFO"] },
+    { "dot": "amber", "title": "Direct supply", "items": ["Nomor generic dan SKU boleh sama", "FREE_ISSUE tidak menjadi substitute", "Part dan tag aktual tetap terlacak"] }
+  ]
+}

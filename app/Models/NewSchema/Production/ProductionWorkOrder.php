@@ -15,6 +15,9 @@ class ProductionWorkOrder extends BaseModel
         'work_order_no',
         'gci_part_id',
         'bom_id',
+        'main_rm_part_id',
+        'rm_invoice_no',
+        'rm_tag',
         'qty_target',
         'qty_actual',
         'status',
@@ -34,6 +37,11 @@ class ProductionWorkOrder extends BaseModel
     public function gciPart(): BelongsTo
     {
         return $this->belongsTo(GciPart::class);
+    }
+
+    public function mainRmPart(): BelongsTo
+    {
+        return $this->belongsTo(GciPart::class, 'main_rm_part_id');
     }
 
     public function hourlyReports(): HasMany

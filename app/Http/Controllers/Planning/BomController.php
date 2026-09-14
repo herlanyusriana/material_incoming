@@ -7,7 +7,7 @@ use App\Exports\BomExport;
 use App\Imports\BomImport;
 use App\Models\Bom;
 use App\Models\BomItem;
-use App\Models\BomItemSubstitute;
+use App\Models\MaterialSubstitute;
 use App\Imports\BomSubstituteImport;
 use App\Imports\BomSubstituteMappingImport;
 use App\Models\CustomerPart;
@@ -68,8 +68,8 @@ class BomController extends Controller
                 }
             }
 
-            $substitutes = BomItemSubstitute::query()
-                ->whereNull('incoming_part_id')
+            $substitutes = MaterialSubstitute::query()
+                ->whereNull('vendor_part_id')
                 ->whereNotNull('substitute_part_id')
                 ->where('status', 'active')
                 ->get(['id', 'substitute_part_id']);
@@ -77,7 +77,7 @@ class BomController extends Controller
             foreach ($substitutes as $substitute) {
                 $candidates = $vendorPartIdsByGciPart[(int) $substitute->substitute_part_id] ?? [];
                 if (count($candidates) === 1) {
-                    $substitute->update(['incoming_part_id' => $candidates[0]]);
+                    $substitute->update(['vendor_part_id' => $candidates[0]]);
                     $substituteAutoSynced++;
                 } elseif (count($candidates) > 1) {
                     $substituteNeedsReview++;
@@ -229,19 +229,17 @@ class BomController extends Controller
     {
         $q = trim((string) $request->query('q', ''));
 
-        $substitutes = BomItemSubstitute::query()
-            ->with(['bomItem.bom.part', 'bomItem.componentPart', 'part'])
+        $substitutes = MaterialSubstitute::query()
+            ->with(['genericPart:id,part_no,part_name', 'substitutePart:id,part_no,part_name', 'vendorPart.vendor:id,vendor_name'])
             ->when($q !== '', function ($query) use ($q) {
-                $query->whereHas('bomItem.bom.part', function ($sub) use ($q) {
-                    $sub->where('part_no', 'like', '%' . $q . '%');
+                $query->whereHas('genericPart', function ($sub) use ($q) {
+                    $sub->where('part_no', 'like', '%' . $q . '%')
+                        ->orWhere('part_name', 'like', '%' . $q . '%');
                 })
-                    ->orWhereHas('bomItem.componentPart', function ($sub) use ($q) {
-                        $sub->where('part_no', 'like', '%' . $q . '%');
-                    })
-                    ->orWhereHas('part', function ($sub) use ($q) {
-                        $sub->where('part_no', 'like', '%' . $q . '%');
-                    })
-                    ->orWhere('substitute_part_no', 'like', '%' . $q . '%');
+                    ->orWhereHas('substitutePart', function ($sub) use ($q) {
+                        $sub->where('part_no', 'like', '%' . $q . '%')
+                            ->orWhere('part_name', 'like', '%' . $q . '%');
+                    });
             })
             ->latest()
             ->paginate(30)
@@ -252,7 +250,7 @@ class BomController extends Controller
 
     public function truncateSubstitutes()
     {
-        BomItemSubstitute::query()->delete();
+        MaterialSubstitute::query()->delete();
         return back()->with('success', 'All substitutes have been cleared. You can now re-import with correct data.');
     }
 
@@ -771,23 +769,22 @@ class BomController extends Controller
     {
         $validated = $request->validate([
             'substitute_part_id' => ['required', Rule::exists('gci_parts', 'id')],
-            'incoming_part_id' => ['nullable', Rule::exists('vendor_parts', 'id')],
+            'vendor_part_id' => ['nullable', Rule::exists('vendor_parts', 'id')],
             'ratio' => ['nullable', 'numeric', 'min:0.0001'],
             'priority' => ['nullable', 'integer', 'min:1'],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $incomingPartId = isset($validated['incoming_part_id']) ? (int) ($validated['incoming_part_id'] ?? 0) : 0;
+        $vendorPartId = isset($validated['vendor_part_id']) ? (int) ($validated['vendor_part_id'] ?? 0) : 0;
 
-        BomItemSubstitute::updateOrCreate(
+        MaterialSubstitute::updateOrCreate(
             [
-                'bom_item_id' => $bomItem->id,
+                'generic_part_id' => $bomItem->component_part_id,
                 'substitute_part_id' => (int) $validated['substitute_part_id'],
             ],
             [
-                'substitute_part_no' => GciPart::find($validated['substitute_part_id'])->part_no,
-                'incoming_part_id' => $incomingPartId > 0 ? $incomingPartId : null,
+                'vendor_part_id' => $vendorPartId > 0 ? $vendorPartId : null,
                 'ratio' => $validated['ratio'] ?? 1,
                 'priority' => $validated['priority'] ?? 1,
                 'status' => $validated['status'] ?? 'active',
@@ -798,24 +795,22 @@ class BomController extends Controller
         return back()->with('success', 'Substitute saved.');
     }
 
-    public function updateSubstitute(Request $request, BomItemSubstitute $substitute)
+    public function updateSubstitute(Request $request, MaterialSubstitute $substitute)
     {
         $validated = $request->validate([
             'substitute_part_id' => ['required', Rule::exists('gci_parts', 'id')],
-            'incoming_part_id' => ['nullable', Rule::exists('vendor_parts', 'id')],
+            'vendor_part_id' => ['nullable', Rule::exists('vendor_parts', 'id')],
             'ratio' => ['nullable', 'numeric', 'min:0.0001'],
             'priority' => ['nullable', 'integer', 'min:1'],
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $incomingPartId = isset($validated['incoming_part_id']) ? (int) ($validated['incoming_part_id'] ?? 0) : 0;
-        $substitutePart = GciPart::findOrFail($validated['substitute_part_id']);
+        $vendorPartId = isset($validated['vendor_part_id']) ? (int) ($validated['vendor_part_id'] ?? 0) : 0;
 
         $substitute->update([
             'substitute_part_id' => (int) $validated['substitute_part_id'],
-            'substitute_part_no' => $substitutePart->part_no,
-            'incoming_part_id' => $incomingPartId > 0 ? $incomingPartId : null,
+            'vendor_part_id' => $vendorPartId > 0 ? $vendorPartId : null,
             'ratio' => $validated['ratio'] ?? 1,
             'priority' => $validated['priority'] ?? 1,
             'status' => $validated['status'] ?? 'active',
@@ -825,7 +820,7 @@ class BomController extends Controller
         return back()->with('success', 'Substitute updated.');
     }
 
-    public function destroySubstitute(BomItemSubstitute $substitute)
+    public function destroySubstitute(MaterialSubstitute $substitute)
     {
         $substitute->delete();
 

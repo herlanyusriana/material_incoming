@@ -97,3 +97,9 @@ docs/screenshot/
 
 # Flutter mobile app (tracked separately)
 flutter_app/
+
+# Local database dumps (may contain live business data)
+backups/
+
+# Agent tooling / local skills (not project source)
+.agents/

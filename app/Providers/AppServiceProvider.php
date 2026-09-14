@@ -13,6 +13,8 @@ use App\View\Compilers\ResettingBladeCompiler;
 use Illuminate\View\DynamicComponent;
 use Illuminate\Support\Facades\View;
 use App\Models\PurchaseOrder;
+use Illuminate\Support\Facades\Route;
+use App\Models\MaterialSubstitute;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -40,6 +42,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Route model binding for MaterialSubstitute
+        Route::model('substitute', MaterialSubstitute::class);
+
         // Super Admin Bypass
         Gate::before(function (User $user, $ability) {
             $role = strtolower((string) ($user->role ?? ''));
@@ -58,6 +63,31 @@ class AppServiceProvider extends ServiceProvider
                 return in_array($permission, $allowedPermissions) || in_array('*', $allowedPermissions);
             });
         }
+
+        RateLimiter::for('api-login', function (Request $request) {
+            $username = $request->input('username');
+            $username = is_string($username) ? trim($username) : '';
+            $login = $username !== '' ? $username : $request->input('login');
+            $login = is_string($login) ? strtolower(trim($login)) : '';
+
+            return [
+                Limit::perMinute(60)->by('ip:'.$request->ip()),
+                Limit::perMinute(5)->by('account:'.hash('sha256', $login.'|'.$request->ip())),
+            ];
+        });
+
+        RateLimiter::for('account-security', function (Request $request) {
+            $action = $request->path();
+            $identity = $request->input('email', $request->input('username', ''));
+            $identity = $request->user()?->id ?? (is_string($identity) ? strtolower(trim($identity)) : '');
+
+            return [
+                Limit::perMinute(60)->by('ip:'.$action.'|'.$request->ip()),
+                Limit::perMinute(5)->by('identity:'.$action.'|'.hash('sha256',
+                    $identity.'|'.$request->ip()
+                )),
+            ];
+        });
 
         // API rate limiter (referenced by `throttle:api` groups in routes/api.php)
         RateLimiter::for('api', function (Request $request) {

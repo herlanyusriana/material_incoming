@@ -102,10 +102,8 @@
                 <table class="min-w-full divide-y divide-slate-200">
                     <thead class="bg-slate-50">
                         <tr class="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                            <th class="px-6 py-4 text-left">{{ __('planning.boms.substitutes.th_fg') }}</th>
                             <th class="px-6 py-4 text-left">{{ __('planning.boms.substitutes.th_primary') }}</th>
                             <th class="px-6 py-4 text-left">{{ __('planning.boms.substitutes.th_sub') }}</th>
-                            <th class="px-6 py-4 text-left">{{ __('planning.boms.substitutes.th_size') }}</th>
                             <th class="px-6 py-4 text-center">{{ __('planning.boms.substitutes.th_ratio') }}</th>
                             <th class="px-6 py-4 text-center">{{ __('planning.boms.substitutes.th_priority') }}</th>
                             <th class="px-6 py-4 text-center">{{ __('planning.boms.substitutes.th_status') }}</th>
@@ -118,27 +116,16 @@
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col">
                                         <span
-                                            class="truncate font-mono text-sm font-bold text-slate-900" title="{{ $sub->bomItem?->bom?->part?->part_no ?? '-' }}">{{ $sub->bomItem?->bom?->part?->part_no ?? '-' }}</span>
+                                            class="truncate font-mono text-sm font-bold text-slate-700" title="{{ $sub->genericPart?->part_no ?? '-' }}">{{ $sub->genericPart?->part_no ?? '-' }}</span>
                                         <span
-                                            class="truncate text-xs text-slate-500" title="{{ $sub->bomItem?->bom?->part?->part_name ?? '-' }}">{{ $sub->bomItem?->bom?->part?->part_name ?? '-' }}</span>
+                                            class="truncate text-xs text-slate-500" title="{{ $sub->genericPart?->part_name ?? '-' }}">{{ $sub->genericPart?->part_name ?? '-' }}</span>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col">
-                                        <span
-                                            class="truncate font-mono text-sm font-bold text-slate-700" title="{{ $sub->bomItem?->componentPart?->part_no ?? $sub->bomItem?->component_part_no ?? '-' }}">{{ $sub->bomItem?->componentPart?->part_no ?? $sub->bomItem?->component_part_no ?? '-' }}</span>
-                                        <span
-                                            class="truncate text-xs text-slate-500" title="{{ $sub->bomItem?->componentPart?->part_name ?? '-' }}">{{ $sub->bomItem?->componentPart?->part_name ?? '-' }}</span>
+                                        <span class="truncate font-mono text-sm font-bold text-indigo-700" title="{{ $sub->substitutePart?->part_no ?? '-' }}">{{ $sub->substitutePart?->part_no ?? '-' }}</span>
+                                        <span class="truncate text-xs text-slate-500" title="{{ $sub->substitutePart?->part_name ?? '-' }}">{{ $sub->substitutePart?->part_name ?? '-' }}</span>
                                     </div>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="flex flex-col">
-                                        <span class="truncate font-mono text-sm font-bold text-indigo-700" title="{{ $sub->part?->part_no ?? '-' }}">{{ $sub->part?->part_no ?? '-' }}</span>
-                                        <span class="truncate text-xs text-slate-500" title="{{ $sub->part?->part_name ?? '-' }}">{{ $sub->part?->part_name ?? '-' }}</span>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <span class="text-xs text-slate-600 italic">{{ $sub->part?->size ?: '-' }}</span>
                                 </td>
                                 <td class="px-6 py-4 text-center text-sm font-medium text-slate-600">
                                     {{ number_format($sub->ratio, 4) }}
@@ -182,7 +169,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-6 py-12 text-center text-sm text-slate-500 italic">
+                                <td colspan="6" class="px-6 py-12 text-center text-sm text-slate-500 italic">
                                     {{ __('planning.boms.substitutes.empty') }}
                                 </td>
                             </tr>
