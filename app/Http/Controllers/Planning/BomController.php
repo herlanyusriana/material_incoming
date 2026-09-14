@@ -149,8 +149,7 @@ class BomController extends Controller
                 });
             })
             ->orderBy(GciPart::select('part_no')->whereColumn('gci_parts.id', 'boms.part_id'))
-            ->paginate(20)
-            ->withQueryString();
+            ->get();
 
         $machines = Machine::query()->where('is_active', true)->orderBy('name')->get();
 

@@ -103,7 +103,7 @@
             @if($bom)
                 {{-- Customer Part Info (if came from customer search) --}}
                 @if(isset($customerPart))
-                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-4">
+                    <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4">
                         <div class="flex items-center gap-3">
                             <div class="text-3xl" aria-hidden="true">
                                 <svg class="h-8 w-8 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
@@ -176,19 +176,11 @@
                                 @forelse($explosion as $item)
                                     @php
                                         $indent = $item['level'] * 2;
-                                        $levelColors = [
-                                            0 => 'bg-blue-50 border-l-4 border-blue-500',
-                                            1 => 'bg-green-50 border-l-4 border-green-500',
-                                            2 => 'bg-yellow-50 border-l-4 border-yellow-500',
-                                            3 => 'bg-purple-50 border-l-4 border-purple-500',
-                                        ];
-                                        $rowClass = $levelColors[$item['level']] ?? 'bg-slate-50 border-l-4 border-slate-300';
+                                        $rowClass = $item['level'] === 0 ? 'border-l-4 border-indigo-600' : 'border-l-4 border-slate-300';
                                     @endphp
                                     <tr class="hover:bg-slate-50 {{ $rowClass }}">
                                         <td class="px-4 py-3 text-center">
-                                            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-900 text-white text-xs font-bold">
-                                                {{ $item['level'] }}
-                                            </span>
+                                            <span class="font-mono text-[11px] font-bold text-slate-500">L{{ $item['level'] }}</span>
                                         </td>
                                         <td class="px-4 py-3 text-center font-mono text-xs text-slate-500">{{ $item['line_no'] ?? '-' }}</td>
                                         <td class="px-4 py-3" style="padding-left: {{ 1 + $indent * 0.5 }}rem;">
@@ -197,10 +189,10 @@
                                                     <span class="text-slate-300">└─</span>
                                                 @endfor
                                                 <div>
-                                                    <div class="font-bold text-slate-900">{{ $item['component_part_no'] }}</div>
+                                                    <div class="font-mono text-sm font-bold text-slate-900">{{ $item['component_part_no'] }}</div>
                                                     <div class="text-xs text-slate-500">{{ $item['component_part']->part_name ?? '-' }}</div>
                                                     @if($item['material_name'])
-                                                        <div class="text-xs text-slate-400 italic">{{ $item['material_name'] }}</div>
+                                                        <div class="text-xs text-slate-400">{{ $item['material_name'] }}</div>
                                                     @endif
                                                 </div>
                                             </div>
@@ -224,12 +216,12 @@
                                         </td>
                                         <td class="px-4 py-3">
                                             @if($item['wip_part_no'])
-                                                <div class="text-sm font-semibold text-green-700">{{ $item['wip_part_no'] }}</div>
+                                                <div class="text-sm font-mono font-bold text-amber-800">{{ $item['wip_part_no'] }}</div>
                                                 @if($item['wip_part_name'])
                                                     <div class="text-xs text-slate-500">{{ $item['wip_part_name'] }}</div>
                                                 @endif
                                                 @if($item['wip_qty'])
-                                                    <div class="text-xs text-slate-400">{{ number_format($item['wip_qty'], 2) }} {{ $item['wip_uom'] ?? '' }}</div>
+                                                    <div class="text-xs text-slate-400 font-mono">{{ number_format($item['wip_qty'], 2) }} {{ $item['wip_uom'] ?? '' }}</div>
                                                 @endif
                                             @else
                                                 <span class="text-slate-300">-</span>
@@ -255,13 +247,17 @@
                                             {{ $item['consumption_uom']->code ?? $item['consumption_uom'] ?? '-' }}
                                         </td>
                                         <td class="px-4 py-3 text-center">
-                                            @if($item['make_or_buy'] === 'make')
-                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">MAKE</span>
-                                            @elseif($item['make_or_buy'] === 'buy')
-                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">BUY</span>
-                                            @else
-                                                <span class="text-slate-300">-</span>
-                                            @endif
+                                            @php
+                                                $mob = strtolower((string) $item['make_or_buy']);
+                                                $mobStyles = [
+                                                    'make' => 'bg-sky-100 text-sky-800 border-sky-200',
+                                                    'buy' => 'bg-slate-100 text-slate-700 border-slate-200',
+                                                    'subcon' => 'bg-violet-100 text-violet-800 border-violet-200',
+                                                    'free_issue' => 'bg-rose-100 text-rose-800 border-rose-200',
+                                                ];
+                                                $mobClass = $mobStyles[$mob] ?? 'bg-slate-100 text-slate-600 border-slate-200';
+                                            @endphp
+                                            <span class="inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase {{ $mobClass }}">{{ strtoupper($item['make_or_buy'] ?: 'buy') }}</span>
                                         </td>
                                         <td class="px-4 py-3">
                                             @if($item['material_spec'] || $item['material_size'])
@@ -312,16 +308,20 @@
                                     <tr class="hover:bg-slate-50">
                                         <td class="px-4 py-3 font-mono font-bold text-slate-900">{{ $mat['part_no'] }}</td>
                                         <td class="px-4 py-3 text-slate-700">{{ $mat['part']->part_name ?? '-' }}</td>
-                                        <td class="px-4 py-3 text-right font-mono text-lg font-bold text-indigo-700">{{ number_format($mat['total_qty'], 4) }}</td>
+                                        <td class="px-4 py-3 text-right font-mono text-sm font-bold text-slate-900">{{ number_format($mat['total_qty'], 4) }}</td>
                                         <td class="px-4 py-3 text-left text-xs font-semibold text-slate-600">{{ $mat['uom']->code ?? $mat['uom'] ?? '-' }}</td>
                                         <td class="px-4 py-3 text-center">
-                                            @if($mat['make_or_buy'] === 'make')
-                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">MAKE</span>
-                                            @elseif($mat['make_or_buy'] === 'buy')
-                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">BUY</span>
-                                            @else
-                                                <span class="text-slate-300">-</span>
-                                            @endif
+                                            @php
+                                                $mob = strtolower((string) $mat['make_or_buy']);
+                                                $mobStyles = [
+                                                    'make' => 'bg-sky-100 text-sky-800 border-sky-200',
+                                                    'buy' => 'bg-slate-100 text-slate-700 border-slate-200',
+                                                    'subcon' => 'bg-violet-100 text-violet-800 border-violet-200',
+                                                    'free_issue' => 'bg-rose-100 text-rose-800 border-rose-200',
+                                                ];
+                                                $mobClass = $mobStyles[$mob] ?? 'bg-slate-100 text-slate-600 border-slate-200';
+                                            @endphp
+                                            <span class="inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase {{ $mobClass }}">{{ strtoupper($mat['make_or_buy'] ?: 'buy') }}</span>
                                         </td>
                                         <td class="px-4 py-3 text-xs text-slate-600">{{ $mat['material_spec'] ?? '-' }}</td>
                                     </tr>
