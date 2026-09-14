@@ -626,6 +626,8 @@ class BomController extends Controller
             $componentPartNo = null;
         }
 
+        $bomItemId = isset($validated['bom_item_id']) ? (int) $validated['bom_item_id'] : null;
+
         // ── UOM consistency check (BOM adalah satu-satunya "konverter") ──
         // BOM line menentukan: 1 (FG|WIP unit) butuh `usage_qty` `<consumption_uom>` RM.
         // consumption_uom WAJIB = UOM stok part RM (gci_parts.uom) supaya MRP/

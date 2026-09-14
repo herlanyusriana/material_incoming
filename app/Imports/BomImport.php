@@ -164,11 +164,12 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
             'component_part_no',
             'component_part_number',
             'component_part',
+            'child_part_no',
             'part_no',
             'part_number'
         ]));
 
-        $wipPartNo = $this->normalizeUpper($this->firstNonEmpty($row, ['wip_part_no', 'wip_part_number', 'wip_partno']));
+        $wipPartNo = $this->normalizeUpper($this->firstNonEmpty($row, ['wip_part_no', 'wip_part_number', 'wip_partno', 'parent_part_no']));
 
         $processName = $this->firstNonEmpty($row, ['process_name']);
         $machineNameRaw = $this->firstNonEmpty($row, ['machine_name', 'machine_code', 'machine']);
@@ -198,17 +199,17 @@ class BomImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnFailu
         $makeOrBuyRaw = $this->firstNonEmpty($row, ['make_or_buy', 'makebuy', 'make_buy']);
         $makeOrBuy = $this->normalizeMakeOrBuy($makeOrBuyRaw);
 
-        $lineNoRaw = $this->firstNonEmpty($row, ['no', 'line_no', 'line']);
+        $lineNoRaw = $this->firstNonEmpty($row, ['seq', 'line_no', 'line', 'no']);
         $lineNo = null;
         if ($lineNoRaw !== null && is_numeric($lineNoRaw)) {
             $lineNo = (int) $lineNoRaw;
         }
 
-        $wipQtyRaw = $this->firstNonEmpty($row, ['qty_wip', 'qty', 'qty_']);
+        $wipQtyRaw = $this->firstNonEmpty($row, ['qty_wip', 'parent_part_qty', 'qty', 'qty_']);
         $wipQty = $wipQtyRaw !== null && is_numeric($wipQtyRaw) ? (float) $wipQtyRaw : null;
 
-        $wipUom = $this->normalizeUpper($this->firstNonEmpty($row, ['uom_wip', 'uom']));
-        $wipPartName = $this->firstNonEmpty($row, ['wip_part_name']);
+        $wipUom = $this->normalizeUpper($this->firstNonEmpty($row, ['uom_wip', 'parent_part_uom', 'wip_uom', 'uom']));
+        $wipPartName = $this->firstNonEmpty($row, ['wip_part_name', 'parent_part_name']);
 
         $materialSize = $this->firstNonEmpty($row, ['material_size']);
         $materialSpec = $this->firstNonEmpty($row, ['material_spec']);

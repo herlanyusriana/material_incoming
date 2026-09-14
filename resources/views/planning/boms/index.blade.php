@@ -3,7 +3,7 @@
         {{ __('planning.boms.index.header') }}
     </x-slot>
 
-    <div class="py-2 min-w-0" x-data="planningBoms()">
+    <div class="bom-workspace py-2 min-w-0" x-data="planningBoms()" @resize.window="syncSheet()">
         <div class="w-full min-w-0 space-y-5">
             @if (session('success'))
                 <div
@@ -41,267 +41,60 @@
             @endif
 
             <style>
-                @keyframes fade-in {
-                    from {
-                        opacity: 0;
-                        transform: translateY(-8px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
+                [x-cloak] { display: none !important; }
+                .bom-scroll-tools { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:12px 16px; background:#f8fafc; border-bottom:1px solid #cbd5e1; }
+                .bom-scroll-tools button { padding:8px 14px; border:1px solid #cbd5e1; border-radius:8px; background:white; font-size:14px; font-weight:600; }
+                .bom-scroll-tools button:disabled { opacity:.4; cursor:default; }
+                .bom-scroll-tools input { flex:1; min-width:120px; accent-color:#4f46e5; }
+                .bom-sheet { overflow:auto; max-height:70vh; scrollbar-width:auto; scrollbar-color:#64748b #e2e8f0; }
+                .bom-sheet::-webkit-scrollbar { width:14px; height:14px; }
+                .bom-sheet::-webkit-scrollbar-thumb { background:#64748b; border:3px solid #e2e8f0; border-radius:8px; }
+                .bom-sheet::-webkit-scrollbar-track { background:#e2e8f0; }
+                .bom-table { border-collapse:separate; border-spacing:0; table-layout:fixed; width:100%; min-width:1840px; }
+                .bom-table th,.bom-table td { border-bottom:1px solid #e2e8f0; padding:12px; vertical-align:top; white-space:normal; overflow-wrap:break-word; font-size:14px; line-height:1.5; }
+                .bom-table th { position:sticky; top:0; z-index:20; background:#e9eef5; color:#334155; font-weight:700; text-transform:none; letter-spacing:0; }
+                .bom-table .child-row { background:white; }
+                .bom-table .child-row:hover { background:#f0f5ff; }
+                .bom-table .child-row td:first-child { position:sticky; left:0; background:#f8fafc; z-index:10; }
+                .bom-table .sticky-col-actions { position:sticky; right:0; background:white; z-index:15; box-shadow:-3px 0 5px #0f172a0a; }
+                .bom-table .th-sticky-actions { z-index:30; background:#e9eef5; }
+                .bom-table .parent-row { background:#edf2fa; }
+                .bom-table .parent-row td { border-top:2px solid #cbd5e1; padding:14px 12px; }
+                .bom-table .parent-row td > div { gap:12px; }
+                .bom-table .truncate { white-space:normal; max-width:none; overflow:visible; text-overflow:clip; }
+                .bom-table .text-\[10px\],.bom-table .text-\[9px\] { font-size:12px; }
+                .action-btn { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border:1px solid #cbd5e1; border-radius:8px; background:white; flex-shrink:0; }
+                .action-btn:hover { background:#eef2ff; }
+                .bom-table .sticky-col-actions button { min-height:36px; }
+                #bom-gci { width:100%; max-width:340px; }
+                .bom-missing { color:#92400e; font-size:12px; font-weight:500; }
+                .bom-workspace :is(button,a,input,select):focus-visible { outline:2px solid #4f46e5; outline-offset:3px; }
+                .bom-workspace [role=dialog] { overscroll-behavior:contain; }
+                .bom-workspace > div > .fixed > div { max-height:calc(100dvh - 32px); overflow-y:auto; }
+                .bom-workspace > div > .fixed > .bom-editor { overflow:hidden; }
+                .bom-editor { width:min(1160px,100%); max-height:calc(100dvh - 32px); display:flex; flex-direction:column; overflow:hidden; }
+                .bom-editor form { min-height:0; }
+                .bom-editor-body { padding:24px; overflow:auto; display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start; }
+                .bom-editor-body > div { min-width:0; }
+                .bom-material-fields { grid-column:1; }
+                .bom-editor-body > div:last-child { grid-column:2; grid-row:1 / span 2; }
+                .bom-editor-body:has(#bom-line-errors) > div:last-child { grid-row:2 / span 2; }
+                .bom-table .parent-row td:first-child > div { position:sticky; left:12px; width:max-content; max-width:calc(100vw - 240px); flex-wrap:wrap; }
+                .bom-editor label { display:block; font-size:14px !important; margin-bottom:6px; color:#334155; }
+                .bom-editor input:not([type=hidden]),.bom-editor select { min-height:42px; font-size:14px; border-radius:8px; }
+                .bom-editor .text-\[9px\],.bom-editor .text-\[10px\] { font-size:13px; }
+                .bom-editor .grid { gap:16px; }
+                .bom-editor-footer { padding:16px 24px; border-top:1px solid #e2e8f0; display:flex; justify-content:flex-end; gap:12px; background:#f8fafc; }
+                .bom-editor-footer button { min-height:42px; padding:10px 20px; font-size:14px; border-radius:8px; }
+                @media (max-width:768px) {
+                    .bom-editor { max-height:100dvh; border-radius:0; }
+                    .bom-editor-body { grid-template-columns:1fr; padding:16px; }
+                    .bom-editor-body > div:last-child { grid-column:auto; grid-row:auto; }
+                    .bom-editor-body:has(#bom-line-errors) > div:last-child { grid-row:auto; }
+                    .bom-table .sticky-col-actions { position:static; }
+                    .bom-scroll-tools { gap:8px; }
                 }
-                .animate-fade-in {
-                    animation: fade-in 0.4s ease-out;
-                }
-
-                .bom-table {
-                    border-collapse: separate;
-                    border-spacing: 0;
-                    width: 100%;
-                    min-width: 900px;
-                }
-
-                .bom-table th,
-                .bom-table td {
-                    border-bottom: 1px solid #e2e8f0;
-                    padding: 6px 8px;
-                    vertical-align: middle;
-                }
-                .bom-table th {
-                    background: #f8fafc;
-                    color: #475569;
-                    font-size: 10px;
-                    font-weight: 700;
-                    text-transform: uppercase;
-                    letter-spacing: 0.04em;
-                    position: sticky;
-                    top: 0;
-                    z-index: 20;
-                    border-bottom: 2px solid #e2e8f0;
-                }
-                /* Sticky columns: row number and actions */
-                .sticky-col-no {
-                    position: sticky;
-                    left: 0;
-                    z-index: 30;
-                    background: inherit;
-                    min-width: 40px;
-                    max-width: 40px;
-                }
-                .sticky-col-fg {
-                    position: sticky;
-                    left: 40px;
-                    z-index: 30;
-                    background: inherit;
-                    min-width: 200px;
-                    max-width: 280px;
-                }
-                .sticky-col-actions {
-                    position: sticky;
-                    right: 0;
-                    z-index: 30;
-                    background: inherit;
-                    min-width: 100px;
-                    max-width: 120px;
-                }
-                .th-sticky {
-                    z-index: 40 !important;
-                    background: #f8fafc !important;
-                }
-                .th-sticky-actions {
-                    z-index: 40 !important;
-                    background: #f8fafc !important;
-                    border-left: 1px solid #e2e8f0;
-                }
-
-                .parent-row {
-                    background: #fafbff;
-                    border-left: 4px solid #6366f1;
-                    font-weight: 600;
-                }
-                .parent-row:hover {
-                    background: #f1f4ff;
-                }
-                .parent-row td {
-                    padding-top: 10px;
-                    padding-bottom: 10px;
-                }
-
-                .child-row {
-                    background: #ffffff;
-                    border-left: 3px solid transparent;
-                    font-size: 13px;
-                }
-                .child-row:hover {
-                    background: #f8fafc;
-                    border-left-color: #a5b4fc;
-                }
-                .child-row td {
-                    padding-top: 5px;
-                    padding-bottom: 5px;
-                }
-                .bom-table-comfortable .child-row td {
-                    padding-top: 10px;
-                    padding-bottom: 10px;
-                }
-
-                .action-btn {
-                    width: 28px;
-                    height: 28px;
-                    display: inline-flex;
-                    align-items: center;
-                    justify-content: center;
-                    border-radius: 6px;
-                    border: 1px solid #e2e8f0;
-                    font-size: 11px;
-                    background: white;
-                    cursor: pointer;
-                    transition: background 0.1s ease;
-                }
-                .action-btn:hover {
-                    background: #f1f5f9;
-                }
-
-                /* Responsive: tablet & mobile */
-                @media (max-width: 1024px) {
-                    .bom-table {
-                        min-width: 700px;
-                    }
-                    .hide-tablet {
-                        display: none !important;
-                    }
-                    .sticky-col-fg {
-                        min-width: 150px;
-                        max-width: 200px;
-                    }
-                }
-                @media (max-width: 768px) {
-                    .bom-table {
-                        min-width: 500px;
-                        font-size: 12px;
-                    }
-                    .hide-mobile {
-                        display: none !important;
-                    }
-                    .sticky-col-no {
-                        min-width: 32px;
-                        max-width: 32px;
-                    }
-                    .sticky-col-fg {
-                        min-width: 120px;
-                        max-width: 160px;
-                    }
-                    .sticky-col-actions {
-                        min-width: 80px;
-                        max-width: 90px;
-                    }
-                    .parent-row td {
-                        padding-top: 6px;
-                        padding-bottom: 6px;
-                    }
-                    .child-row td {
-                        padding-top: 3px;
-                        padding-bottom: 3px;
-                    }
-                    .action-btn {
-                        width: 24px;
-                        height: 24px;
-                        font-size: 10px;
-                    }
-                }
-                @media (max-width: 480px) {
-                    .bom-table {
-                        min-width: 380px;
-                        font-size: 11px;
-                    }
-                    .hide-phone {
-                        display: none !important;
-                    }
-                    .sticky-col-fg {
-                        min-width: 90px;
-                        max-width: 130px;
-                    }
-                    .sticky-col-actions {
-                        min-width: 70px;
-                        max-width: 80px;
-                    }
-                }
-
-                /* Utility: truncate long text */
-                .truncate-cell {
-                    max-width: 120px;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
-                    white-space: nowrap;
-                    display: inline-block;
-                    vertical-align: middle;
-                }
-                .truncate-cell-sm {
-                    max-width: 80px;
-                }
-                .font-mono-compact {
-                    font-family: ui-monospace, SFMono-Regular, monospace;
-                    font-size: 0.85em;
-                }
-                [x-cloak] {
-                    display: none !important;
-                }
-
-                /* Fit the manufacturing sheet to the viewport, including actions. */
-                .bom-table {
-                    table-layout: fixed;
-                    min-width: 0;
-                    width: 100%;
-                }
-                .bom-table th,
-                .bom-table td {
-                    min-width: 0;
-                    max-width: none;
-                    white-space: normal;
-                    overflow-wrap: anywhere;
-                    padding-left: 5px;
-                    padding-right: 5px;
-                    line-height: 1.45;
-                }
-                .bom-table th {
-                    letter-spacing: 0;
-                    font-size: 10px;
-                }
-                .bom-table .sticky-col-no,
-                .bom-table .sticky-col-actions {
-                    position: static;
-                    box-shadow: none;
-                }
-                .bom-table .truncate {
-                    max-width: 100%;
-                    white-space: normal;
-                    overflow: visible;
-                    overflow-wrap: anywhere;
-                    text-overflow: clip;
-                }
-                .bom-table .parent-row td > div {
-                    min-width: 0;
-                    flex-wrap: wrap;
-                    gap: 8px;
-                }
-                .bom-table .sticky-col-actions > div {
-                    flex-wrap: wrap;
-                }
-                .bom-table .parent-row td {
-                    padding-top: 8px;
-                    padding-bottom: 8px;
-                }
-                #bom-gci {
-                    width: 100%;
-                    max-width: 340px;
-                }
-                .bom-table .child-row td { padding-top: 8px; padding-bottom: 8px; }
-                .bom-table .child-row td:nth-child(5),
-                .bom-table .child-row td:nth-child(9) { font-size: 12px; font-weight: 500; }
-                .bom-table th { text-transform: none; font-size: 11px; }
-                .bom-table .parent-row { background: #eef2f6; }
-                .bom-table .parent-row td { border-top: 2px solid #cbd5e1; }
+                @media (prefers-reduced-motion:reduce) { .bom-workspace * { scroll-behavior:auto !important; animation:none !important; } }
             </style>
 
             <div class="bg-white border-y border-slate-200">
@@ -326,18 +119,6 @@
                         </div>
 
                         <div class="flex flex-wrap items-center gap-2">
-                            <div class="inline-flex rounded-xl border border-slate-200 bg-slate-50 p-1" aria-label="Table density">
-                                <button type="button" @click="density = 'compact'"
-                                    class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors active:translate-y-px"
-                                    :class="density === 'compact' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-white'">
-                                    {{ __('planning.boms.index.compact') }}
-                                </button>
-                                <button type="button" @click="density = 'comfortable'"
-                                    class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors active:translate-y-px"
-                                    :class="density === 'comfortable' ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-white'">
-                                    {{ __('planning.boms.index.comfortable') }}
-                                </button>
-                            </div>
                             <button
                                 class="inline-flex items-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700 shadow-sm"
                                 @click="openCreate()">
@@ -440,22 +221,28 @@
                 </div>
 
                 {{-- Table --}}
-                <div class="w-full min-w-0 border-t border-slate-200">
-                    <table class="bom-table w-full text-sm"
-                        :class="density === 'comfortable' ? 'bom-table-comfortable' : 'bom-table-compact'">
+                <div class="bom-scroll-tools">
+                    <span class="text-sm font-semibold text-slate-700">Geser kolom</span>
+                    <button type="button" @click="moveSheet(-1)" :disabled="sheetPosition <= 0" aria-controls="bom-sheet">← Kiri</button>
+                    <input type="range" min="0" :max="sheetMax" :value="sheetPosition" @input="$refs.sheet.scrollLeft = Number($event.target.value)" aria-label="Posisi horizontal tabel BOM" aria-controls="bom-sheet">
+                    <button type="button" @click="moveSheet(1)" :disabled="sheetPosition >= sheetMax" aria-controls="bom-sheet">Kanan →</button>
+                    <span class="text-xs text-slate-500">Klik panah atau tarik penggeser · Shift + roda mouse</span>
+                </div>
+                <div id="bom-sheet" class="bom-sheet w-full min-w-0 border-t border-slate-200" x-ref="sheet" tabindex="0" role="region" aria-label="Tabel proses BOM" @scroll.passive="syncSheet()" @wheel="if ($event.shiftKey && $event.deltaY && !$event.ctrlKey) { $event.preventDefault(); $refs.sheet.scrollLeft += $event.deltaY; }">
+                    <table class="bom-table w-full text-sm">
                         <colgroup>
-                            <col style="width: 3%">
-                            <col style="width: 7%">
-                            <col style="width: 8%">
-                            <col style="width: 10%">
-                            <col style="width: 11%">
-                            <col style="width: 4%">
-                            <col style="width: 4%">
-                            <col style="width: 10%">
-                            <col style="width: 13%">
-                            <col style="width: 7%">
-                            <col style="width: 7%">
-                            <col style="width: 6%">
+                            <col style="width: 60px">
+                            <col style="width: 140px">
+                            <col style="width: 160px">
+                            <col style="width: 190px">
+                            <col style="width: 210px">
+                            <col style="width: 90px">
+                            <col style="width: 100px">
+                            <col style="width: 190px">
+                            <col style="width: 240px">
+                            <col style="width: 170px">
+                            <col style="width: 140px">
+                            <col style="width: 170px">
                         </colgroup>
                         <thead class="bg-slate-50 border-b border-slate-200">
                             <tr class="text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -547,7 +334,7 @@
                                     @php
                                         $lineNo = $item->line_no ?? ($idx + 1);
                                         $wipNo = $item->wip_part_no ?: ($item->wipPart?->part_no ?? '');
-                                        $wipName = $item->wip_part_name ?: ($item->wipPart?->part_name ?? '');
+                                        $wipName = trim((string) $item->wip_part_name) ?: trim((string) $item->wipPart?->part_name);
                                         $rmNo = $item->component_part_no ?: ($item->componentPart?->part_no ?? '');
                                         $rmName = trim((string) $item->componentPart?->part_name)
                                             ?: (trim((string) $item->material_name)
@@ -574,13 +361,13 @@
                                             {{ $wipNo ?: '-' }}
                                         </td>
                                         <td class="px-2 py-2 bg-blue-50/50 text-xs font-medium text-slate-700">
-                                            <span class="block max-w-[190px] truncate" title="{{ $wipName }}">{{ $wipName ?: '-' }}</span>
+                                            <span @class(['block', 'bom-missing' => !$wipName])>{{ $wipName ?: 'Nama parent belum diisi' }}</span>
                                         </td>
                                         <td class="px-2 py-2 text-right whitespace-nowrap bg-blue-50/50 font-mono text-xs font-bold text-blue-800">
                                             {{ $item->wip_qty !== null ? rtrim(rtrim(number_format((float) $item->wip_qty, 4, '.', ''), '0'), '.') : '-' }}
                                         </td>
                                         <td class="px-2 py-2 whitespace-nowrap bg-blue-50/50 text-[10px] font-bold uppercase text-slate-600">
-                                            {{ $item->wipUom?->code ?? ($item->wip_uom ?? '') }}
+                                            <span @class(['bom-missing' => !$item->display_wip_uom])>{{ $item->display_wip_uom ?: 'Belum diisi' }}</span>
                                         </td>
                                         <td class="px-2 py-2 whitespace-nowrap font-mono text-xs font-bold text-slate-900">
                                             {{ $rmNo ?: '-' }}
@@ -600,7 +387,7 @@
                                             </span>
                                             <span class="mt-0.5 block font-mono text-[10px] text-slate-500">
                                                 {{ rtrim(rtrim(number_format((float) $item->usage_qty, 4, '.', ''), '0'), '.') }}
-                                                {{ $item->consumptionUom?->code ?? ($item->consumption_uom ?? '') }}
+                                                {{ $item->display_consumption_uom ?: 'UOM belum diisi' }}
                                                 <span class="ml-1 font-sans {{ str_contains($policyClass, 'orange') ? 'text-orange-700' : 'text-slate-500' }}">{{ $policyLabel }}</span>
                                             </span>
                                         </td>
@@ -661,6 +448,7 @@
                                                 <button type="button" class="action-btn hover:bg-slate-100" title="{{ __('planning.boms.index.edit_title') }}" aria-label="{{ __('planning.boms.index.edit_title') }}" @click="openLineModal(@js([
                                                     'mode' => 'edit',
                                                     'action' => route('planning.boms.items.store', $bom),
+                                                    'bom_id' => $bom->id,
                                                     'bom_item_id' => $item->id,
                                                     'fg_label' => $fgNo . ' - ' . $fgName,
                                                     'classification' => $item->componentPart?->classification ?? '',
@@ -669,8 +457,10 @@
                                                     'machine_id' => $item->machine_id,
                                                     'wip_part_id' => $item->wip_part_id,
                                                     'wip_qty' => $item->wip_qty,
-                                                    'wip_uom' => $item->wip_uom,
-                                                    'wip_part_name' => $item->wip_part_name,
+                                                    'wip_uom' => $item->display_wip_uom,
+                                                    'wip_part_no' => $wipNo,
+                                                    'component_part_no' => $rmNo,
+                                                    'wip_part_name' => $wipName,
                                                     'material_size' => $item->material_size,
                                                     'material_spec' => $item->material_spec,
                                                     'material_name' => $item->material_name,
@@ -686,8 +476,8 @@
                                                     'make_or_buy' => $item->make_or_buy,
                                                     'consumption_policy_override' => $item->consumption_policy_override,
                                                     'usage_qty' => $item->usage_qty,
-                                                    'consumption_uom_id' => $item->consumption_uom_id,
-                                                    'wip_uom_id' => $item->wip_uom_id,
+                                                    'consumption_uom_id' => $item->consumption_uom_id ?: $uoms->firstWhere('code', $item->display_consumption_uom)?->id,
+                                                    'wip_uom_id' => $item->wip_uom_id ?: $uoms->firstWhere('code', $item->display_wip_uom)?->id,
                                                     'scrap_factor' => $item->scrap_factor,
                                                     'yield_factor' => $item->yield_factor,
                                                 ]))">
@@ -717,6 +507,7 @@
                                             @click="openLineModal(@js([
                                                 'mode' => 'create',
                                                 'action' => route('planning.boms.items.store', $bom),
+                                                'bom_id' => $bom->id,
                                                 'bom_item_id' => null,
                                                 'fg_label' => $fgNo . ' - ' . $fgName,
                                                 'line_no' => null,
@@ -989,8 +780,8 @@
 
             {{-- Line modal --}}
             <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm px-4"
-                x-show="lineModalOpen" x-cloak @keydown.escape.window="closeLineModal()">
-                <div class="w-full max-w-2xl bg-white rounded-2xl shadow-2xl border border-slate-200/60 max-h-[95vh] flex flex-col">
+                x-show="lineModalOpen" x-cloak @keydown.escape.window="if (lineModalOpen) closeLineModal()" @keydown.tab="trapLineFocus($event)">
+                <div class="bom-editor bg-white rounded-2xl shadow-2xl border border-slate-200/60" role="dialog" aria-modal="true" aria-labelledby="bom-line-title" x-ref="lineDialog" tabindex="-1">
                     <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-slate-50/80 flex-shrink-0">
                         <div class="flex items-center gap-2">
                             <div class="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center">
@@ -1000,21 +791,38 @@
                                 </svg>
                             </div>
                             <div>
-                                <div class="text-sm font-bold text-slate-900"
+                                <div id="bom-line-title" class="text-lg font-bold text-slate-900"
                                     x-text="lineForm.mode === 'edit' ? '{{ __('planning.boms.index.line_edit') }}' : '{{ __('planning.boms.index.line_add') }}'"></div>
                                 <div class="text-[10px] text-slate-500 font-medium" x-text="lineForm.fg_label"></div>
                             </div>
                         </div>
                         <button type="button" class="w-7 h-7 rounded-lg border border-slate-200 hover:bg-slate-100 flex items-center justify-center text-slate-500 transition-colors"
-                            @click="closeLineModal()">✕</button>
+                            @click="closeLineModal()" aria-label="Tutup editor baris">✕</button>
                     </div>
 
-                    <form :action="lineForm.action" method="POST" class="px-4 py-3 space-y-3 overflow-y-auto flex-1">
+                    <form :action="lineForm.action" method="POST" class="flex flex-col flex-1 min-h-0" @submit="lineSubmitting = true">
                         @csrf
+                        <input type="hidden" name="_bom_id" :value="lineForm.bom_id">
+                        <input type="hidden" name="_fg_label" :value="lineForm.fg_label">
+                        <input type="hidden" name="_component_label" :value="lineForm.component_part_label">
+                        <input type="hidden" name="_parent_label" :value="lineForm.wip_part_label">
+                        <input type="hidden" name="wip_part_no" :value="lineForm.wip_part_no">
+                        <input type="hidden" name="component_part_no" :value="lineForm.component_part_no">
                         <template x-if="lineForm.bom_item_id">
                             <input type="hidden" name="bom_item_id" :value="lineForm.bom_item_id">
                         </template>
 
+                        <div class="bom-editor-body">
+                        @if ($errors->any() && old('_bom_id'))
+                            <div class="bg-red-50 text-red-800 p-4 rounded-lg" style="grid-column:1 / -1" role="alert" tabindex="-1" id="bom-line-errors">
+                                <strong>Belum tersimpan. Periksa isian berikut:</strong>
+                                <ul class="list-disc pl-5">
+                                    @foreach ($errors->all() as $message)
+                                        <li>{{ $message }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                         {{-- ═══ Main: RM Component ═══ --}}
                         <div class="bg-indigo-50/30 rounded-lg border border-indigo-100 p-3 space-y-2">
                             <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">{{ __('planning.boms.index.rm_section') }}</div>
@@ -1081,20 +889,7 @@
                             </div>
                         </div>
 
-                        {{-- ═══ Advanced Options (collapsible) ═══ --}}
-                        <div class="border border-slate-200 rounded-lg overflow-hidden">
-                            <button type="button"
-                                class="w-full flex items-center justify-between px-3 py-1.5 bg-slate-50/60 hover:bg-slate-50 transition-colors text-left"
-                                @click="lineForm.showAdvanced = !lineForm.showAdvanced">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-[10px] font-bold text-slate-600 uppercase tracking-wider">{{ __('planning.boms.index.advanced') }}</span>
-                                    <span class="text-[9px] text-slate-400 font-medium" x-show="!lineForm.showAdvanced">{{ __('planning.boms.index.adv_open') }}</span>
-                                    <span class="text-[9px] text-slate-400 font-medium" x-show="lineForm.showAdvanced">{{ __('planning.boms.index.adv_close') }}</span>
-                                </div>
-                                <span class="text-slate-500 font-bold text-xs" x-text="lineForm.showAdvanced ? '▾' : '▸'"></span>
-                            </button>
-
-                            <div x-show="lineForm.showAdvanced" x-cloak class="p-3 space-y-2 bg-white">
+                        <div class="border border-slate-200 rounded-lg p-4 space-y-4 bom-material-fields">
                                 {{-- Material --}}
                                 <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{{ __('planning.boms.index.material') }}</div>
                                 <div class="grid grid-cols-2 gap-2">
@@ -1119,8 +914,11 @@
                                             x-model="lineForm.special">
                                     </div>
                                 </div>
-
-                                <hr class="border-slate-100 my-1">
+                        </div>
+                        {{-- Process and parent fields are always visible. --}}
+                        <div class="border border-slate-200 rounded-lg overflow-hidden">
+                            <div class="px-4 py-3 bg-slate-50 font-semibold text-slate-800">Proses & parent part</div>
+                            <div class="p-4 space-y-4 bg-white">
 
                                 {{-- Process & WIP --}}
                                 <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{{ __('planning.boms.index.process_wip') }}</div>
@@ -1203,11 +1001,12 @@
                             </div>
                         </div>
 
-                        <div class="flex justify-end gap-2 pt-2 border-t border-slate-200 flex-shrink-0">
+                        </div>
+                        <div class="bom-editor-footer flex-shrink-0">
                             <button type="button" class="px-3 py-1.5 rounded border border-slate-200 hover:bg-slate-50 text-xs font-medium text-slate-700 transition-colors"
                                 @click="closeLineModal()">{{ __('planning.boms.index.cancel') }}</button>
                             <button type="submit"
-                                class="px-4 py-1.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors shadow-sm">{{ __('planning.boms.index.save') }}</button>
+                                :disabled="lineSubmitting" class="px-4 py-1.5 rounded bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors shadow-sm disabled:opacity-50" x-text="lineSubmitting ? 'Menyimpan…' : @js(__('planning.boms.index.save'))"></button>
                         </div>
                     </form>
                 </div>
@@ -1216,7 +1015,40 @@
             <script>
                 function planningBoms() {
                     return {
-                        density: 'compact',
+                        sheetPosition: 0,
+                        sheetMax: 0,
+                        lineSubmitting: false,
+                        lineSnapshot: '',
+                        lineTrigger: null,
+                        previousOverflow: '',
+                        init() {
+                            this.$nextTick(() => this.syncSheet());
+                            @if ($errors->any() && (int) old('_bom_id') > 0)
+                                this.$nextTick(() => this.openLineModal(@js(array_merge(old(), [
+                                    'bom_id' => (int) old('_bom_id'),
+                                    'action' => route('planning.boms.items.store', (int) old('_bom_id')),
+                                    'mode' => old('bom_item_id') ? 'edit' : 'create',
+                                    'fg_label' => old('_fg_label', ''),
+                                    'component_part_label' => old('_component_label', ''),
+                                    'wip_part_label' => old('_parent_label', ''),
+                                ]))));
+                            @endif
+                        },
+                        syncSheet() {
+                            if (!this.$refs.sheet) return;
+                            this.sheetPosition = this.$refs.sheet.scrollLeft;
+                            this.sheetMax = Math.max(0, this.$refs.sheet.scrollWidth - this.$refs.sheet.clientWidth);
+                        },
+                        moveSheet(direction) {
+                            this.$refs.sheet.scrollBy({left: direction * this.$refs.sheet.clientWidth * .7, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
+                        },
+                        trapLineFocus(event) {
+                            if (!this.lineModalOpen) return;
+                            const controls = [...this.$refs.lineDialog.querySelectorAll('button, input, select, textarea, a[href], [tabindex="0"]')].filter(el => !el.disabled && el.getClientRects().length);
+                            const first = controls[0], last = controls[controls.length - 1];
+                            if (event.shiftKey && (document.activeElement === first || document.activeElement === this.$refs.lineDialog)) { event.preventDefault(); last?.focus(); }
+                            else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+                        },
                         modalOpen: false,
                         importOpen: false,
                         importSubstituteOpen: false,
@@ -1253,6 +1085,9 @@
                         },
                         expanded: @js(($boms ?? collect())->getCollection()->pluck('id')->mapWithKeys(fn ($id) => [(string) $id => true])->all()),
                         lineForm: {
+                            bom_id: '',
+                            wip_part_no: '',
+                            component_part_no: '',
                             mode: 'create',
                             action: '',
                             bom_item_id: null,
@@ -1280,7 +1115,6 @@
                             scrap_factor: 0,
                             yield_factor: 1,
                             wip_part_label: '',
-                            showAdvanced: false,
                         },
                         openCreate() { this.modalOpen = true; },
                         closeCreate() { this.modalOpen = false; },
@@ -1345,8 +1179,12 @@
                             this.substituteForm.notes = '';
                         },
                         openLineModal(payload) {
+                            this.lineTrigger = document.activeElement;
+                            this.previousOverflow = document.body.style.overflow;
+                            this.lineSubmitting = false;
                             this.lineForm = {
                                 mode: payload.mode,
+                                bom_id: payload.bom_id,
                                 action: payload.action,
                                 bom_item_id: payload.bom_item_id,
                                 fg_label: payload.fg_label,
@@ -1355,6 +1193,8 @@
                                 process_name: payload.process_name ?? '',
                                 machine_id: payload.machine_id ?? '',
                                 wip_part_id: payload.wip_part_id ?? '',
+                                wip_part_no: payload.wip_part_no ?? '',
+                                component_part_no: payload.component_part_no ?? '',
                                 wip_part_label: payload.wip_part_label ?? '',
                                 wip_qty: payload.wip_qty ?? '',
                                 wip_uom: payload.wip_uom ?? '',
@@ -1374,9 +1214,23 @@
                                 scrap_factor: payload.scrap_factor ?? 0,
                                 yield_factor: payload.yield_factor ?? 1,
                             };
+                            this.lineSnapshot = JSON.stringify(this.lineForm);
                             this.lineModalOpen = true;
+                            document.body.style.overflow = 'hidden';
+                            this.$nextTick(() => {
+                                this.$refs.lineDialog.querySelectorAll('label').forEach((label, index) => {
+                                    const input = label.parentElement.querySelector('input:not([type=hidden]),select,textarea');
+                                    if (input) { input.id ||= 'bom-line-field-' + index; label.htmlFor = input.id; }
+                                });
+                                (this.$refs.lineDialog.querySelector('#bom-line-errors') || this.$refs.lineDialog).focus();
+                            });
                         },
-                        closeLineModal() { this.lineModalOpen = false; },
+                        closeLineModal() {
+                            if (this.lineSnapshot !== JSON.stringify(this.lineForm) && !window.confirm('Perubahan belum disimpan. Tutup editor?')) return;
+                            this.lineModalOpen = false;
+                            document.body.style.overflow = this.previousOverflow;
+                            this.lineTrigger?.focus();
+                        },
                     }
                 }
             </script>

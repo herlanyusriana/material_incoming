@@ -81,6 +81,27 @@ class BomItem extends Model
         return $this->belongsTo(Uom::class, 'wip_uom_id');
     }
 
+    public function getDisplayWipUomAttribute(): ?string
+    {
+        return $this->firstDisplayValue($this->wipUom?->code, $this->wip_uom, $this->wipPart?->uom);
+    }
+
+    public function getDisplayConsumptionUomAttribute(): ?string
+    {
+        return $this->firstDisplayValue($this->consumptionUom?->code, $this->consumption_uom, $this->componentPart?->uom);
+    }
+
+    private function firstDisplayValue(?string ...$values): ?string
+    {
+        foreach ($values as $value) {
+            if (trim((string) $value) !== '') {
+                return trim($value);
+            }
+        }
+
+        return null;
+    }
+
     /**
      * Calculate net required quantity considering scrap and yield
      */

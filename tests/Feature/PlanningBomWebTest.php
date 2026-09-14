@@ -68,6 +68,40 @@ class PlanningBomWebTest extends TestCase
         $this->assertSame('4.2500', $newFg->fresh()->getRawOriginal('net_weight'));
     }
 
+    public function test_line_editor_can_save_parent_name_and_unit(): void
+    {
+        $user = User::factory()->create();
+        [$bom] = $this->makeBomFixture();
+        $item = $bom->items()->firstOrFail();
+        $this->actingAs($user)->post(route('planning.boms.items.store', $bom), [
+            'bom_item_id' => $item->id,
+            'component_part_id' => $item->component_part_id,
+            'component_part_no' => $item->component_part_no,
+            'wip_part_id' => $item->wip_part_id,
+            'wip_part_no' => $item->wip_part_no,
+            'wip_part_name' => 'Revised parent name',
+            'wip_uom' => 'PCE',
+            'usage_qty' => 1,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame('Revised parent name', $item->fresh()->wip_part_name);
+        $this->assertSame('PCE', $item->fresh()->wip_uom);
+        $this->assertSame('WIP-100-01', $item->fresh()->wip_part_no);
+    }
+
+    public function test_import_recognizes_parent_column_headings(): void
+    {
+        [$bom] = $this->makeBomFixture();
+        (new \App\Imports\BomImport())->model([
+            'fg_part_no' => 'FG-100', 'seq' => 2, 'no' => 99,
+            'parent_part_no' => 'WIP-100-01', 'parent_part_name' => 'Parent from spreadsheet',
+            'parent_part_qty' => 1, 'parent_part_uom' => 'PCE',
+            'child_part_no' => 'RM-100', 'consumption' => 2, 'uom_rm' => 'PCE',
+        ]);
+        $item = $bom->items()->where('line_no', 2)->firstOrFail();
+        $this->assertSame('Parent from spreadsheet', $item->wip_part_name);
+        $this->assertSame('PCE', $item->wip_uom);
+    }
+
     private function makeBomFixture(): array
     {
         $fg = GciPart::create([

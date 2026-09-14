@@ -41,5 +41,34 @@ class BomLayoutRenderTest extends TestCase
         }
         $this->assertStringNotContainsString('bom-detail-row', $html);
         $this->assertStringNotContainsString('min-w-[2150px]', $html);
+        $this->assertStringNotContainsString('Table density', $html);
+        $this->assertStringNotContainsString('density:', $html);
+        $this->assertStringNotContainsString('bom-table-comfortable', $html);
+        $this->assertStringContainsString('Geser kolom', $html);
+        $this->assertStringContainsString('type="range"', $html);
+        $this->assertStringContainsString('aria-modal="true"', $html);
+        $this->assertStringContainsString('bom-editor-footer', $html);
+        $this->assertStringNotContainsString('x-show="lineForm.showAdvanced"', $html);
+        $this->assertStringContainsString('Belum diisi', $html);
+    }
+
+    public function test_uom_display_uses_explicit_units_then_master_without_inventing_units(): void
+    {
+        $item = new BomItem();
+        $item->setRelation('wipUom', null)->setRelation('consumptionUom', null);
+        $item->setRelation('wipPart', null)->setRelation('componentPart', null);
+        $this->assertNull($item->display_wip_uom);
+        $this->assertNull($item->display_consumption_uom);
+        $parent = new GciPart();
+        $parent->uom = 'PCE';
+        $child = new GciPart();
+        $child->uom = 'KGM';
+        $item->setRelation('wipPart', $parent)->setRelation('componentPart', $child);
+        $this->assertSame('PCE', $item->display_wip_uom);
+        $this->assertSame('KGM', $item->display_consumption_uom);
+        $item->wip_uom = 'SET';
+        $item->consumption_uom = 'MTR';
+        $this->assertSame('SET', $item->display_wip_uom);
+        $this->assertSame('MTR', $item->display_consumption_uom);
     }
 }
