@@ -879,12 +879,12 @@ class BomController extends Controller
                     ->map(fn($s) => [
                         'id'          => $s->id,
                         'substitute_part_id' => $s->substitute_part_id,
-                        'part_no'     => $s->substitutePart->part_no ?? ($s->substitute_part_id ?? ''),
-                        'part_name'   => $s->substitutePart->part_name ?? '',
+                        'part_no'     => $s->substitutePart?->part_no ?? ($s->substitute_part_id ?? ''),
+                        'part_name'   => $s->substitutePart?->part_name ?? '',
                         'vendor_part_id' => $s->vendor_part_id,
-                        'vendor_name' => $s->vendorPart->vendor->vendor_name ?? null,
-                        'vendor_no'   => $s->vendorPart->vendor_part_no ?? null,
-                        'incoming_part_no' => $s->vendorPart->vendor_part_no ?? null,
+                        'vendor_name' => $s->vendorPart?->vendor?->vendor_name ?? null,
+                        'vendor_no'   => $s->vendorPart?->vendor_part_no ?? null,
+                        'incoming_part_no' => $s->vendorPart?->vendor_part_no ?? null,
                         'ratio'       => $s->ratio,
                         'priority'    => $s->priority,
                         'status'      => $s->status,
@@ -893,10 +893,21 @@ class BomController extends Controller
                         'delete_url'  => route('planning.bom-item-substitutes.destroy', $s->id),
                     ])->values()->all();
 
+                $componentLabel = trim((string) ($item->componentPart?->part_no ?? $item->component_part_no ?? ''));
+                $componentName = trim((string) ($item->componentPart?->part_name ?? ''));
+                if ($componentName !== '' && $componentLabel !== '') {
+                    $componentLabel .= ' - '.$componentName;
+                }
+                $wipLabel = trim((string) ($item->wipPart?->part_no ?? $item->wip_part_no ?? ''));
+                $wipName = trim((string) ($item->wipPart?->part_name ?? $item->wip_part_name ?? ''));
+                if ($wipName !== '' && $wipLabel !== '') {
+                    $wipLabel .= ' - '.$wipName;
+                }
+
                 $rmNodes[] = [
                     'kind'    => 'rm',
-                    'no'      => $item->component_part_no ?: ($item->componentPart->part_no ?? ''),
-                    'name'    => trim((string) ($item->componentPart->part_name ?? ''))
+                    'no'      => $item->component_part_no ?: ($item->componentPart?->part_no ?? ''),
+                    'name'    => trim((string) ($item->componentPart?->part_name ?? ''))
                         ?: (trim((string) $item->material_name) ?: ''),
                     'dim'     => trim((string) ($item->material_size ?? '')),
                     'spec'    => trim((string) ($item->material_spec ?? '')),
@@ -912,13 +923,11 @@ class BomController extends Controller
                     'bom_item_id' => (int) $item->id,
                     'component_part_id' => $item->component_part_id,
                     'component_part_no' => $item->component_part_no,
-                    'component_part_label' => trim((string) ($item->componentPart->part_no ?? $item->component_part_no ?? ''))
-                        . ($item->componentPart->part_name ? ' - ' . $item->componentPart->part_name : ''),
+                    'component_part_label' => $componentLabel,
                     'wip_part_id' => $item->wip_part_id,
                     'wip_part_no' => $item->wip_part_no,
                     'wip_part_name' => $item->wip_part_name,
-                    'wip_part_label' => trim((string) ($item->wipPart->part_no ?? $item->wip_part_no ?? ''))
-                        . ($item->wipPart->part_name || $item->wip_part_name ? ' - ' . ($item->wipPart->part_name ?? $item->wip_part_name) : ''),
+                    'wip_part_label' => $wipLabel,
                     'line_no' => $item->line_no,
                     'process_name' => $item->process_name,
                     'machine_id' => $item->machine_id,
@@ -955,9 +964,9 @@ class BomController extends Controller
 
             $wipNodes[] = [
                 'kind'    => 'wip',
-                'no'      => $first->wip_part_no ?: ($first->wipPart->part_no ?? ''),
+                'no'      => $first->wip_part_no ?: ($first->wipPart?->part_no ?? ''),
                 'name'    => trim((string) ($first->process_name ?? '')),
-                'machine' => $first->machine->name ?? '',
+                'machine' => $first->machine?->name ?? '',
                 'qty'     => $wipQtyStr,
                 'children'=> $rmNodes,
                 'wip_part_id' => $first->wip_part_id,
@@ -1073,7 +1082,7 @@ class BomController extends Controller
             $tree = $this->buildBomTree($bom, $quantity);
         }
 
-        $fgLabel = $bom
+        $fgLabel = ($bom && $bom->part)
             ? trim($bom->part->part_no . ' - ' . $bom->part->part_name)
             : '';
 

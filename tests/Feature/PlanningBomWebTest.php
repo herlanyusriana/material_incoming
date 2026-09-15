@@ -100,6 +100,21 @@ class PlanningBomWebTest extends TestCase
         $this->assertSame('PCE', $item->wip_uom);
     }
 
+    public function test_explosion_renders_when_line_has_no_linked_wip_part(): void
+    {
+        // Prod break: bom_items.wip_part_id null / part deleted -> belongsTo null,
+        // label builder must not dereference the relation directly.
+        $user = User::factory()->create();
+        [$bom] = $this->makeBomFixture();
+        $item = $bom->items()->firstOrFail();
+        $item->update(['wip_part_id' => null, 'wip_part_no' => 'WIP-ORPHAN', 'wip_part_name' => 'Orphaned Parent']);
+
+        $this->actingAs($user)
+            ->get(route('planning.boms.explosion', $bom))
+            ->assertOk()
+            ->assertSeeText('WIP-ORPHAN');
+    }
+
     private function makeBomFixture(): array
     {
         $fg = GciPart::create([
