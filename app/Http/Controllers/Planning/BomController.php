@@ -826,6 +826,152 @@ class BomController extends Controller
         return back()->with('success', 'Substitute removed.');
     }
 
+    /**
+     * Build a nested FG → WIP (process) → RM tree for the BOM Explorer view.
+     * Mirrors the mockup structure (docs/designs/bom-explorer-mockup.html): a WIP node
+     * per process step, and RM leaves underneath, recursing into sub-assembly BOMs.
+     */
+    private function buildBomTree(Bom $bom, float $qty = 1, int $level = 0, int $maxLevels = 10, array &$visited = []): array
+    {
+        if ($level >= $maxLevels || in_array($bom->id, $visited, true)) {
+            return [];
+        }
+        $visited[] = $bom->id;
+
+        // Group items into WIP (process step) nodes, keyed by WIP identity + process name.
+        $groups = [];
+        foreach ($bom->items as $item) {
+            $groupKey = trim((string) ($item->wip_part_no ?: $item->wip_part_id ?? ''))
+                . '|' . trim((string) ($item->process_name ?? ''));
+            if ($groupKey === '|') {
+                $groupKey = 'line_' . ($item->line_no ?? 0);
+            }
+            $groups[$groupKey][] = $item;
+        }
+
+        $wipNodes = [];
+        foreach ($groups as $items) {
+            $first = $items[0];
+            $rmNodes = [];
+
+            foreach ($items as $item) {
+                $substitutes = collect($item->substitutes ?? []);
+                $rmUom = $item->display_consumption_uom;
+                $qtyVal = $item->net_required * $qty;
+                $qtyStr = rtrim(rtrim(number_format($qtyVal, 3, '.', ''), '0'), '.');
+                if ($rmUom) {
+                    $qtyStr .= ' ' . $rmUom;
+                }
+
+                $subChildren = [];
+                if ($item->componentPart && $item->componentPart->bom) {
+                    $subChildren = $this->buildBomTree(
+                        $item->componentPart->bom,
+                        $item->net_required * $qty,
+                        $level + 1,
+                        $maxLevels,
+                        $visited
+                    );
+                }
+
+                $subsData = $substitutes
+                    ->sortBy(fn($s) => (int) ($s->priority ?? 1))
+                    ->map(fn($s) => [
+                        'id'          => $s->id,
+                        'substitute_part_id' => $s->substitute_part_id,
+                        'part_no'     => $s->substitutePart->part_no ?? ($s->substitute_part_id ?? ''),
+                        'part_name'   => $s->substitutePart->part_name ?? '',
+                        'vendor_part_id' => $s->vendor_part_id,
+                        'vendor_name' => $s->vendorPart->vendor->vendor_name ?? null,
+                        'vendor_no'   => $s->vendorPart->vendor_part_no ?? null,
+                        'incoming_part_no' => $s->vendorPart->vendor_part_no ?? null,
+                        'ratio'       => $s->ratio,
+                        'priority'    => $s->priority,
+                        'status'      => $s->status,
+                        'notes'       => $s->notes,
+                        'update_url'  => route('planning.bom-item-substitutes.update', $s->id),
+                        'delete_url'  => route('planning.bom-item-substitutes.destroy', $s->id),
+                    ])->values()->all();
+
+                $rmNodes[] = [
+                    'kind'    => 'rm',
+                    'no'      => $item->component_part_no ?: ($item->componentPart->part_no ?? ''),
+                    'name'    => trim((string) ($item->componentPart->part_name ?? ''))
+                        ?: (trim((string) $item->material_name) ?: ''),
+                    'dim'     => trim((string) ($item->material_size ?? '')),
+                    'spec'    => trim((string) ($item->material_spec ?? '')),
+                    'material' => trim((string) ($item->material_name ?? '')),
+                    'qty'     => $qtyStr,
+                    'mb'      => strtolower((string) ($item->make_or_buy ?? '')),
+                    'special' => trim((string) ($item->special ?? '')),
+                    'subs'    => $substitutes->count(),
+                    'subs_data' => $subsData,
+                    'has_kids'=> count($subChildren) > 0,
+                    'children'=> $subChildren,
+                    // Line-editor payload (preserves storeItem/updateItem CRUD on the explosion page)
+                    'bom_item_id' => (int) $item->id,
+                    'component_part_id' => $item->component_part_id,
+                    'component_part_no' => $item->component_part_no,
+                    'component_part_label' => trim((string) ($item->componentPart->part_no ?? $item->component_part_no ?? ''))
+                        . ($item->componentPart->part_name ? ' - ' . $item->componentPart->part_name : ''),
+                    'wip_part_id' => $item->wip_part_id,
+                    'wip_part_no' => $item->wip_part_no,
+                    'wip_part_name' => $item->wip_part_name,
+                    'wip_part_label' => trim((string) ($item->wipPart->part_no ?? $item->wip_part_no ?? ''))
+                        . ($item->wipPart->part_name || $item->wip_part_name ? ' - ' . ($item->wipPart->part_name ?? $item->wip_part_name) : ''),
+                    'line_no' => $item->line_no,
+                    'process_name' => $item->process_name,
+                    'machine_id' => $item->machine_id,
+                    'make_or_buy' => $item->make_or_buy,
+                    'usage_qty' => $item->usage_qty,
+                    'consumption_uom' => $item->consumption_uom,
+                    'consumption_uom_id' => $item->consumption_uom_id,
+                    'wip_qty' => $item->wip_qty,
+                    'wip_uom' => $item->wip_uom,
+                    'wip_uom_id' => $item->wip_uom_id,
+                    'material_size' => $item->material_size,
+                    'material_spec' => $item->material_spec,
+                    'material_name' => $item->material_name,
+                    'special' => $item->special,
+                    'incoming_part_id' => $item->incoming_part_id,
+                    'consumption_policy_override' => $item->consumption_policy_override,
+                    'scrap_factor' => $item->scrap_factor,
+                    'yield_factor' => $item->yield_factor,
+                    // Route URLs for line + substitute CRUD on the explosion page
+                    'edit_action'   => route('planning.boms.items.store', $bom->id),
+                    'delete_url'    => route('planning.boms.items.destroy', $item->id),
+                    'substore_url'  => route('planning.bom-items.substitutes.store', $item->id),
+                ];
+            }
+
+            $wipUom = $first->display_wip_uom;
+            $wipQtyStr = '';
+            if ($first->wip_qty !== null) {
+                $wipQtyStr = rtrim(rtrim(number_format((float) $first->wip_qty, 4, '.', ''), '0'), '.');
+                if ($wipUom) {
+                    $wipQtyStr .= ' ' . $wipUom;
+                }
+            }
+
+            $wipNodes[] = [
+                'kind'    => 'wip',
+                'no'      => $first->wip_part_no ?: ($first->wipPart->part_no ?? ''),
+                'name'    => trim((string) ($first->process_name ?? '')),
+                'machine' => $first->machine->name ?? '',
+                'qty'     => $wipQtyStr,
+                'children'=> $rmNodes,
+                'wip_part_id' => $first->wip_part_id,
+                'wip_part_no' => $first->wip_part_no,
+                'wip_part_name' => $first->wip_part_name,
+                'process_name' => $first->process_name,
+                'machine_id' => $first->machine_id,
+                'add_action' => route('planning.boms.items.store', $bom->id),
+            ];
+        }
+
+        return $wipNodes;
+    }
+
     public function explosion(Request $request, ?Bom $bom = null)
     {
         $searchMode = $request->query('mode', 'fg'); // 'fg' or 'customer'
@@ -882,41 +1028,73 @@ class BomController extends Controller
             }
         }
 
-        // If a specific BOM was found/passed, load its specific explosion
+        // Lookup collections needed by the tree editor & substitute drawer.
+        $fgParts = GciPart::query()->where('classification', 'FG')->orderBy('part_no')->get();
+        $wipParts = GciPart::query()->where('classification', 'WIP')->orderBy('part_no')->get();
+        $rmParts = GciPart::query()->where('classification', 'RM')->orderBy('part_no')->get();
+        $makeParts = GciPart::query()->whereIn('classification', ['FG', 'WIP'])->orderBy('part_no')->get();
+        $incomingParts = VendorPart::query()
+            ->with('vendor')
+            ->join('gci_parts', 'vendor_parts.gci_part_id', '=', 'gci_parts.id')
+            ->orderBy('gci_parts.part_no')
+            ->select([
+                'vendor_parts.id',
+                'vendor_parts.gci_part_id',
+                'vendor_parts.vendor_id',
+                'vendor_parts.vendor_part_no',
+                'vendor_parts.vendor_part_name',
+                'gci_parts.part_no',
+                'gci_parts.part_name',
+                'vendor_parts.uom',
+                'vendor_parts.status',
+            ])
+            ->get();
+        $uoms = Uom::query()->where('is_active', true)->orderBy('category')->orderBy('code')->get();
+        $machines = Machine::query()->where('is_active', true)->orderBy('name')->get();
+
+        // If a specific BOM was found/passed, load its full tree + explosion.
+        $explosion = [];
+        $materials = [];
+        $tree = [];
+
         if ($bom) {
-            $bom->loadMissing(['part', 'items.componentPart', 'items.wipPart', 'items.consumptionUom', 'items.wipUom']);
+            $bom->loadMissing([
+                'part',
+                'items.componentPart',
+                'items.wipPart',
+                'items.consumptionUom',
+                'items.wipUom',
+                'items.machine',
+                'items.substitutes.substitutePart',
+                'items.substitutes.vendorPart.vendor',
+            ]);
             $explosion = $bom->explode($quantity);
             $materials = $bom->getTotalMaterialRequirements($quantity);
+            $tree = $this->buildBomTree($bom, $quantity);
         }
 
-        // If no BOM found yet, return to search/overview
-        if (!$bom) {
-            return view('planning.boms.explosion', [
-                'bom' => null,
-                'explosion' => [],
-                'materials' => [],
-                'quantity' => $quantity,
-                'searchMode' => $searchMode,
-                'searchQuery' => $searchQuery,
-                'customerPart' => $customerPart,
-                'customerPartComponents' => $customerPartComponents,
-            ]);
-        }
-
-        $bom->loadMissing(['part', 'items.componentPart', 'items.wipPart', 'items.consumptionUom', 'items.wipUom']);
-
-        $explosion = $bom->explode($quantity);
-        $materials = $bom->getTotalMaterialRequirements($quantity);
+        $fgLabel = $bom
+            ? trim($bom->part->part_no . ' - ' . $bom->part->part_name)
+            : '';
 
         return view('planning.boms.explosion', compact(
             'bom',
             'explosion',
             'materials',
+            'tree',
             'quantity',
             'searchMode',
             'searchQuery',
             'customerPart',
-            'customerPartComponents'
+            'customerPartComponents',
+            'fgParts',
+            'wipParts',
+            'rmParts',
+            'makeParts',
+            'incomingParts',
+            'uoms',
+            'machines',
+            'fgLabel'
         ));
     }
 }

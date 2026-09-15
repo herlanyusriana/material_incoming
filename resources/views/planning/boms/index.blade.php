@@ -63,14 +63,48 @@
                 .bom-table .parent-row td > div { gap:12px; }
                 .bom-table .truncate { white-space:normal; max-width:none; overflow:visible; text-overflow:clip; }
                 .bom-table .text-\[10px\],.bom-table .text-\[9px\] { font-size:12px; }
-                .bom-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(460px, 1fr)); gap:14px; }
+                .bom-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:16px; }
                 .bom-card { display:flex; flex-direction:column; min-width:0; }
-                
+                .bom-card-foot .action-btn { width:28px; height:28px; border-radius:8px; font-size:13px; }
                 .bom-tree-body { border-top:1px solid #e2e8f0; }
                 .bom-node:hover { background:#f8fafc; }
                 .action-btn { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border:1px solid #cbd5e1; border-radius:8px; background:white; flex-shrink:0; }
                 .action-btn:hover { background:#eef2ff; }
                 .bom-table .sticky-col-actions button { min-height:36px; }
+                /* ——— mockup BOM explorer (FG card + tree) ——— */
+                .bom-pill { display:inline-flex; align-items:center; gap:5px; font-size:10.5px; font-weight:800; letter-spacing:.04em; padding:3px 8px; border-radius:999px; }
+                .bom-pill.kind-fg { background:#eef2ff; color:#4f46e5; border:1px solid #c7d2fe; }
+                .bom-pill.rev { background:#f8fafc; color:#64748b; border:1px solid #e2e8f0; }
+                .bom-pill.ok { background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; }
+                .bom-pill.muted { background:#f8fafc; color:#94a3b8; border:1px solid #e2e8f0; }
+                .bom-fg-no { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:18px; font-weight:800; color:#4f46e5; letter-spacing:-.01em; }
+                .bom-fg-name { font-size:13px; color:#475569; font-weight:600; margin-top:2px; }
+                .bom-fg-model { font-size:12px; color:#64748b; }
+                .bom-fg-meta { margin-top:12px; border-top:1px solid #e2e8f0; padding-top:10px; display:flex; gap:8px; flex-wrap:wrap; }
+                .bom-meta { font-size:11.5px; font-weight:600; color:#475569; background:#f8fafc; border:1px solid #e2e8f0; padding:4px 9px; border-radius:8px; display:inline-flex; align-items:center; gap:5px; }
+                .bom-meta b { color:#0f172a; }
+                .bom-card-foot { margin-top:12px; display:flex; justify-content:space-between; align-items:center; }
+                .bom-cta { font-size:12.5px; font-weight:700; color:#4f46e5; }
+                .bom-tree-list { list-style:none; margin:0; padding:0; }
+                .bom-tree-list .bom-tree-list { padding-left:26px; margin-left:12px; border-left:2px solid #e2e8f0; }
+                .bom-tree-node { position:relative; margin:2px 0; }
+                .bom-node-row { display:flex; align-items:center; gap:9px; padding:7px 10px; border-radius:9px; cursor:pointer; transition:background .14s; min-height:38px; }
+                .bom-node-row:hover { background:#f8fafc; }
+                .bom-node-row[data-leaf]:hover { background:#ecfdf5; }
+                .bom-node-knob { width:18px; height:18px; flex:0 0 18px; border-radius:6px; display:grid; place-items:center; font-size:11px; font-weight:800; color:#fff; user-select:none; }
+                .knob-fg { background:#4f46e5; } .knob-wip { background:#d97706; } .knob-rm { background:#059669; }
+                .bom-kind { font-size:9.5px; font-weight:800; letter-spacing:.04em; padding:2px 7px; border-radius:6px; }
+                .bom-kind.fg { background:#eef2ff; color:#4f46e5; }
+                .bom-kind.wip { background:#fffbeb; color:#d97706; }
+                .bom-kind.rm { background:#ecfdf5; color:#059669; }
+                .bom-mb { font-size:9.5px; font-weight:800; padding:2px 7px; border-radius:6px; color:#fff; }
+                .bom-mb.buy { background:#059669; } .bom-mb.make { background:#0284c7; } .bom-mb.subcon { background:#7c3aed; } .bom-mb.free { background:#e11d48; }
+                .bom-part-no { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:13px; font-weight:700; color:#0f172a; }
+                .bom-part-name { font-size:12.5px; color:#475569; }
+                .bom-dim { font-size:11.5px; color:#64748b; font-family:ui-monospace,Menlo,monospace; }
+                .bom-qty { font-size:12px; font-weight:700; color:#334155; white-space:nowrap; }
+                .bom-subs-chip { font-size:11px; font-weight:700; color:#4f46e5; background:#eef2ff; border:1px solid #c7d2fe; padding:2px 8px; border-radius:999px; cursor:pointer; white-space:nowrap; }
+                .bom-arrow { margin-left:auto; color:#64748b; font-size:11px; font-weight:800; }
                 #bom-gci { width:100%; max-width:340px; }
                 .bom-missing { color:#92400e; font-size:12px; font-weight:500; }
                 .bom-workspace :is(button,a,input,select):focus-visible { outline:2px solid #4f46e5; outline-offset:3px; }
@@ -253,33 +287,54 @@
                             $fgName = $bom->part->part_name ?? '-';
                             $fgModel = $bom->part->model ?? '';
                             $items = ($bom->items ?? collect())->sortBy(fn($i) => $i->line_no ?? 0)->values();
+                            $procCount = $items->pluck('process_name')->filter()->unique()->count();
+                            $rmCount = $items->count();
+                            $subsTotal = $items->sum(fn($i) => $i->substitutes?->count() ?? 0);
                         @endphp
 
-                        <article class="bom-card border border-slate-200 bg-white rounded-xl shadow-sm"
-                            x-show="isBomVisible({{ $bomId }})" x-cloak>
-                            <div class="bom-tree">
-                                <div class="flex flex-wrap items-center gap-2 px-4 py-3 cursor-pointer select-none border-l-4 border-indigo-600 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-indigo-500"
-                                    role="button" tabindex="0" @click="toggle({{ $bomId }})"
-                                    @keydown.enter.self="toggle({{ $bomId }})" @keydown.space.prevent.self="toggle({{ $bomId }})"
-                                    :aria-expanded="!!expanded[{{ $bomId }}]">
-                                    <svg class="w-4 h-4 text-slate-400 transition-transform"
-                                        :class="expanded[{{ $bomId }}] ? 'rotate-90' : ''" fill="none"
-                                        stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                    </svg>
-                                    <span class="font-mono text-sm font-black text-indigo-700">{{ $fgNo }}</span>
-                                    <span class="text-sm font-semibold text-slate-800">{{ $fgName }}</span>
-                                    @if ($fgModel)
-                                        <span class="text-[10px] font-mono text-slate-500">{{ $fgModel }}</span>
-                                    @endif
-                                    <span class="text-[10px] font-bold text-slate-500">REV {{ $bom->revision ?? '-' }}</span>
-                                    <span
-                                        class="text-[10px] font-bold uppercase {{ $bom->status === 'active' ? 'text-emerald-700' : 'text-slate-500' }}">
-                                        {{ $bom->status }}</span>
-                                    <span
-                                        class="text-[10px] text-slate-500">{{ __('planning.boms.index.lines', ['count' => $items->count()]) }}</span>
+                        <article class="bom-card border border-slate-200 bg-white rounded-xl shadow-sm cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg hover:border-slate-300"
+                            x-show="isBomVisible({{ $bomId }})" x-cloak
+                            @click="window.location = '{{ route('planning.boms.explosion', $bom) }}'"
+                            role="link" tabindex="0"
+                            @keydown.enter="window.location = '{{ route('planning.boms.explosion', $bom) }}'">
+                            <div class="p-4">
+                                {{-- Row 1: badges --}}
+                                <div class="flex items-center justify-between gap-2 mb-2.5">
+                                    <span class="bom-pill kind-fg">FG</span>
+                                    <span class="flex gap-1.5">
+                                        <span class="bom-pill rev">REV {{ $bom->revision ?? 'A' }}</span>
+                                        @if ($bom->status === 'active')
+                                            <span class="bom-pill ok">ACTIVE</span>
+                                        @else
+                                            <span class="bom-pill muted">INACTIVE</span>
+                                        @endif
+                                    </span>
+                                </div>
 
-                                    <div class="ml-auto flex items-center gap-1" @click.stop @keydown.stop>
+                                {{-- Part identity --}}
+                                <div class="bom-fg-no">{{ $fgNo }}</div>
+                                <div class="bom-fg-name">{{ $fgName }}</div>
+                                @if ($fgModel)
+                                    <div class="bom-fg-model">{{ $fgModel }}</div>
+                                @endif
+
+                                {{-- Meta chips --}}
+                                <div class="bom-fg-meta">
+                                    <span class="bom-meta">🔧 <b>{{ $procCount }}</b> proses</span>
+                                    <span class="bom-meta">🧩 <b>{{ $rmCount }}</b> RM</span>
+                                    <span class="bom-meta">⇄ <b>{{ $subsTotal }}</b> subs</span>
+                                </div>
+
+                                {{-- Card foot --}}
+                                <div class="bom-card-foot">
+                                    <span class="bom-cta">Buka Exploder →</span>
+                                    <span class="flex gap-1.5" @click.stop @keydown.stop>
+                                        <button type="button" class="action-btn hover:bg-indigo-50 text-indigo-700"
+                                            title="{{ __('planning.boms.index.change_fg_title') }}" @click="openChangeFg(@js([
+                                                'action' => route('planning.boms.update', $bom),
+                                                'part_id' => $bom->part_id,
+                                                'current_label' => ($bom->part?->part_no ?? '-') . ' - ' . ($bom->part?->part_name ?? '-'),
+                                            ]))">✎</button>
                                         <form action="{{ route('planning.boms.update', $bom) }}" method="POST" class="inline"
                                             onsubmit='return confirm(@js(__("planning.boms.index.confirm_toggle", ["status" => $bom->status === 'active' ? 'INACTIVE' : 'ACTIVE'])));'>
                                             @csrf
@@ -287,225 +342,17 @@
                                             <input type="hidden" name="status" value="{{ $bom->status === 'active' ? 'inactive' : 'active' }}">
                                             <button type="submit" class="action-btn hover:bg-slate-100"
                                                 title="{{ __('planning.boms.index.toggle_title', ['status' => $bom->status === 'active' ? __('planning.boms.index.inactive') : __('planning.boms.index.active')]) }}"
-                                                aria-label="{{ __('planning.boms.index.toggle_title', ['status' => $bom->status === 'active' ? __('planning.boms.index.inactive') : __('planning.boms.index.active')]) }}">
-                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                            </button>
+                                                aria-label="{{ __('planning.boms.index.toggle_title', ['status' => $bom->status === 'active' ? __('planning.boms.index.inactive') : __('planning.boms.index.active')]) }}">↻</button>
                                         </form>
-                                        <button type="button" class="action-btn hover:bg-indigo-50 text-indigo-700"
-                                            title="{{ __('planning.boms.index.change_fg_title') }}" @click="openChangeFg(@js([
-                                                'action' => route('planning.boms.update', $bom),
-                                                'part_id' => $bom->part_id,
-                                                'current_label' => ($bom->part?->part_no ?? '-') . ' - ' . ($bom->part?->part_name ?? '-'),
-                                            ]))">FG</button>
                                         <form action="{{ route('planning.boms.destroy', $bom) }}" method="POST" class="inline"
                                             onsubmit='return confirm(@js(__("planning.boms.index.confirm_delete_bom")));'>
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="action-btn hover:bg-red-50 text-red-600"
                                                 title="{{ __('planning.boms.index.delete_title') }}"
-                                                aria-label="{{ __('planning.boms.index.delete_title') }}">
-                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                            </button>
+                                                aria-label="{{ __('planning.boms.index.delete_title') }}">✕</button>
                                         </form>
-                                    </div>
-                                </div>
-
-                                <div class="bom-tree-body border-t border-slate-100" x-show="expanded[{{ $bomId }}]" x-cloak>
-                                    @if ($items->isNotEmpty())
-                                        <div class="divide-y divide-slate-100">
-                                            @foreach ($items as $idx => $item)
-                                                @php
-                                                    $lineNo = $item->line_no ?? ($idx + 1);
-                                                    $wipNo = $item->wip_part_no ?: ($item->wipPart?->part_no ?? '');
-                                                    $wipName = trim((string) $item->wip_part_name) ?: trim((string) $item->wipPart?->part_name);
-                                                    $rmNo = $item->component_part_no ?: ($item->componentPart?->part_no ?? '');
-                                                    $rmName = trim((string) $item->componentPart?->part_name)
-                                                        ?: (trim((string) $item->material_name)
-                                                        ?: trim((string) $item->incomingPart?->vendor_part_name));
-                                                    $wipName = trim((string) $wipName);
-                                                    $substitutes = $item->substitutes ?? collect();
-                                                    $subCount = $substitutes->count();
-                                                    $policy = $item->consumption_policy_override ?: ($item->componentPart?->consumption_policy ?: (($item->componentPart?->is_backflush ?? true) ? 'backflush_return' : 'direct_issue'));
-                                                    $policyLabels = [
-                                                        'direct_issue' => [__('planning.boms.index.policy_direct'), 'bg-slate-100 text-slate-700 border-slate-200'],
-                                                        'backflush_return' => [__('planning.boms.index.policy_backflush'), 'bg-orange-100 text-orange-800 border-orange-200'],
-                                                        'backflush_line_stock' => [__('planning.boms.index.policy_line_full'), 'bg-emerald-100 text-emerald-800 border-emerald-200'],
-                                                    ];
-                                                    [$policyLabel, $policyClass] = $policyLabels[$policy] ?? ['-', 'bg-slate-100 text-slate-500 border-slate-200'];
-                                                    $mob = strtolower((string) ($item->make_or_buy ?? ''));
-                                                    $mobStyles = [
-                                                        'make' => 'bg-sky-100 text-sky-800 border-sky-200',
-                                                        'buy' => 'bg-slate-100 text-slate-700 border-slate-200',
-                                                        'subcon' => 'bg-violet-100 text-violet-800 border-violet-200',
-                                                        'free_issue' => 'bg-rose-100 text-rose-800 border-rose-200',
-                                                    ];
-                                                    $mobClass = $mobStyles[$mob] ?? 'bg-slate-100 text-slate-600 border-slate-200';
-                                                @endphp
-                                                <div class="bom-node group/line px-4 py-3">
-                                                    <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-                                                        <span class="font-mono text-[11px] font-black text-slate-400">#{{ $lineNo }}</span>
-                                                        <span class="text-xs font-semibold text-slate-700">{{ $item->process_name ?? '—' }}</span>
-                                                        <span class="text-[11px] text-slate-400">⚙ {{ $item->machine->name ?? '-' }}</span>
-                                                        <span class="ml-auto inline-flex items-center gap-1">
-                                                            <button type="button"
-                                                                class="relative h-7 px-2 rounded-lg border border-orange-200 bg-orange-50/60 hover:bg-orange-100 text-orange-700 flex items-center justify-center text-[10px] gap-1 font-semibold transition-all"
-                                                                title="{{ __('planning.boms.index.subs_title') }}" @click="openSubstitutePanel(@js([
-                                                                    'bom_item_id' => $item->id,
-                                                                    'action' => route('planning.bom-items.substitutes.store', $item),
-                                                                    'store_action' => route('planning.bom-items.substitutes.store', $item),
-                                                                    'fg_label' => $fgNo . ' - ' . $fgName,
-                                                                    'line_no' => $lineNo,
-                                                                    'process_name' => $item->process_name,
-                                                                    'wip_part_no' => $wipNo,
-                                                                    'material_name' => $item->material_name,
-                                                                    'material_spec' => $item->material_spec,
-                                                                    'component_part_no' => $rmNo,
-                                                                    'consumption' => $item->usage_qty,
-                                                                    'consumption_uom' => $item->consumption_uom,
-                                                                    'substitutes' => $substitutes->sortBy(fn($s) => (int) ($s->priority ?? 1))->map(fn($s) => [
-                                                                        'id' => $s->id,
-                                                                        'substitute_part_id' => $s->substitute_part_id,
-                                                                        'part_no' => $s->substitutePart?->part_no,
-                                                                        'part_name' => $s->substitutePart?->part_name,
-                                                                        'vendor_part_id' => $s->vendor_part_id,
-                                                                        'incoming_part_no' => $s->vendorPart?->part_no,
-                                                                        'incoming_part_label' => $s->vendorPart ? ($s->vendorPart->part_no . ($s->vendorPart->vendor ? ' [' . $s->vendorPart->vendor->name . ']' : '')) : null,
-                                                                        'ratio' => $s->ratio,
-                                                                        'priority' => $s->priority,
-                                                                        'status' => $s->status,
-                                                                        'notes' => $s->notes,
-                                                                        'update_url' => route('planning.bom-item-substitutes.update', $s),
-                                                                        'delete_url' => route('planning.bom-item-substitutes.destroy', $s),
-                                                                    ])->values(),
-                                                                ]))">
-                                                                <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                                                                {{ __('planning.boms.index.subs') }}
-                                                                @if ($subCount > 0)
-                                                                    <span class="inline-flex items-center justify-center min-w-[16px] h-4 px-1 rounded-full bg-orange-600 text-white text-[9px] font-bold">{{ $subCount }}</span>
-                                                                @endif
-                                                            </button>
-                                                            <button type="button" class="action-btn hover:bg-slate-100"
-                                                                title="{{ __('planning.boms.index.edit_title') }}" aria-label="{{ __('planning.boms.index.edit_title') }}" @click="openLineModal(@js([
-                                                                    'mode' => 'edit',
-                                                                    'action' => route('planning.boms.items.store', $bom),
-                                                                    'bom_id' => $bom->id,
-                                                                    'bom_item_id' => $item->id,
-                                                                    'fg_label' => $fgNo . ' - ' . $fgName,
-                                                                    'classification' => $item->componentPart?->classification ?? '',
-                                                                    'line_no' => $lineNo,
-                                                                    'process_name' => $item->process_name,
-                                                                    'machine_id' => $item->machine_id,
-                                                                    'wip_part_id' => $item->wip_part_id,
-                                                                    'wip_qty' => $item->wip_qty,
-                                                                    'wip_uom' => $item->display_wip_uom,
-                                                                    'wip_part_no' => $wipNo,
-                                                                    'component_part_no' => $rmNo,
-                                                                    'wip_part_name' => $wipName,
-                                                                    'material_size' => $item->material_size,
-                                                                    'material_spec' => $item->material_spec,
-                                                                    'material_name' => $item->material_name,
-                                                                    'special' => $item->special,
-                                                                    'component_part_id' => $item->component_part_id,
-                                                                    'component_part_label' => $item->componentPart?->part_no
-                                                                        ? ($item->componentPart->part_no . ' - ' . ($item->componentPart->part_name ?? '-'))
-                                                                        : ($item->component_part_no ?: '-'),
-                                                                    'wip_part_label' => $item->wipPart?->part_no
-                                                                        ? ($item->wipPart->part_no . ' - ' . ($item->wipPart->part_name ?? '-'))
-                                                                        : ($item->wip_part_no ?: '-'),
-                                                                    'incoming_part_id' => $item->incoming_part_id,
-                                                                    'make_or_buy' => $item->make_or_buy,
-                                                                    'consumption_policy_override' => $item->consumption_policy_override,
-                                                                    'usage_qty' => $item->usage_qty,
-                                                                    'consumption_uom_id' => $item->consumption_uom_id ?: $uoms->firstWhere('code', $item->display_consumption_uom)?->id,
-                                                                    'wip_uom_id' => $item->wip_uom_id ?: $uoms->firstWhere('code', $item->display_wip_uom)?->id,
-                                                                    'scrap_factor' => $item->scrap_factor,
-                                                                    'yield_factor' => $item->yield_factor,
-                                                                ]))">
-                                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                                            </button>
-                                                            <form action="{{ route('planning.boms.items.destroy', $item) }}" method="POST"
-                                                                class="inline" onsubmit='return confirm(@js(__("planning.boms.index.confirm_delete_line")));'>
-                                                                @csrf
-                                                                @method('DELETE')
-                                                                <button type="submit" class="action-btn hover:bg-red-50 text-red-600"
-                                                                    title="{{ __('planning.boms.index.delete_title') }}">🗑</button>
-                                                            </form>
-                                                        </span>
-                                                    </div>
-
-                                                    <div class="mt-2.5 grid grid-cols-1 md:grid-cols-2 gap-2">
-                                                        {{-- WIP node --}}
-                                                        <div class="rounded-lg border border-amber-200 bg-amber-50/40 px-3 py-2">
-                                                            <div class="text-[10px] font-bold uppercase tracking-wider text-amber-700">WIP</div>
-                                                            <div class="mt-0.5 font-mono text-xs font-bold text-amber-900">{{ $wipNo ?: '-' }}</div>
-                                                            <div class="text-xs text-amber-800/90">{{ $wipName ?: 'Nama parent belum diisi' }}</div>
-                                                            <div class="mt-1 font-mono text-xs text-amber-800">
-                                                                {{ $item->wip_qty !== null ? rtrim(rtrim(number_format((float) $item->wip_qty, 4, '.', ''), '0'), '.') : '-' }}
-                                                                <span class="ml-1 text-[10px] font-bold uppercase">{{ $item->display_wip_uom ?: '—' }}</span>
-                                                            </div>
-                                                        </div>
-
-                                                        {{-- RM node --}}
-                                                        <div class="rounded-lg border border-emerald-200 bg-emerald-50/40 px-3 py-2">
-                                                            <div class="flex items-center gap-2">
-                                                                <div class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">RM</div>
-                                                                <span class="ml-auto inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold {{ $policyClass }}">{{ $policyLabel }}</span>
-                                                                <span class="inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase {{ $mobClass }}">{{ strtoupper($item->make_or_buy ?: 'buy') }}</span>
-                                                            </div>
-                                                            <div class="mt-0.5 font-mono text-xs font-bold text-emerald-900">{{ $rmNo ?: '-' }}</div>
-                                                            <div class="text-xs text-emerald-800/90">{{ $rmName ?: '—' }}</div>
-                                                            <div class="mt-1 font-mono text-xs text-emerald-800">
-                                                                {{ rtrim(rtrim(number_format((float) $item->usage_qty, 4, '.', ''), '0'), '.') }}
-                                                                <span class="ml-1 text-[10px] font-bold uppercase">{{ $item->display_consumption_uom ?: '—' }}</span>
-                                                            </div>
-                                                            @if (filled($item->material_name) || filled($item->material_size) || filled($item->material_spec) || filled($item->special))
-                                                                <div class="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-emerald-900/80">
-                                                                    @if (filled($item->material_name))<span>{{ $item->material_name }}</span>@endif
-                                                                    @if (filled($item->material_size))<span class="font-mono">{{ $item->material_size }}</span>@endif
-                                                                    @if (filled($item->material_spec))<span class="font-mono">{{ $item->material_spec }}</span>@endif
-                                                                    @if (filled($item->special))<span>{{ $item->special }}</span>@endif
-                                                                </div>
-                                                            @endif
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    @else
-                                        <div class="px-4 py-6 text-center text-sm text-slate-500">{{ __('planning.boms.index.empty_lines') }}</div>
-                                    @endif
-
-                                    <div class="border-t border-slate-100 px-4 py-3">
-                                        <button type="button"
-                                            class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-slate-50 shadow-sm"
-                                            @click="openLineModal(@js([
-                                                'mode' => 'create',
-                                                'action' => route('planning.boms.items.store', $bom),
-                                                'bom_id' => $bom->id,
-                                                'bom_item_id' => null,
-                                                'fg_label' => $fgNo . ' - ' . $fgName,
-                                                'line_no' => null,
-                                                'process_name' => null,
-                                                'machine_id' => null,
-                                                'wip_part_id' => null,
-                                                'wip_qty' => null,
-                                                'wip_uom' => null,
-                                                'wip_part_name' => null,
-                                                'material_size' => null,
-                                                'material_spec' => null,
-                                                'material_name' => null,
-                                                'special' => null,
-                                                'component_part_id' => null,
-                                                'component_part_label' => '',
-                                                'incoming_part_id' => null,
-                                                'make_or_buy' => 'buy',
-                                                'consumption_policy_override' => '',
-                                                'usage_qty' => 1,
-                                                'wip_part_label' => '',
-                                            ]))">
-                                            {{ __('planning.boms.index.add_line') }}
-                                        </button>
-                                    </div>
+                                    </span>
                                 </div>
                             </div>
                         </article>
@@ -1451,8 +1298,8 @@
                                         @foreach(($incomingParts ?? []) as $ip)
                                             <option value="{{ $ip->id }}">
                                                 {{ $ip->part_no }} -
-                                                {{ $ip->part_name_gci ?: ($ip->part_name_vendor ?? '-') }}
-                                                @if($ip->vendor) [{{ $ip->vendor->name }}] @endif
+                                                {{ $ip->part_name ?: ($ip->vendor_part_name ?? '-') }}
+                                                @if($ip->vendor) [{{ $ip->vendor->vendor_name }}] @endif
                                             </option>
                                         @endforeach
                                     </select>
