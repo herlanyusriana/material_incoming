@@ -14,36 +14,34 @@ class PlanningBomWebTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_bom_index_groups_fg_identity_and_renders_process_columns_without_fg_net_weight(): void
+    public function test_bom_index_groups_fg_identity_and_links_to_exploded_process_tree(): void
     {
         $user = User::factory()->create();
         [$bom] = $this->makeBomFixture();
 
+        // Index = kartu FG ringkas (tanpa kolom tabel proses, tanpa net weight).
         $this->actingAs($user)
             ->get(route('planning.boms.index', ['gci_part_id' => $bom->part_id]))
             ->assertOk()
-            ->assertSeeTextInOrder([
-                'Seq',
-                'Process Name',
-                'Machine Name',
-                'Parent Part No.',
-                'Parent Part Name',
-                'Parent Part Qty',
-                'Parent Part UOM',
-                'Child Part No.',
-                'Child Part Name',
-                'Material / Size',
-                'Spec / Make-Buy',
-            ])
-            ->assertDontSeeText('FG Net Weight')
-            ->assertDontSeeText('12.3456 kg/pcs')
             ->assertSeeText('FG-100')
-            ->assertSeeText('WIP-100-01')
-            ->assertSeeText('Pressed Body')
-            ->assertSeeText('Steel Coil')
             ->assertSeeText('Finished Assembly')
             ->assertSeeText('MODEL-X')
-            ->assertSeeText('RM-100');
+            ->assertSeeText('Buka Exploder')
+            ->assertDontSeeText('FG Net Weight')
+            ->assertDontSeeText('12.3456 kg/pcs')
+            ->assertDontSeeText('Parent Part No.');
+
+        // Explosion = pohon proses WIP -> RM lengkap dengan identitas part.
+        $this->actingAs($user)
+            ->get(route('planning.boms.explosion', $bom))
+            ->assertOk()
+            ->assertSeeText('WIP-100-01')
+            ->assertSeeText('Pressed Body')
+            ->assertSeeText('Press')
+            ->assertSeeText('Press Line 1')
+            ->assertSeeText('Steel Coil')
+            ->assertSeeText('RM-100')
+            ->assertSeeText('MODEL-X');
     }
 
     public function test_bom_update_does_not_modify_net_weight_on_the_fg_master(): void
