@@ -933,6 +933,24 @@
                                                     if ($arrival->containers->count()) {
                                                         $allSeals = $allSeals->concat($arrival->containers->pluck('seal_code'))->filter()->unique();
                                                     }
+                                                    // Legacy: seal was stored beside the container no in
+                                                    // container_numbers ("CONTAINER SEAL" per line). Recover it
+                                                    // so pre-fix arrivals render their seal without re-input.
+                                                    if ($allSeals->isEmpty() && $arrival->container_numbers) {
+                                                        $containerNoPattern = '/^[A-Z]{4}\\d{7}$/';
+                                                        foreach (preg_split('/\\r\\n|\\r|\\n/', (string) $arrival->container_numbers) as $line) {
+                                                            $tokens = collect(preg_split('/\\s+/', trim((string) $line)))->filter()->values();
+                                                            if ($tokens->count() < 2) {
+                                                                continue;
+                                                            }
+                                                            $first = strtoupper((string) $tokens[0]);
+                                                            $second = strtoupper((string) $tokens[1]);
+                                                            if (preg_match($containerNoPattern, $first) && !preg_match($containerNoPattern, $second)) {
+                                                                $allSeals->push($second);
+                                                            }
+                                                        }
+                                                        $allSeals = $allSeals->map(fn($s) => strtoupper(trim((string) $s)))->filter()->unique()->values();
+                                                    }
                                                 @endphp
                                                 @if($allSeals->count())
                                                     <div>{{ $allSeals->map(fn($s) => strtoupper(trim($s)))->implode(', ') }}
