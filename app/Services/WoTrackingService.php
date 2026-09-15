@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Bom;
 use App\Models\BomItem;
+use App\Models\BomItemSubstitute;
 use App\Models\MaterialSubstitute;
 use App\Models\NewSchema\Core\GciPart;
 use App\Models\NewSchema\Inventory\InventoryLocationStock;
@@ -28,6 +29,57 @@ use Illuminate\Support\Facades\DB;
  */
 class WoTrackingService
 {
+    /**
+     * Preview BOM demand and stocked substitute picks without creating a WO.
+     *
+     * @param  array<int|string, int|string>  $substituteChoices  bom_item_id => substitute_part_id
+     */
+    public function previewForPart(int $fgPartId, float $qtyTarget, string $startDate, array $substituteChoices = []): array
+    {
+        $fg = GciPart::query()->findOrFail($fgPartId);
+        $wo = new ProductionWorkOrder([
+            'gci_part_id' => $fgPartId,
+            'qty_target' => $qtyTarget,
+            'start_date' => $startDate,
+        ]);
+
+        $requirements = collect($this->requirementBlueprints($wo))->map(function (array $blueprint) use ($wo, $substituteChoices) {
+            $requirement = new WoRequirement($blueprint);
+            $selectedId = isset($substituteChoices[$blueprint['bom_item_id']])
+                ? (int) $substituteChoices[$blueprint['bom_item_id']]
+                : null;
+            $substitutes = $this->stockedSubstituteOptions($requirement);
+            if (! $selectedId || ! $substitutes->contains('id', $selectedId)) {
+                $selectedId = (int) ($substitutes->first()['id'] ?? 0) ?: null;
+            }
+            $suggestion = $this->suggestPicks($wo, $requirement, $selectedId);
+
+            return [
+                'bom_item_id' => (int) $blueprint['bom_item_id'],
+                'generic_part_id' => (int) $blueprint['gci_part_id'],
+                'generic_part_no' => $blueprint['component_part_no'],
+                'required_qty' => (float) $blueprint['required_qty'],
+                'uom' => $blueprint['uom'],
+                'substitutes' => $substitutes->values(),
+                'selected_substitute_id' => $selectedId,
+                'picks' => $suggestion['picks']->values(),
+                'shortfall' => (float) $suggestion['shortfall'],
+            ];
+        })->values();
+
+        return [
+            'fg' => [
+                'id' => (int) $fg->id,
+                'part_no' => $fg->part_no,
+                'part_name' => $fg->part_name,
+                'model' => $fg->model,
+                'uom' => Uom::canonical($fg->uom) ?? 'PCE',
+            ],
+            'requirements' => $requirements,
+            'has_shortfall' => $requirements->contains(fn (array $row) => $row['shortfall'] > 0),
+        ];
+    }
+
     // ---------------------------------------------------------------
     // 1. Explosion
     // ---------------------------------------------------------------
@@ -35,47 +87,63 @@ class WoTrackingService
     /** Snapshot kebutuhan WO dari BOM aktif part FG. */
     public function buildRequirements(ProductionWorkOrder $wo): void
     {
-        $wo->loadMissing('gciPart');
-        $bom = Bom::activeVersion($wo->gci_part_id, $wo->start_date ?? now());
-
-        $wo->update(['bom_id' => $bom?->id]);
+        $blueprints = $this->requirementBlueprints($wo);
         $wo->requirements()->delete();
 
+        foreach ($blueprints as $blueprint) {
+            $wo->requirements()->create($blueprint);
+        }
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    private function requirementBlueprints(ProductionWorkOrder $wo): array
+    {
+        $bom = Bom::activeVersion($wo->gci_part_id, $wo->start_date ?? now());
+        if ($wo->exists) {
+            $wo->update(['bom_id' => $bom?->id]);
+        }
         if (! $bom) {
-            return;
+            return [];
         }
 
-        $items = $bom->items()->with(['componentPart', 'incomingPart.gciPart', 'substitutes.part'])->get();
+        $items = $bom->items()
+            ->with(['componentPart', 'incomingPart.gciPart'])
+            ->get();
+        $mappedGenericIds = MaterialSubstitute::query()
+            ->whereIn('generic_part_id', $items->pluck('component_part_id')->filter())
+            ->active()
+            ->pluck('generic_part_id')
+            ->map(fn ($id) => (int) $id)
+            ->flip();
+        $mappedBomItemIds = BomItemSubstitute::query()
+            ->whereIn('bom_item_id', $items->pluck('id'))
+            ->where('status', 'active')
+            ->pluck('bom_item_id')
+            ->map(fn ($id) => (int) $id)
+            ->flip();
 
-        foreach ($items as $item) {
-            $makeOrBuy = strtoupper(trim((string) ($item->make_or_buy ?? '')));
-            // Buy / free issue tidak dikelola tracking scan gudang produksi.
-            if (in_array($makeOrBuy, ['BUY', 'FREE_ISSUE'], true)) {
-                continue;
-            }
+        return $items
+            ->filter(fn (BomItem $item) => $mappedGenericIds->has((int) $item->component_part_id)
+                || $mappedBomItemIds->has((int) $item->id))
+            ->map(function (BomItem $item) use ($wo) {
+                $componentPartId = (int) ($item->incomingPart?->gciPart?->id ?? $item->component_part_id ?? 0);
+                $requiredQty = round((float) ($item->net_required ?? $item->usage_qty ?? 0) * (float) $wo->qty_target, 4);
+                if ($componentPartId <= 0 || $requiredQty <= 0) {
+                    return null;
+                }
 
-            $componentPartId = (int) ($item->incomingPart?->gciPart?->id ?? $item->component_part_id ?? 0);
-            if ($componentPartId <= 0) {
-                continue;
-            }
-
-            $requiredQty = round((float) ($item->net_required ?? $item->usage_qty ?? 0) * (float) $wo->qty_target, 4);
-            if ($requiredQty <= 0) {
-                continue;
-            }
-
-            $policy = $this->resolvePolicy($item);
-
-            WoRequirement::create([
-                'work_order_id' => $wo->id,
-                'gci_part_id' => $componentPartId,
-                'bom_item_id' => $item->id,
-                'component_part_no' => $item->componentPart?->part_no ?? $item->component_part_no,
-                'required_qty' => $requiredQty,
-                'uom' => Uom::canonical($item->componentPart?->uom) ?? Uom::canonical($item->consumption_uom) ?? 'PCE',
-                'consumption_policy' => $policy,
-            ]);
-        }
+                return [
+                    'gci_part_id' => $componentPartId,
+                    'bom_item_id' => (int) $item->id,
+                    'component_part_no' => $item->componentPart?->part_no ?? $item->component_part_no,
+                    'required_qty' => $requiredQty,
+                    'uom' => Uom::canonical($item->componentPart?->uom) ?? Uom::canonical($item->consumption_uom) ?? 'PCE',
+                    'consumption_policy' => $this->resolvePolicy($item),
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
     }
 
     private function resolvePolicy($item): string
@@ -104,26 +172,27 @@ class WoTrackingService
      *
      * @return array{required: float, uom: ?string, picks: Collection, shortfall: float}
      */
-    public function suggestPicks(ProductionWorkOrder $wo, WoRequirement $requirement): array
+    public function suggestPicks(ProductionWorkOrder $wo, WoRequirement $requirement, ?int $substitutePartId = null): array
     {
-        $alreadyForThisWo = (float) WoMaterialAllocation::query()
-            ->where('work_order_id', $wo->id)
-            ->where('gci_part_id', $requirement->gci_part_id)
-            ->whereIn('status', [WoMaterialAllocation::STATUS_RESERVED, WoMaterialAllocation::STATUS_CONSUMED])
-            ->sum('qty_reserved')
-            - (float) WoMaterialAllocation::query()
+        $alreadyForThisWo = $wo->exists && $requirement->exists
+            ? (float) WoMaterialAllocation::query()
                 ->where('work_order_id', $wo->id)
-                ->where('gci_part_id', $requirement->gci_part_id)
-                ->where('status', WoMaterialAllocation::STATUS_RETURNED)
-                ->sum('qty_returned');
+                ->where('requirement_id', $requirement->id)
+                ->whereIn('status', [WoMaterialAllocation::STATUS_RESERVED, WoMaterialAllocation::STATUS_CONSUMED])
+                ->sum('qty_reserved')
+                - (float) WoMaterialAllocation::query()
+                    ->where('work_order_id', $wo->id)
+                    ->where('requirement_id', $requirement->id)
+                    ->where('status', WoMaterialAllocation::STATUS_RETURNED)
+                    ->sum('qty_returned')
+            : 0;
 
         $remaining = max(0, (float) $requirement->required_qty - $alreadyForThisWo);
 
-        $substituteIds = MaterialSubstitute::query()
-            ->where('generic_part_id', $requirement->gci_part_id)
-            ->where('status', 'active')
-            ->whereNotNull('substitute_part_id')
-            ->pluck('substitute_part_id');
+        $substituteIds = $this->eligibleSubstituteIds($requirement);
+        if ($substitutePartId !== null) {
+            $substituteIds = $substituteIds->filter(fn ($id) => (int) $id === $substitutePartId)->values();
+        }
 
         // WO ini sengaja hanya memakai substitute. Main component tidak pernah
         // menjadi kandidat stock/pick.
@@ -133,13 +202,18 @@ class WoTrackingService
             ->whereRaw("TRIM(COALESCE(batch_no,'')) <> ''")
             ->get(['id', 'gci_part_id', 'location_code', 'batch_no', 'qty_on_hand']);
 
-        $tags = $tagStock->map(function ($row) {
-            $part = GciPart::find((int) $row->gci_part_id);
-            $receive = IncomingReceive::query()
-                ->where('tag', $row->batch_no)
-                ->whereNull('deleted_at')
-                ->orderBy('id')
-                ->first(['id', 'location_code', 'ata_date', 'created_at', 'qc_status']);
+        $parts = GciPart::query()->whereIn('id', $tagStock->pluck('gci_part_id'))->get()->keyBy('id');
+        $receives = IncomingReceive::query()
+            ->whereIn('tag', $tagStock->pluck('batch_no'))
+            ->with(['arrivalItem.arrival.vendor'])
+            ->orderBy('id')
+            ->get()
+            ->unique('tag')
+            ->keyBy('tag');
+
+        $tags = $tagStock->map(function ($row) use ($parts, $receives) {
+            $part = $parts->get((int) $row->gci_part_id);
+            $receive = $receives->get($row->batch_no);
 
             // Stok coil masuk sebagai net_weight; tag non-coil qty langsung.
             return [
@@ -151,6 +225,11 @@ class WoTrackingService
                 'gci_part_id' => (int) $row->gci_part_id,
                 'part_no' => $part?->part_no,
                 'part_name' => $part?->part_name,
+                'model' => $part?->model,
+                'size' => $part?->size,
+                'invoice_no' => $receive?->arrivalItem?->arrival?->invoice_no,
+                'supplier' => $receive?->arrivalItem?->arrival?->vendor?->vendor_name,
+                'received_at' => $receive?->ata_date?->toDateString() ?? $receive?->created_at?->toDateString(),
                 'reserved_elsewhere' => false, // diisi di bawah
             ];
         })
@@ -185,6 +264,11 @@ class WoTrackingService
                 'gci_part_id' => $t['gci_part_id'],
                 'part_no' => $t['part_no'],
                 'part_name' => $t['part_name'],
+                'model' => $t['model'],
+                'size' => $t['size'],
+                'invoice_no' => $t['invoice_no'],
+                'supplier' => $t['supplier'],
+                'received_at' => $t['received_at'],
                 'location_code' => $t['location_code'],
                 'qty' => round($take, 4),
                 'qty_on_hand' => $t['qty_on_hand'],
@@ -200,6 +284,77 @@ class WoTrackingService
             'picks' => $picks,
             'shortfall' => round(max(0, $need), 4),
         ];
+    }
+
+    public function isEligibleSubstitute(WoRequirement $requirement, int $partId): bool
+    {
+        return $this->eligibleSubstituteIds($requirement)->contains($partId);
+    }
+
+    private function eligibleSubstituteIds(WoRequirement $requirement): Collection
+    {
+        $global = MaterialSubstitute::query()
+            ->where('generic_part_id', $requirement->gci_part_id)
+            ->active()
+            ->pluck('substitute_part_id');
+        $legacy = $requirement->bom_item_id
+            ? BomItemSubstitute::query()
+                ->where('bom_item_id', $requirement->bom_item_id)
+                ->where('status', 'active')
+                ->pluck('substitute_part_id')
+            : collect();
+
+        return $global->merge($legacy)->filter()->map(fn ($id) => (int) $id)->unique()->values();
+    }
+
+    private function stockedSubstituteOptions(WoRequirement $requirement): Collection
+    {
+        $ids = $this->eligibleSubstituteIds($requirement);
+        if ($ids->isEmpty()) {
+            return collect();
+        }
+
+        $reservedTags = WoMaterialAllocation::query()
+            ->whereIn('work_order_id', ProductionWorkOrder::query()
+                ->whereIn('status', ['PLANNED', 'RESERVED', 'RELEASED', 'IN_PRODUCTION'])
+                ->select('id'))
+            ->where('status', WoMaterialAllocation::STATUS_RESERVED)
+            ->pluck('tag')
+            ->filter()
+            ->unique();
+        $stock = InventoryLocationStock::query()
+            ->whereIn('gci_part_id', $ids)
+            ->where('qty_on_hand', '>', 0)
+            ->when($reservedTags->isNotEmpty(), fn ($query) => $query->whereNotIn('batch_no', $reservedTags))
+            ->selectRaw('gci_part_id, SUM(qty_on_hand) as available_qty')
+            ->groupBy('gci_part_id')
+            ->pluck('available_qty', 'gci_part_id');
+        $mappings = MaterialSubstitute::query()
+            ->where('generic_part_id', $requirement->gci_part_id)
+            ->whereIn('substitute_part_id', $stock->keys())
+            ->with('vendorPart.vendor')
+            ->get()
+            ->keyBy('substitute_part_id');
+
+        return GciPart::query()
+            ->whereIn('id', $stock->keys())
+            ->get(['id', 'part_no', 'part_name', 'model', 'size', 'uom'])
+            ->map(function (GciPart $part) use ($stock, $mappings) {
+                $mapping = $mappings->get($part->id);
+
+                return [
+                    'id' => (int) $part->id,
+                    'part_no' => $part->part_no,
+                    'part_name' => $part->part_name,
+                    'model' => $part->model,
+                    'size' => $part->size,
+                    'uom' => Uom::canonical($part->uom) ?? 'PCE',
+                    'available_qty' => (float) $stock->get($part->id),
+                    'supplier' => $mapping?->vendorPart?->vendor?->vendor_name,
+                ];
+            })
+            ->sortBy(fn (array $part) => $part['part_no'])
+            ->values();
     }
 
     /** Cek tag dari hasil scan: milik WO mana, masih boleh dialokasi? */
@@ -279,12 +434,7 @@ class WoTrackingService
                 ->where('location_code', $location)
                 ->where('qty_on_hand', '>', 0)
                 ->first(['gci_part_id', 'qty_on_hand']);
-            $substituteIds = MaterialSubstitute::query()
-                ->where('generic_part_id', $requirement->gci_part_id)
-                ->where('status', 'active')
-                ->pluck('substitute_part_id')
-                ->filter()
-                ->map(fn ($id) => (int) $id);
+            $substituteIds = $this->eligibleSubstituteIds($requirement);
             if (! $stockRow || ! $substituteIds->contains((int) $stockRow->gci_part_id)) {
                 abort(422, "Tag {$tag} bukan substitute aktif untuk kebutuhan WO ini.");
             }
@@ -485,6 +635,101 @@ class WoTrackingService
         if ($wo->requirements->isNotEmpty() && $fullyReserved && ! in_array($wo->status, ['RELEASED', 'IN_PRODUCTION'], true)) {
             $wo->update(['status' => 'RELEASED']);
         }
+    }
+
+    /**
+     * Posting hasil produksi: terapkan consumption Policy, input FG ke gudang
+     * (lot = WO no), lalu tentukan status WO.
+     *
+     * @return array{consumed: float, fg_location: ?string, closed: bool}
+     */
+    public function applyProductionResult(ProductionWorkOrder $wo, float $qtyGood, float $qtyNg = 0): array
+    {
+        $qtyGood = round(max(0, $qtyGood), 4);
+        if ($qtyGood <= 0) {
+            abort(422, 'Qty hasil baik harus > 0.');
+        }
+
+        if (in_array($wo->status, ['CLOSED', 'CANCELLED'], true)) {
+            abort(422, 'WO sudah ditutup — tidak bisa posting hasil.');
+        }
+
+        $target = max((float) $wo->qty_target, 0.0001);
+        $ratio = min(1, $qtyGood / $target);
+        // Kunci requirement: dua posting paralel tidak boleh konsumsi dobel.
+        WoRequirement::query()->where('work_order_id', $wo->id)->lockForUpdate()->pluck('id');
+        $wo->load('requirements');
+
+        $consumed = 0.0;
+        foreach ($wo->requirements as $requirement) {
+            // direct_issue sudah dikonsumsi saat alokasi — jangan dobel.
+            if ($requirement->consumption_policy === 'direct_issue') {
+                continue;
+            }
+            $plan = round((float) $requirement->required_qty * $ratio, 4);
+            if ($plan <= 0) {
+                continue;
+            }
+            $before = (float) $wo->allocations()->where('requirement_id', $requirement->id)->sum('qty_consumed');
+            $this->consumeForWo($wo, $requirement, $plan);
+            $consumed += (float) $wo->allocations()->where('requirement_id', $requirement->id)->sum('qty_consumed') - $before;
+        }
+
+        $fg = $wo->gciPart;
+        $fgLocation = null;
+        if ($fg && trim((string) $fg->default_location) !== '') {
+            $fgLocation = strtoupper(trim((string) $fg->default_location));
+            InventoryLocationStock::updateStock(
+                (int) $fg->id,
+                $fgLocation,
+                $qtyGood,
+                (string) $wo->work_order_no,
+                (string) $wo->work_order_no,
+                'WO_FG_OUTPUT',
+                "WO#{$wo->id} {$wo->work_order_no}",
+                null,
+                null,
+                null,
+                null,
+                null,
+                auth()->id()
+            );
+        }
+
+        $wo->qty_actual = round(min((float) $wo->qty_target, (float) $wo->qty_actual + $qtyGood), 4);
+        $wo->updated_by = auth()->id();
+        // Target tercapai BELUM cukup — sisa coil RESERVED harus diselesaikan
+        // (return/deallocate) dulu lewat guard, baru WO boleh CLOSED.
+        $closed = (float) $wo->qty_actual + 1e-9 >= (float) $wo->qty_target && ! $wo->hasOpenAllocations();
+        $wo->status = $closed ? 'CLOSED' : 'IN_PRODUCTION';
+        if ($closed) {
+            $wo->end_date = now()->toDateString();
+        }
+        $wo->save();
+
+        return [
+            'consumed' => round($consumed, 4),
+            'fg_location' => $fgLocation,
+            'closed' => $closed,
+            'qty_ng' => round(max(0, $qtyNg), 4),
+        ];
+    }
+
+    /**
+     * Tutup manual: sisanya wajib terselesaikan dulu (guard assertClosable).
+     */
+    public function closeWo(ProductionWorkOrder $wo): void
+    {
+        if (in_array($wo->status, ['CLOSED', 'CANCELLED'], true)) {
+            abort(422, 'WO sudah ditutup.');
+        }
+        $this->assertClosable($wo);
+
+        $wo->update([
+            'status' => 'CLOSED',
+            'end_date' => now()->toDateString(),
+            'updated_by' => auth()->id(),
+        ]);
     }
 
     /** Guard: WO tidak boleh closed selama ada alokasi RESERVED. */

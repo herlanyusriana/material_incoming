@@ -37,10 +37,13 @@ Route::middleware('can:view_production')->prefix('production')->name('production
     Route::get('/wo-tracking', [\App\Http\Controllers\Production\WoTrackingController::class, 'index'])->name('wo-tracking.index');
     Route::get('/wo-tracking/create', [\App\Http\Controllers\Production\WoTrackingController::class, 'create'])->name('wo-tracking.create');
     Route::get('/wo-tracking/master-data', [\App\Http\Controllers\Production\WoTrackingController::class, 'masterData'])->name('wo-tracking.master-data');
+    Route::get('/wo-tracking/allocation-preview', [\App\Http\Controllers\Production\WoTrackingController::class, 'allocationPreview'])->name('wo-tracking.allocation-preview');
     Route::post('/wo-tracking', [\App\Http\Controllers\Production\WoTrackingController::class, 'store'])->name('wo-tracking.store');
     Route::get('/wo-tracking/{woTracking}/edit', [\App\Http\Controllers\Production\WoTrackingController::class, 'edit'])->name('wo-tracking.edit');
     Route::put('/wo-tracking/{woTracking}', [\App\Http\Controllers\Production\WoTrackingController::class, 'update'])->name('wo-tracking.update');
     Route::post('/wo-tracking/{woTracking}/result', [\App\Http\Controllers\Production\WoTrackingController::class, 'postResult'])->name('wo-tracking.result');
+    Route::post('/wo-tracking/{woTracking}/close', [\App\Http\Controllers\Production\WoTrackingController::class, 'close'])->name('wo-tracking.close');
+    Route::post('/wo-tracking/{woTracking}/allocations/{allocation}/deallocate', [\App\Http\Controllers\Production\WoTrackingController::class, 'deallocate'])->name('wo-tracking.allocations.deallocate');
     Route::delete('/wo-tracking/{woTracking}', [\App\Http\Controllers\Production\WoTrackingController::class, 'destroy'])->name('wo-tracking.destroy');
 
     // Production Orders

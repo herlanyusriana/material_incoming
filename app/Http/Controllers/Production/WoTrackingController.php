@@ -7,10 +7,14 @@ use App\Models\Bom;
 use App\Models\NewSchema\Core\GciPart;
 use App\Models\NewSchema\Incoming\IncomingReceive;
 use App\Models\NewSchema\Production\ProductionWorkOrder;
+use App\Models\NewSchema\Production\WoMaterialAllocation;
+use App\Services\WoTrackingService;
 use App\Support\Uom;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 /**
  * WO Manual — mekanisme sederhana.
@@ -54,17 +58,19 @@ class WoTrackingController extends Controller
             'id' => (int) $p->id,
             'part_no' => $p->part_no,
             'part_name' => $p->part_name,
+            'model' => $p->model,
+            'size' => $p->size,
             'uom' => Uom::canonical($p->uom) ?? 'PCE',
         ];
 
         $fgParts = GciPart::query()
             ->where('classification', 'FG')->where('status', 'active')
-            ->orderBy('part_no')->get(['id', 'part_no', 'part_name', 'uom'])
+            ->orderBy('part_no')->get(['id', 'part_no', 'part_name', 'model', 'size', 'uom'])
             ->map($mapPart);
 
         $rmParts = GciPart::query()
             ->where('classification', 'RM')->where('status', 'active')
-            ->orderBy('part_no')->get(['id', 'part_no', 'part_name', 'uom'])
+            ->orderBy('part_no')->get(['id', 'part_no', 'part_name', 'model', 'size', 'uom'])
             ->map($mapPart);
 
         // FG part id -> RM part id (komponen RM BUY/FREE_ISSUE pertama dari BOM aktif).
@@ -119,18 +125,73 @@ class WoTrackingController extends Controller
         return view('production.wo-tracking.create');
     }
 
-    public function store(Request $request)
+    public function allocationPreview(Request $request, WoTrackingService $tracking): JsonResponse
     {
-        $validated = $this->validatedFields($request);
-
-        $wo = ProductionWorkOrder::create($validated + [
-            'work_order_no' => $this->nextWoNumber(),
-            'status' => 'PLANNED',
-            'created_by' => auth()->id(),
+        $validated = $request->validate([
+            'gci_part_id' => ['required', 'integer', Rule::exists('gci_parts', 'id')->where('classification', 'FG')],
+            'start_date' => ['required', 'date'],
+            'qty_target' => ['required', 'numeric', 'min:0.0001'],
+            'substitute_choices' => ['sometimes', 'array'],
+            'substitute_choices.*' => ['nullable', 'integer'],
         ]);
 
+        return response()->json($tracking->previewForPart(
+            (int) $validated['gci_part_id'],
+            round((float) $validated['qty_target'], 4),
+            $validated['start_date'],
+            $validated['substitute_choices'] ?? [],
+        ));
+    }
+
+    public function store(Request $request, WoTrackingService $tracking)
+    {
+        $validated = $request->validate([
+            'gci_part_id' => ['required', 'integer', Rule::exists('gci_parts', 'id')->where('classification', 'FG')],
+            'start_date' => ['required', 'date'],
+            'qty_target' => ['required', 'numeric', 'min:0.0001'],
+            'substitute_choices' => ['sometimes', 'array'],
+            'substitute_choices.*' => ['nullable', 'integer', Rule::exists('gci_parts', 'id')->where('classification', 'RM')],
+        ]);
+
+        $wo = DB::transaction(function () use ($validated, $tracking) {
+            $wo = ProductionWorkOrder::create([
+                'gci_part_id' => (int) $validated['gci_part_id'],
+                'start_date' => $validated['start_date'],
+                'qty_target' => round((float) $validated['qty_target'], 4),
+                'work_order_no' => $this->nextWoNumber(),
+                'status' => 'PLANNED',
+                'created_by' => auth()->id(),
+            ]);
+
+            $tracking->buildRequirements($wo);
+            foreach ($wo->requirements()->get() as $requirement) {
+                $field = 'substitute_choices.' . $requirement->bom_item_id;
+                $selectedId = isset($validated['substitute_choices'][$requirement->bom_item_id])
+                    ? (int) $validated['substitute_choices'][$requirement->bom_item_id]
+                    : null;
+                if ($selectedId && ! $tracking->isEligibleSubstitute($requirement, $selectedId)) {
+                    throw ValidationException::withMessages([
+                        $field => 'Part yang dipilih bukan substitute aktif untuk material BOM ini.',
+                    ]);
+                }
+
+                $suggestion = $tracking->suggestPicks($wo, $requirement, $selectedId);
+                foreach ($suggestion['picks'] as $pick) {
+                    $tracking->allocate(
+                        $wo,
+                        $requirement,
+                        (string) $pick['tag'],
+                        (float) $pick['qty'],
+                        (string) $pick['location_code'],
+                    );
+                }
+            }
+
+            return $wo->fresh();
+        });
+
         return redirect()->route('production.wo-tracking.index')
-            ->with('success', "WO {$wo->work_order_no} dibuat untuk {$wo->gciPart?->part_no}.");
+            ->with('success', "WO {$wo->work_order_no} dibuat dan material FIFO yang tersedia sudah direservasi.");
     }
 
     public function edit(ProductionWorkOrder $woTracking)
@@ -154,38 +215,62 @@ class WoTrackingController extends Controller
     }
 
     /**
-     * Posting hasil: akumulasi qty_actual. Sisa = qty_target - qty_actual;
-     * otomatis CLOSED saat sisa <= 0.
+     * Posting hasil: backflush RM dari alokasi, input FG (lot = WO no),
+     * status otomatis IN_PRODUCTION/CLOSED sesuai guard.
      */
-    public function postResult(Request $request, ProductionWorkOrder $woTracking)
+    public function postResult(Request $request, ProductionWorkOrder $woTracking, WoTrackingService $tracking)
     {
         $validated = $request->validate([
-            'qty_result' => ['required', 'numeric', 'min:0.0001'],
+            'qty_result' => ['nullable', 'numeric', 'min:0.0001', 'required_without:qty_good'],
+            'qty_good' => ['nullable', 'numeric', 'min:0.0001', 'required_without:qty_result'],
+            'qty_ng' => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        $wo = DB::transaction(function () use ($woTracking, $validated) {
-            $wo = ProductionWorkOrder::query()->whereKey($woTracking->id)->lockForUpdate()->firstOrFail();
+        try {
+            $result = DB::transaction(fn () => $tracking->applyProductionResult(
+                $woTracking,
+                (float) ($validated['qty_result'] ?? $validated['qty_good']),
+                (float) ($validated['qty_ng'] ?? 0),
+            ));
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpExceptionInterface $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
-            if (in_array($wo->status, ['CLOSED', 'CANCELLED'], true)) {
-                abort(422, 'WO sudah ditutup — tidak bisa posting hasil.');
-            }
+        $wo = $woTracking->fresh();
 
-            $wo->qty_actual = round((float) $wo->qty_actual + (float) $validated['qty_result'], 4);
-            $wo->updated_by = auth()->id();
-            if ($wo->qty_actual + 0.0001 >= (float) $wo->qty_target) {
-                $wo->qty_actual = min((float) $wo->qty_actual, (float) $wo->qty_target);
-                $wo->status = 'CLOSED';
-                $wo->end_date = now()->toDateString();
-            } else {
-                $wo->status = 'IN_PRODUCTION';
-            }
-            $wo->save();
+        return redirect()->route('production.wo-tracking.index')->with(
+            'success',
+            $result['closed']
+                ? "WO {$wo->work_order_no} selesai — RM ter-backflush, FG {$wo->qty_actual} masuk gudang {$result['fg_location']}."
+                : "Hasil WO {$wo->work_order_no}: total {$wo->qty_actual} dari target {$wo->qty_target}."
+        );
+    }
 
-            return $wo;
-        });
+    /** Tutup manual — ditolak selama masih ada alokasi RESERVED. */
+    public function close(ProductionWorkOrder $woTracking, WoTrackingService $tracking)
+    {
+        try {
+            $tracking->closeWo($woTracking);
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpExceptionInterface $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         return redirect()->route('production.wo-tracking.index')
-            ->with('success', "Hasil WO {$wo->work_order_no}: total {$wo->qty_actual} dari target {$wo->qty_target}.");
+            ->with('success', "WO {$woTracking->work_order_no} ditutup.");
+    }
+
+    /** Kembalikan satu alokasi RESERVED ke gudang. */
+    public function deallocate(ProductionWorkOrder $woTracking, WoMaterialAllocation $allocation, WoTrackingService $tracking)
+    {
+        abort_unless((int) $allocation->work_order_id === (int) $woTracking->id, 404);
+
+        if ($allocation->status !== WoMaterialAllocation::STATUS_RESERVED) {
+            return back()->with('error', "Alokasi {$allocation->tag} berstatus {$allocation->status} — tidak bisa dikembalikan.");
+        }
+
+        $tracking->returnAllocation($allocation);
+
+        return back()->with('success', "Tag {$allocation->tag} dikembalikan ke gudang.");
     }
 
     public function destroy(ProductionWorkOrder $woTracking)
