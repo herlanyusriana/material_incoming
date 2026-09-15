@@ -688,9 +688,42 @@ class ArrivalController extends Controller
             }
 
             if (Schema::hasTable('incoming_arrival_containers')) {
-                $departure->containers()->delete();
-                if ($normalizedContainers->isNotEmpty()) {
-                    $departure->containers()->createMany($normalizedContainers->all());
+                // Rebuild the container set without delete-then-recreate: the
+                // (arrival_id, container_no) unique index still counts soft-deleted
+                // rows, so a plain delete()+createMany() with an unchanged
+                // container_no throws SQLSTATE 1062. Sync by container_no instead:
+                // update kept rows (preserving id + inspection), create new ones,
+                // and hard-delete removed rows so the unique index is freed.
+                $existing = $departure->containers()->get()->keyBy(fn ($c) => strtoupper(trim((string) $c->container_no)));
+
+                // Purge any soft-deleted rows for container_nos we are about to
+                // write, so the unique index can't clash with a lingering trashed row.
+                $keep = [];
+                foreach ($normalizedContainers as $row) {
+                    $keep[$row['container_no']] = true;
+                }
+                $departure->containers()->onlyTrashed()
+                    ->whereIn('container_no', array_keys($keep))
+                    ->forceDelete();
+
+                foreach ($normalizedContainers as $row) {
+                    $no = $row['container_no'];
+
+                    $container = $existing->get($no);
+                    if ($container) {
+                        $container->update(['seal_code' => $row['seal_code']]);
+                    } else {
+                        $departure->containers()->create([
+                            'container_no' => $no,
+                            'seal_code' => $row['seal_code'],
+                        ]);
+                    }
+                }
+
+                foreach ($existing as $no => $container) {
+                    if (! isset($keep[$no])) {
+                        $container->forceDelete();
+                    }
                 }
             }
         });
