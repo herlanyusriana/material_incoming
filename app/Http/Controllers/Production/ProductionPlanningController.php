@@ -14,6 +14,7 @@ use App\Models\OutgoingDailyPlan;
 use App\Models\OutgoingDailyPlanCell;
 use App\Models\OutgoingDeliveryPlanningLine;
 use App\Services\ProductionMaterialRequestService;
+use App\Services\ProductionPlanningBoardService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -23,80 +24,19 @@ class ProductionPlanningController extends Controller
     /**
      * Main Production Planning page (GCI Planning Produksi)
      */
-    public function index(Request $request)
+    public function index(Request $request, ProductionPlanningBoardService $board)
     {
-        $planDate = $request->get('date', now()->format('Y-m-d'));
-        $planDate = Carbon::parse($planDate);
-        // Get or create session
-        $session = ProductionPlanningSession::where('plan_date', $planDate->format('Y-m-d'))->first();
-
-        // Planning is based on part + target. Machine is selected later as actual machine in the APK.
-        $processLoadRows = collect();
-        $planningLines = collect();
-        if ($session) {
-            $allLines = ProductionPlanningLine::where('session_id', $session->id)
-                ->with(['gciPart.bom.items.machine', 'productionOrders'])
-                ->orderBy('sort_order')
-                ->orderBy('id')
-                ->get();
-            $planningLines = $allLines
-                ->sort(function ($a, $b) {
-                    $aSortOrder = (int) ($a->sort_order ?? PHP_INT_MAX);
-                    $bSortOrder = (int) ($b->sort_order ?? PHP_INT_MAX);
-                    if ($aSortOrder !== $bSortOrder) {
-                        return $aSortOrder <=> $bSortOrder;
-                    }
-
-                    $aPartName = (string) ($a->gciPart?->part_name ?? '');
-                    $bPartName = (string) ($b->gciPart?->part_name ?? '');
-                    if ($aPartName !== $bPartName) {
-                        return strcasecmp($aPartName, $bPartName);
-                    }
-
-                    $aModel = (string) ($a->gciPart?->model ?? '');
-                    $bModel = (string) ($b->gciPart?->model ?? '');
-                    if ($aModel !== $bModel) {
-                        return strcasecmp($aModel, $bModel);
-                    }
-
-                    return (int) $a->id <=> (int) $b->id;
-                })
-                ->values();
-
-            $processLoadRows = $this->buildProcessLoadRows($planningLines, $planDate);
-        }
-
-        $fgStockGci = $this->getFgStockGci();
-
-        // Date range for planning
-        $planningDays = $session ? $session->planning_days : 7;
-        $dateRange = [];
-        for ($i = 0; $i < $planningDays; $i++) {
-            $dateRange[] = $planDate->copy()->addDays($i);
-        }
-
-        // Get existing sessions for navigation
-        $existingSessions = ProductionPlanningSession::orderBy('plan_date', 'desc')
-            ->limit(30)
-            ->get();
-
-        // Grand totals
-        $grandTotalFgGci = (float) $planningLines->sum(fn($line) => (float) $line->stock_fg_gci);
-        $grandTotalPlanQty = (float) $planningLines->sum(fn($line) => (float) $line->plan_qty);
-        $totalParts = $planningLines->count();
+        $planDate = Carbon::parse($request->get('date', now()->format('Y-m-d')))->startOfDay();
+        $planningDays = max(1, min(3, (int) $request->get('days', 3)));
+        $boardDates = collect(range(0, $planningDays - 1))
+            ->map(fn (int $offset) => $planDate->copy()->addDays($offset));
+        $boardRows = $board->rows($planDate, $planningDays);
 
         return view('production.planning.index', compact(
-            'session',
-            'planningLines',
-            'fgStockGci',
             'planDate',
-            'dateRange',
-            'existingSessions',
             'planningDays',
-            'grandTotalFgGci',
-            'grandTotalPlanQty',
-            'totalParts',
-            'processLoadRows'
+            'boardRows',
+            'boardDates'
         ));
     }
 
@@ -280,6 +220,161 @@ class ProductionPlanningController extends Controller
         return response()->json(['success' => true]);
     }
 
+    public function updateDailyQuantity(Request $request, ProductionPlanningBoardService $board)
+    {
+        $validated = $request->validate([
+            'gci_part_id' => 'required|integer|exists:gci_parts,id',
+            'plan_date' => 'required|date',
+            'qty' => 'required|numeric|min:0|max:999999999999',
+        ]);
+
+        $line = $board->setDailyQuantity(
+            (int) $validated['gci_part_id'],
+            $validated['plan_date'],
+            (float) $validated['qty'],
+            auth()->id()
+        );
+
+        return response()->json([
+            'success' => true,
+            'plan_date' => $line->session->plan_date->toDateString(),
+            'qty' => (float) $line->plan_qty,
+            'line_id' => $line->id,
+        ]);
+    }
+
+    public function moveWindowPart(Request $request, ProductionPlanningBoardService $board)
+    {
+        $validated = $request->validate([
+            'gci_part_id' => 'required|integer|exists:gci_parts,id',
+            'start_date' => 'required|date',
+            'days' => 'required|integer|min:1|max:3',
+            'direction' => 'required|in:up,down',
+        ]);
+
+        $rows = $board->movePart(
+            (int) $validated['gci_part_id'],
+            $validated['start_date'],
+            (int) $validated['days'],
+            $validated['direction']
+        );
+
+        return response()->json([
+            'success' => true,
+            'part_ids' => $rows->pluck('part.id')->values(),
+        ]);
+    }
+
+    public function deleteWindowPart(Request $request, ProductionPlanningBoardService $board)
+    {
+        $validated = $request->validate([
+            'gci_part_id' => 'required|integer|exists:gci_parts,id',
+            'start_date' => 'required|date',
+            'days' => 'required|integer|min:1|max:3',
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'removed' => $board->removePart(
+                (int) $validated['gci_part_id'],
+                $validated['start_date'],
+                (int) $validated['days']
+            ),
+        ]);
+    }
+
+    public function generateWindowWo(Request $request)
+    {
+        $validated = $request->validate([
+            'gci_part_id' => 'required|integer|exists:gci_parts,id',
+            'start_date' => 'required|date',
+            'days' => 'required|integer|min:1|max:3',
+        ]);
+
+        $startDate = Carbon::parse($validated['start_date'])->startOfDay();
+        $endDate = $startDate->copy()->addDays((int) $validated['days'] - 1);
+        $lines = ProductionPlanningLine::query()
+            ->with(['session', 'gciPart'])
+            ->where('gci_part_id', $validated['gci_part_id'])
+            ->where('plan_qty', '>', 0)
+            ->whereHas('session', fn ($query) => $query->whereBetween('plan_date', [
+                $startDate->toDateString(),
+                $endDate->toDateString(),
+            ]))
+            ->get()
+            ->sortBy(fn (ProductionPlanningLine $line) => $line->session->plan_date->toDateString());
+
+        if ($lines->isEmpty()) {
+            return back()->with('error', 'Isi target harian terlebih dahulu.');
+        }
+
+        DB::beginTransaction();
+        try {
+            $prefix = 'WO-' . now()->format('ymd');
+            $sequence = $this->nextWoSequenceBase($prefix);
+            $generated = 0;
+
+            foreach ($lines as $line) {
+                foreach ($this->resolveShiftPlanMap($line) as $shiftNo => $plannedQty) {
+                    $exists = ProductionOrder::query()
+                        ->where('planning_line_id', $line->id)
+                        ->where('shift', (string) $shiftNo)
+                        ->exists();
+
+                    if ($exists || $plannedQty <= 0) {
+                        continue;
+                    }
+
+                    $sequence++;
+                    $planDate = $line->session->plan_date->toDateString();
+                    $order = ProductionOrder::query()->create([
+                        'production_order_number' => $prefix . '-S' . $shiftNo . '-' . str_pad($sequence, 4, '0', STR_PAD_LEFT),
+                        'transaction_no' => ProductionOrder::generateTransactionNo($planDate),
+                        'gci_part_id' => $line->gci_part_id,
+                        'machine_id' => null,
+                        'process_name' => null,
+                        'planning_line_id' => $line->id,
+                        'plan_date' => $planDate,
+                        'qty_planned' => $plannedQty,
+                        'shift' => (string) $shiftNo,
+                        'production_sequence' => $line->production_sequence ?: ($line->sort_order ?: $line->id),
+                        'status' => 'planned',
+                        'workflow_stage' => 'planned',
+                        'qty_actual' => 0,
+                        'qty_rejected' => 0,
+                        'created_by' => auth()->id(),
+                    ]);
+
+                    $arrivalIds = $this->findLinkedArrivalIds($line->gci_part_id);
+                    if (!empty($arrivalIds)) {
+                        $order->arrivals()->sync($arrivalIds);
+                    }
+
+                    $this->syncMaterialRequestForLegacyOrder($order);
+                    $generated++;
+                }
+            }
+
+            DB::commit();
+
+            return redirect()->route('production.planning.index', [
+                'date' => $startDate->toDateString(),
+                'days' => (int) $validated['days'],
+            ])->with(
+                $generated > 0 ? 'success' : 'error',
+                $generated > 0 ? "Berhasil membuat {$generated} WO sesuai tanggal plan." : 'Semua WO untuk target harian ini sudah dibuat.'
+            );
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            report($e);
+
+            return redirect()->route('production.planning.index', [
+                'date' => $startDate->toDateString(),
+                'days' => (int) $validated['days'],
+            ])->with('error', 'Gagal membuat WO: ' . $e->getMessage());
+        }
+    }
+
     /**
      * Generate WO from planning session
      */
@@ -362,7 +457,7 @@ class ProductionPlanningController extends Controller
                         \Illuminate\Support\Facades\Log::warning("Failed to link arrivals for WO {$woNumber}: " . $e->getMessage());
                     }
 
-                    app(ProductionMaterialRequestService::class)->syncToOrder($order, auth()->id());
+                    $this->syncMaterialRequestForLegacyOrder($order);
 
                     $generated++;
                 }
@@ -455,7 +550,7 @@ class ProductionPlanningController extends Controller
                     \Illuminate\Support\Facades\Log::warning("Failed to link arrivals for WO {$woNumber}: " . $e->getMessage());
                 }
 
-                app(ProductionMaterialRequestService::class)->syncToOrder($order, auth()->id());
+                $this->syncMaterialRequestForLegacyOrder($order);
                 $generated++;
             }
 
@@ -502,6 +597,14 @@ class ProductionPlanningController extends Controller
 
                 return $max;
             }, 0);
+    }
+
+    private function syncMaterialRequestForLegacyOrder(ProductionOrder $order): void
+    {
+        $materialOrder = \App\Models\NewSchema\Production\ProductionOrder::query()->find($order->id);
+        if ($materialOrder) {
+            app(ProductionMaterialRequestService::class)->syncToOrder($materialOrder, auth()->id());
+        }
     }
 
     /**

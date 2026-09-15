@@ -11,6 +11,10 @@ Route::middleware('can:view_production')->prefix('production')->name('production
     Route::post('/planning/add-line', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'addLine'])->name('planning.add-line');
     Route::put('/planning/line/{line}', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'updateLine'])->name('planning.update-line');
     Route::delete('/planning/line/{line}', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'deleteLine'])->name('planning.delete-line');
+    Route::put('/planning/day-quantity', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'updateDailyQuantity'])->name('planning.day-quantity');
+    Route::post('/planning/window-move', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'moveWindowPart'])->name('planning.window-move');
+    Route::delete('/planning/window-part', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'deleteWindowPart'])->name('planning.window-delete');
+    Route::post('/planning/window-wo', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'generateWindowWo'])->name('planning.window-wo');
     Route::post('/planning/generate-mo', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'generateMoWo'])->name('planning.generate-mo');
     Route::post('/planning/generate-mo-line', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'generateMoWoLine'])->name('planning.generate-mo-line');
     Route::post('/planning/pull-delivery-requirement', [\App\Http\Controllers\Production\ProductionPlanningController::class, 'pullFromDeliveryRequirement'])->name('planning.pull-delivery-requirement');
