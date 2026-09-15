@@ -96,6 +96,33 @@ class ArrivalController extends Controller
         return str_replace(',', '.', $trimmed);
     }
 
+    /**
+     * qty_goods / qty_bundle are decimal(20,4) columns but validated with the
+     * `integer` rule. A whole-number value stored as e.g. "1000.0000" (or the
+     * model's `decimal:3` cast rendering "1000.000") would otherwise fail
+     * FILTER_VALIDATE_INT on every edit, even when only the price changed.
+     * Convert whole numbers back to their integer string form, leave the rest.
+     */
+    private function normalizeIntegerInput(mixed $value): mixed
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $trimmed = trim((string) $value);
+        if ($trimmed === '') {
+            return null;
+        }
+
+        $num = (float) str_replace(',', '.', $trimmed);
+        $int = (int) $num;
+        if ($num == $int) {
+            return (string) $int;
+        }
+
+        return $trimmed;
+    }
+
     private function normalizeHsCodes(?string $raw): ?string
     {
         $value = trim((string) $raw);
@@ -753,6 +780,8 @@ class ArrivalController extends Controller
             'weight_nett' => $this->normalizeDecimalInput($request->input('weight_nett')),
             'weight_gross' => $this->normalizeDecimalInput($request->input('weight_gross')),
             'total_amount' => $this->normalizeDecimalInput($request->input('total_amount')),
+            'qty_goods' => $this->normalizeIntegerInput($request->input('qty_goods')),
+            'qty_bundle' => $this->normalizeIntegerInput($request->input('qty_bundle')),
             'unit_goods' => ($request->input('unit_goods') === null) ? null : strtoupper(trim((string) $request->input('unit_goods'))),
             'unit_bundle' => ($request->input('unit_bundle') === null) ? null : strtoupper(trim((string) $request->input('unit_bundle'))),
         ]);
@@ -853,6 +882,8 @@ class ArrivalController extends Controller
             'weight_nett' => $this->normalizeDecimalInput($request->input('weight_nett')),
             'weight_gross' => $this->normalizeDecimalInput($request->input('weight_gross')),
             'total_amount' => $this->normalizeDecimalInput($request->input('total_amount')),
+            'qty_goods' => $this->normalizeIntegerInput($request->input('qty_goods')),
+            'qty_bundle' => $this->normalizeIntegerInput($request->input('qty_bundle')),
             'unit_goods' => ($request->input('unit_goods') === null) ? null : strtoupper(trim((string) $request->input('unit_goods'))),
             'unit_bundle' => ($request->input('unit_bundle') === null) ? null : strtoupper(trim((string) $request->input('unit_bundle'))),
         ]);

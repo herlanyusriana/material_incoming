@@ -39,6 +39,7 @@ class IncomingArrival extends BaseModel
         'port_of_loading',
         'country',
         'container_numbers',
+        'seal_code',
         'currency',
         'notes',
         'status',

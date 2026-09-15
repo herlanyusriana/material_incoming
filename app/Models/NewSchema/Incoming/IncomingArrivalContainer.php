@@ -13,7 +13,7 @@ class IncomingArrivalContainer extends BaseModel
     protected $fillable = [
         'arrival_id',
         'container_no',
-        'seal_no',
+        'seal_code',
         'created_by',
         'updated_by',
     ];
