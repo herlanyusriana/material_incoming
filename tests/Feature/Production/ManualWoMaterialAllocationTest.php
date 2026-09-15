@@ -230,4 +230,30 @@ class ManualWoMaterialAllocationTest extends TestCase
             ->assertDontSeeText('RM Invoice')
             ->assertDontSeeText('Main RM Part');
     }
+
+    public function test_create_page_accepts_prefill_from_production_plan(): void
+    {
+        $response = $this->get(route('production.wo-tracking.create', [
+            'gci_part_id' => $this->fg->id,
+            'qty_target' => 4200,
+            'start_date' => now()->addDay()->toDateString(),
+        ]));
+
+        $response->assertOk()
+            ->assertSee('fgId: '.$this->fg->id, false)
+            ->assertSee('qty: 4200', false)
+            ->assertSee("startDate: '".now()->addDay()->toDateString(), false);
+    }
+
+    public function test_create_page_ignores_invalid_prefill_values(): void
+    {
+        $this->get(route('production.wo-tracking.create', [
+            'gci_part_id' => 0,
+            'qty_target' => 'not-a-number',
+            'start_date' => 'yesterday; DROP',
+        ]))
+            ->assertOk()
+            ->assertDontSee('qty: not-a-number', false)
+            ->assertDontSee('yesterday; DROP', false);
+    }
 }

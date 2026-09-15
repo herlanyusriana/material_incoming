@@ -1,11 +1,13 @@
 @php
     $wo = $wo ?? null;
-    $initialDate = old('start_date', ($wo?->start_date ?? now())->format('Y-m-d'));
-    $initialQty = old('qty_target', $wo?->qty_target ?? '');
+    $prefill = $prefill ?? null;
+    $initialDate = old('start_date', ($wo?->start_date ?? null)?->format('Y-m-d') ?: ($prefill['start_date'] ?? now()->toDateString()));
+    $initialQty = old('qty_target', ($wo?->qty_target ?? '') !== '' ? ($wo?->qty_target ?? '') : ($prefill['qty_target'] ?? ''));
+    $initialFg = old('gci_part_id', $wo?->gci_part_id ?: ($prefill['gci_part_id'] ?? null));
 @endphp
 
 <div class="mx-auto w-full max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8"
-     x-data="manualWoAllocationForm({ fgId: @js(old('gci_part_id', $wo?->gci_part_id)), startDate: @js($initialDate), qty: @js($initialQty), serverErrors: @js($errors->toArray()) })">
+     x-data="manualWoAllocationForm({ fgId: @js($initialFg), startDate: @js($initialDate), qty: @js($initialQty), serverErrors: @js($errors->toArray()) })">
     <form method="POST" action="{{ $wo ? route('production.wo-tracking.update', $wo) : route('production.wo-tracking.store') }}" @submit="submitting = true" class="space-y-5">
         @csrf
         @if ($wo) @method('PUT') @endif

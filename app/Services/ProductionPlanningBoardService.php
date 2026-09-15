@@ -101,6 +101,10 @@ class ProductionPlanningBoardService
                     ])
                     ->values();
 
+                $planWindowQty = $partLines->sum(fn (ProductionPlanningLine $line) => max(0, (float) $line->plan_qty));
+                $plannedOrderQty = (float) $orders->reject(fn (ProductionOrder $order) => $order->status === 'cancelled')
+                    ->sum(fn (ProductionOrder $order) => max(0, (float) $order->qty_planned));
+
                 return [
                     'part' => $part,
                     'sort_order' => (int) $first->sort_order,
@@ -117,6 +121,7 @@ class ProductionPlanningBoardService
                     'available_wo_qty' => (float) $orders
                         ->reject(fn (ProductionOrder $order) => in_array($order->status, ['completed', 'cancelled'], true))
                         ->sum(fn (ProductionOrder $order) => max(0, (float) $order->qty_planned - (float) $order->qty_actual)),
+                    'pending_wo_qty' => (float) max(0, $planWindowQty - $plannedOrderQty),
                     'orders' => $orders->map(fn (ProductionOrder $order) => [
                         'id' => $order->id,
                         'number' => $order->production_order_number,

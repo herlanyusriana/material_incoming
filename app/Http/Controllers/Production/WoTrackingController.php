@@ -120,9 +120,19 @@ class WoTrackingController extends Controller
         ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        return view('production.wo-tracking.create');
+        // Optional prefill when arriving from the production plan board.
+        $prefillQty = (float) $request->query('qty_target', 0);
+        $prefillDate = (string) $request->query('start_date', '');
+
+        $prefill = [
+            'gci_part_id' => (int) $request->query('gci_part_id', 0) ?: null,
+            'qty_target' => $prefillQty > 0 ? $prefillQty : null,
+            'start_date' => preg_match('/^\d{4}-\d{2}-\d{2}$/', $prefillDate) ? $prefillDate : null,
+        ];
+
+        return view('production.wo-tracking.create', ['prefill' => $prefill]);
     }
 
     public function allocationPreview(Request $request, WoTrackingService $tracking): JsonResponse
